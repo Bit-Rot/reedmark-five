@@ -44,8 +44,8 @@ test('desktop holds a 3D die, rejects an invalid drop, and plays a valid drop', 
   await page.waitForTimeout(160);
   await drag(page, die(page, 'd0'), actor(page, 'courier'));
   await expect(page.locator('[data-socket="0"].is-spent')).toBeVisible();
-  await expect(actor(page, 'courier')).toContainText('⬟ 3');
-  const attack = page.locator('button.seated[aria-label*="Hit"]').first();
+  await expect(actor(page, 'courier').locator('.chip--guard')).toHaveText('3');
+  const attack = page.locator('button.seated[aria-label*="Damage"]').first();
   await drag(page, attack, actor(page, 'gnat-a'));
   await expect(actor(page, 'gnat-a')).not.toContainText('10/10');
 });
@@ -69,6 +69,87 @@ test('narrow touch layout exposes ten pool dice and supports tap targeting', asy
   await context.close();
 });
 
+async function saveFixture(page: Page, state: State): Promise<void> {
+  await page.addInitScript(save => {
+    localStorage.setItem(`reedmark:${save.variant}:v1`, JSON.stringify(save));
+  }, state);
+  await page.goto('/');
+}
+
+test('hover and right click show illustrated faces and their in-game definitions', async ({ page }) => {
+  const state = newRun('fixed', 231);
+  state.combat!.rolls[3].slot = 'left';
+  await saveFixture(page, state);
+  await die(page, 'd3').hover();
+  const tooltip = page.getByRole('tooltip');
+  await expect(tooltip).toContainText('3 Block, 2 Tune');
+  await expect(tooltip).toContainText('Increases another unspent die’s first Damage or Block value');
+  await expect(tooltip.locator('dt')).toHaveText(['Block', 'Tune']);
+  await expect(die(page, 'd3')).not.toHaveAttribute('title', /.+/);
+
+  await die(page, 'd2').click({ button: 'right' });
+  const layout = page.getByRole('dialog', { name: 'Bristle die layout' });
+  await expect(layout).toBeVisible();
+  await expect(layout.locator('.net-tile img')).not.toHaveCount(0);
+  await expect(layout.locator('.net-tile')).toHaveCount(6);
+  await layout.locator('[data-slot="left"]').hover();
+  await expect(tooltip).toContainText('3 Damage, 3 Poison');
+  await expect(tooltip).toContainText('Poison bypasses Block');
+  const hintBounds = (await tooltip.boundingBox())!;
+  const layoutBounds = (await layout.boundingBox())!;
+  expect(hintBounds.x).toBeGreaterThan(layoutBounds.x + layoutBounds.width);
+  await page.keyboard.press('Escape');
+  await expect(layout).toHaveCount(0);
+  await expect(page.locator('.stage-cube')).toHaveCount(5);
+  await die(page, 'd3').focus();
+  await page.keyboard.press('Shift+F10');
+  await expect(page.getByRole('dialog', { name: 'Switch die layout' })).toBeVisible();
+});
+
+test('Fixed Five keeps every die visible and applies an item directly on drop', async ({ page }) => {
+  const state = newRun('fixed', 231);
+  state.phase = 'reward';
+  state.offers = [{ kind: 'item', id: 'sea' }, { kind: 'item', id: 'moss' }, { kind: 'item', id: 'nick' }];
+  await saveFixture(page, state);
+  const item = page.getByRole('button', { name: 'Sea Thread' });
+  const target = page.locator('[data-imprint-target="d0"]');
+  await expect(page.locator('[data-imprint-target]')).toHaveCount(5);
+  await expect(target.locator('.net-tile')).toHaveCount(6);
+  await drag(page, item, { x: 28, y: 650 });
+  await expect(page.getByRole('heading', { name: 'Spoils' })).toBeVisible();
+
+  const from = await center(item);
+  const to = await center(target);
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.mouse.move(to.x, to.y, { steps: 6 });
+  await expect(target).toHaveClass(/is-previewing/);
+  await expect(target.locator('.net-tile.is-changed')).toHaveCount(2);
+  await page.mouse.up();
+
+  await expect(page.locator('#interface')).toHaveAttribute('data-phase', 'battle');
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('reedmark:fixed:v1')!)) as State;
+  expect(saved.dice[0].imprints).toEqual({ top: 'sea', bottom: 'sea' });
+  expect(saved.dice[1].imprints).toEqual({});
+  expect(saved.room).toBe(1);
+});
+
+test('Fixed Five accepts a tap on an item and a tap on its destination', async ({ browser }) => {
+  const context = await browser.newContext({
+    baseURL: 'http://localhost:4177', viewport: { width: 390, height: 844 },
+    isMobile: true, hasTouch: true, reducedMotion: 'reduce',
+  });
+  const page = await context.newPage();
+  const state = newRun('fixed', 231);
+  state.phase = 'reward';
+  state.offers = [{ kind: 'item', id: 'sea' }, { kind: 'item', id: 'moss' }, { kind: 'item', id: 'nick' }];
+  await saveFixture(page, state);
+  await page.getByRole('button', { name: 'Sea Thread' }).tap();
+  await page.getByRole('button', { name: 'Imprint on Needle' }).tap();
+  await expect(page.locator('#interface')).toHaveAttribute('data-phase', 'battle');
+  await context.close();
+});
+
 async function perform(page: Page, command: Command): Promise<void> {
   if (command.action === 'hold') {
     await die(page, command.id).click();
@@ -81,8 +162,12 @@ async function perform(page: Page, command: Command): Promise<void> {
   } else if (command.action === 'take') {
     await page.locator(`button[data-action="offer"][data-index="${command.index}"]`).click();
     if (command.id) {
-      await page.locator(`button[data-action="reward-die"][data-id="${command.id}"]`).click();
-      await action(page, 'take').click();
+      const direct = page.locator(`button[data-imprint-target="${command.id}"]`);
+      if (await direct.count()) await direct.click();
+      else {
+        await page.locator(`button[data-action="reward-die"][data-id="${command.id}"]`).click();
+        await action(page, 'take').click();
+      }
     }
   } else {
     await action(page, command.action).click();

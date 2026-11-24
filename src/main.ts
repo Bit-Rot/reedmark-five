@@ -1,10 +1,12 @@
 import './style.css';
+import './face-ui.css';
 import { DICE, ITEMS, ROOMS } from './content.ts';
 import { actionPreview, advance, canPlay, chooseOffer, commitRoll, endTurn, incoming, intentValues, isSave,
   newRun, offerTargets, play, previewDie, reroll, rollFace, setHold } from './game.ts';
 import type { Die, Offer, Roll, State, Target, Variant } from './model.ts';
+import { EFFECTS, loadEffectImages } from './effects.ts';
 import { art, Battlefield } from './scene.ts';
-import { button, caption, chips, element, faceNet, faceText, itemNet } from './ui.ts';
+import { button, caption, chips, effectChip, element, faceEmblem, FaceTooltips, faceNet, faceText, helpOn, itemNet, positionFloater } from './ui.ts';
 
 declare const __VARIANT__: Variant;
 
@@ -14,6 +16,7 @@ const seedParam = requested.get('seed');
 const seeded = seedParam !== null && /^\d{1,10}$/.test(seedParam);
 const randomSeed = () => crypto.getRandomValues(new Uint32Array(1))[0];
 const saveKey = `reedmark:${variant}:v1`;
+const root = document.querySelector<HTMLElement>('#game')!;
 const stage = document.querySelector<HTMLElement>('#stage')!;
 const view = document.querySelector<HTMLElement>('#interface')!;
 const announcer = document.querySelector<HTMLElement>('#announcer')!;
@@ -44,7 +47,7 @@ let suppressedClick: { x: number; y: number; until: number } | null = null;
 let board: Battlefield | undefined;
 
 interface Drag {
-  id: string;
+  source: { kind: 'die'; id: string } | { kind: 'item'; index: number };
   pointer: number;
   x: number;
   y: number;
@@ -52,8 +55,10 @@ interface Drag {
   ghost?: HTMLElement;
 }
 let drag: Drag | null = null;
-const moveNames = { hit: 'Hit', guard: 'Guard', power: 'Power', wait: 'Wait' };
-const moveIcons = { hit: '✦', guard: '⬟', power: '✚', wait: '·' };
+let inspection: { node: HTMLElement; anchor: HTMLElement } | null = null;
+const tooltips = new FaceTooltips(root, () => rolling || !!drag?.started);
+const moveNames = { hit: EFFECTS.hit.name, guard: EFFECTS.guard.name, power: 'Power', wait: 'Wait' };
+const moveIcons = { hit: 'hit', guard: 'guard', power: 'boost' } as const;
 
 function save(): void {
   if (seeded) return;
@@ -109,8 +114,8 @@ function worldLayer(): HTMLElement {
   self.dataset.focus = 'courier';
   self.append(element('span', 'actor-caption', element('strong', '', 'Courier'),
     element('span', 'actor-status',
-      combat.guard ? element('span', 'guard-value', `⬟ ${combat.guard}`) : null,
-      combat.ward ? element('span', 'ward-value', `◒ ${combat.ward}`) : null,
+      combat.guard ? effectChip('guard', combat.guard) : null,
+      combat.ward ? effectChip('ward', combat.ward) : null,
     ),
   ));
   world.append(self);
@@ -125,7 +130,8 @@ function worldLayer(): HTMLElement {
     const enemyIntents = element('span', 'intents');
     for (const intent of intents.filter(intent => intent.owner === enemy.id)) {
       const value = intent.move === 'wait' ? '' : '' + intent.value;
-      const pip = element('span', `intent intent--${intent.move}`, element('span', '', moveIcons[intent.move]), value);
+      const token = intent.move === 'wait' ? '·' : effectChip(moveIcons[intent.move], value);
+      const pip = element('span', `intent intent--${intent.move}`, token);
       pip.title = intent.move === 'wait' ? 'Wait' : `${value} ${moveNames[intent.move]}`;
       enemyIntents.append(pip);
     }
@@ -133,8 +139,8 @@ function worldLayer(): HTMLElement {
       element('strong', '', enemy.name),
       meter(enemy.hp, enemy.maxHp),
       element('span', 'enemy-hp', `${enemy.hp}/${enemy.maxHp}`,
-        enemy.guard ? element('span', 'guard-value', `⬟${enemy.guard}`) : null,
-        enemy.seep ? element('span', 'seep-value', `◈${enemy.seep}`) : null,
+        enemy.guard ? effectChip('guard', enemy.guard) : null,
+        enemy.seep ? effectChip('seep', enemy.seep) : null,
       ),
     ));
     world.append(target);
@@ -145,9 +151,11 @@ function worldLayer(): HTMLElement {
     const identity = DICE[die.template];
     const face = rollFace(state, roll);
     const dieButton = button(`stage-cube tone-${identity.tone}`, 'die', `${identity.name}, ${faceText(face)}`,
-      element('span', 'world-face', chips(face)), element('span', 'cube-tag', identity.name));
+      element('span', 'world-face', faceEmblem(face)), element('span', 'cube-tag', identity.name));
     dieButton.dataset.worldDie = roll.dieId;
     dieButton.dataset.die = roll.dieId;
+    dieButton.dataset.inspectDie = roll.dieId;
+    helpOn(dieButton, face);
     dieButton.dataset.focus = roll.dieId;
     world.append(dieButton);
   });
@@ -174,12 +182,13 @@ function tray(): HTMLElement | null {
       const seated = button(`seated tone-${identity.tone}`, 'die', `${identity.name}, ${faceText(face, roll.boost)}`,
         chips(face, roll.boost), element('small', '', identity.name));
       seated.dataset.die = roll.dieId;
+      seated.dataset.inspectDie = roll.dieId;
+      helpOn(seated, face, roll.boost);
       seated.dataset.focus = roll.dieId;
       if (combat.phase === 'play') {
         seated.dataset.targetKind = 'die';
         seated.dataset.targetId = roll.dieId;
       }
-      seated.title = faceText(face, roll.boost);
       slot.append(seated);
     }
     slot.dataset.socket = '' + index;
@@ -190,9 +199,9 @@ function tray(): HTMLElement | null {
   const damage = Math.max(0, predicted - combat.guard);
   const readout = element('div', 'threat',
     caption(`Turn ${combat.turn}`),
-    element('span', 'threat-value', `✦ ${predicted}`, element('span', 'muted', ' / '), `⬟ ${combat.guard}`),
+    element('span', 'threat-value', effectChip('hit', predicted), element('span', 'muted', ' / '), effectChip('guard', combat.guard)),
   );
-  readout.title = `Incoming: ${predicted}. Guard: ${combat.guard}. HP loss: ${damage}.`;
+  readout.setAttribute('aria-label', `Incoming ${predicted} Damage. ${combat.guard} Block. HP loss ${damage}.`);
   readout.dataset.threat = 'true';
   const commands = element('div', 'commands');
   if (combat.phase === 'roll') {
@@ -231,23 +240,50 @@ function sheet(title: string, action: HTMLButtonElement): HTMLElement {
   return node;
 }
 
+function offerGrid(direct = false): HTMLElement {
+  const grid = element('div', 'offer-grid');
+  state.offers.forEach((entry, index) => {
+    const kind = entry.kind === 'item' ? ITEMS[entry.id].rarity : entry.kind === 'add' ? 'New die' : entry.kind;
+    const card = button(`offer-card offer--${kind.toLowerCase().replace(' ', '-')}`, 'offer', describeOffer(entry),
+      caption(kind), element('strong', '', describeOffer(entry)), offerBody(entry));
+    card.dataset.index = '' + index;
+    card.dataset.focus = `offer-${index}`;
+    card.disabled = ['item', 'remove', 'transform'].includes(entry.kind) && !offerTargets(state, entry).length;
+    if (direct && entry.kind === 'item') {
+      card.dataset.dragItem = '' + index;
+      card.setAttribute('aria-pressed', '' + (offerIndex === index));
+    }
+    grid.append(card);
+  });
+  return grid;
+}
+
+function fixedOfferSheet(): HTMLElement {
+  const room = ROOMS[state.room];
+  const pane = sheet(room.type === 'battle' ? 'Spoils' : room.name, button('subtle', 'skip', 'Skip reward', 'Skip'));
+  pane.classList.add('fixed-spoils');
+  const kit = element('div', 'imprint-kit');
+  for (const die of state.dice) {
+    const name = DICE[die.template].name;
+    const card = button('imprint-die', 'imprint-die', name, element('strong', '', name), faceNet(die));
+    card.dataset.imprintTarget = die.id;
+    card.dataset.inspectDie = die.id;
+    card.dataset.focus = `imprint-${die.id}`;
+    card.setAttribute('aria-label', offerIndex === null ? name : `Imprint on ${name}`);
+    kit.append(card);
+  }
+  pane.append(offerGrid(true), element('div', 'imprint-heading', caption('Imprint onto a die')), kit);
+  return element('div', 'overlay', pane);
+}
+
 function renderOffers(): HTMLElement {
+  if (variant === 'fixed') return fixedOfferSheet();
   const room = ROOMS[state.room];
   const offer = offerIndex === null ? undefined : state.offers[offerIndex];
   const title = offer ? describeOffer(offer) : room.type === 'battle' ? 'Spoils' : room.name;
   const pane = sheet(title, offer ? button('subtle', 'back', 'Back to rewards', 'Back') : button('subtle', 'skip', 'Skip reward', 'Skip'));
   if (!offer) {
-    const grid = element('div', 'offer-grid');
-    state.offers.forEach((entry, index) => {
-      const kind = entry.kind === 'item' ? ITEMS[entry.id].rarity : entry.kind === 'add' ? 'New die' : entry.kind;
-      const card = button(`offer-card offer--${kind.toLowerCase().replace(' ', '-')}`, 'offer', describeOffer(entry),
-        caption(kind), element('strong', '', describeOffer(entry)), offerBody(entry));
-      card.dataset.index = '' + index;
-      card.dataset.focus = `offer-${index}`;
-      card.disabled = ['item', 'remove', 'transform'].includes(entry.kind) && !offerTargets(state, entry).length;
-      grid.append(card);
-    });
-    pane.append(grid);
+    pane.append(offerGrid());
   } else {
     const candidates = offerTargets(state, offer);
     const options = element('div', 'die-picker');
@@ -256,6 +292,7 @@ function renderOffers(): HTMLElement {
       const picker = button(`picker tone-${entry.tone}${rewardDie === die.id ? ' is-selected' : ''}`, 'reward-die',
         entry.name, element('span', '', '◇'), entry.name);
       picker.dataset.id = die.id;
+      picker.dataset.inspectDie = die.id;
       picker.dataset.focus = `reward-${die.id}`;
       options.append(picker);
     }
@@ -287,11 +324,12 @@ function renderLedger(): HTMLElement {
     const status = variant === 'fixed' || !remaining ? '' : remaining.includes(die.id) ? '◇' : drawn.has(die.id) ? '◈' : '·';
     const pick = button(`picker tone-${entry.tone}${ledgerDie === die.id ? ' is-selected' : ''}`, 'inspect', entry.name, status, entry.name);
     pick.dataset.id = die.id;
+    pick.dataset.inspectDie = die.id;
     pick.dataset.focus = `inspect-${die.id}`;
     row.append(pick);
   }
   const displayed = state.dice.find(die => die.id === ledgerDie) ?? order[0];
-  pane.append(row, element('div', 'placement-detail', faceNet(displayed)));
+  pane.append(row, element('div', 'placement-detail', faceNet(displayed, undefined, true)));
   if (variant === 'pool' && remaining) {
     pane.append(element('div', 'ledger-counts', caption(`${remaining.length} remaining`), caption(`${state.dice.length} owned`)));
   }
@@ -330,6 +368,8 @@ function positionWorld(): void {
 
 function render(animate: ReadonlySet<string> = new Set(), lead = 0): void {
   const focused = document.activeElement instanceof HTMLElement ? document.activeElement.dataset.focus : null;
+  closeInspection();
+  tooltips.hide();
   const combat = state.combat;
   const fighting = state.phase === 'battle';
   view.dataset.phase = state.phase;
@@ -348,6 +388,7 @@ function render(animate: ReadonlySet<string> = new Set(), lead = 0): void {
   })) : [], animate, lead);
   positionWorld();
   paintTargets(selected);
+  paintImprint(offerIndex, null);
   if (focused) [...view.querySelectorAll<HTMLElement>('[data-focus]')].find(node => node.dataset.focus === focused)?.focus({ preventScroll: true });
 }
 
@@ -443,6 +484,80 @@ function apply(id: string, target: Target): void {
   }
 }
 
+function paintImprint(index: number | null, dieId: string | null): void {
+  if (variant !== 'fixed' || state.phase !== 'reward') return;
+  const offer = index === null ? undefined : state.offers[index];
+  for (const card of view.querySelectorAll<HTMLElement>('[data-imprint-target]')) {
+    const target = card.dataset.imprintTarget!;
+    const preview = offer?.kind === 'item' && target === dieId ? offer.id : '';
+    card.classList.toggle('is-ready', offer?.kind === 'item');
+    card.classList.toggle('is-previewing', !!preview);
+    if ((card.dataset.preview ?? '') === preview) continue;
+    const die = owned(target);
+    const after = preview && offer ? previewDie(state, offer, die) : null;
+    card.querySelector('.face-net')?.replaceWith(faceNet(die, after ?? undefined));
+    card.dataset.preview = preview;
+  }
+}
+
+function imprintAt(x: number, y: number): string | null {
+  for (const node of document.elementsFromPoint(x, y)) {
+    const card = node.closest<HTMLElement>('[data-imprint-target]');
+    if (card) return card.dataset.imprintTarget!;
+  }
+  return null;
+}
+
+function finishImprint(index: number, id: string): void {
+  if (!chooseOffer(state, index, id)) return;
+  offerIndex = null;
+  transition('reward', 0);
+}
+
+function closeInspection(returnFocus = false): void {
+  if (!inspection) return;
+  const { node, anchor } = inspection;
+  inspection = null;
+  tooltips.hide();
+  node.remove();
+  anchor.removeAttribute('aria-expanded');
+  if (returnFocus && anchor.isConnected) anchor.focus({ preventScroll: true });
+}
+
+function openInspection(anchor: HTMLElement, keyboard = false): void {
+  const id = anchor.dataset.inspectDie;
+  if (!id) return;
+  const die = state.dice.find(die => die.id === id);
+  if (!die) return;
+  closeInspection();
+  tooltips.hide();
+  const close = button('subtle', 'close-inspection', 'Close die layout', 'Close');
+  close.addEventListener('click', () => closeInspection(true));
+  const panel = element('section', 'die-inspection',
+    element('div', 'inspect-heading', element('h2', '', DICE[die.template].name), close),
+    faceNet(die, undefined, true),
+  );
+  panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-label', `${DICE[die.template].name} die layout`);
+  root.append(panel);
+  positionFloater(panel, anchor.getBoundingClientRect(), true);
+  inspection = { node: panel, anchor };
+  anchor.setAttribute('aria-expanded', 'true');
+  if (keyboard) panel.querySelector<HTMLElement>('[data-face-help]')?.focus({ preventScroll: true });
+}
+
+root.addEventListener('contextmenu', event => {
+  const anchor = (event.target as HTMLElement).closest<HTMLElement>('[data-inspect-die]');
+  if (!anchor) return;
+  event.preventDefault();
+  if (!rolling && !drag?.started) openInspection(anchor);
+});
+
+document.addEventListener('pointerdown', event => {
+  if (event.button === 0 && inspection && !inspection.node.contains(event.target as Node)) closeInspection();
+});
+window.addEventListener('resize', () => closeInspection());
+
 function toggleDie(id: string): void {
   const combat = state.combat;
   const roll = current(id);
@@ -500,13 +615,23 @@ view.addEventListener('click', event => {
     const index = Number(node.dataset.index);
     const offer = state.offers[index];
     if (offer.kind === 'add' || offer.kind === 'heal') {
-      if (chooseOffer(state, index)) transition('reward', 0);
+      if (chooseOffer(state, index)) {
+        offerIndex = null;
+        transition('reward', 0);
+      }
+    } else if (variant === 'fixed' && offer.kind === 'item') {
+      offerIndex = offerIndex === index ? null : index;
+      render();
+      if (offerIndex !== null && event.detail === 0) view.querySelector<HTMLElement>('[data-imprint-target]')?.focus();
     } else {
       offerIndex = index;
       rewardDie = null;
       render();
       view.querySelector<HTMLButtonElement>('[data-action="reward-die"]')?.focus();
     }
+  } else if (action === 'imprint-die') {
+    if (offerIndex !== null) finishImprint(offerIndex, node.dataset.imprintTarget!);
+    else openInspection(node, event.detail === 0);
   } else if (action === 'reward-die') {
     rewardDie = node.dataset.id!;
     render();
@@ -519,6 +644,7 @@ view.addEventListener('click', event => {
     rewardDie = null;
     render();
   } else if (action === 'skip' && advance(state)) {
+    offerIndex = null;
     transition('reward', 0);
   } else if (action === 'new') {
     const seed = seeded ? Number(seedParam) : randomSeed();
@@ -531,10 +657,14 @@ view.addEventListener('click', event => {
 
 view.addEventListener('pointerdown', event => {
   if (rolling || ledger || event.button !== 0 || drag) return;
-  const owner = (event.target as HTMLElement).closest<HTMLElement>('[data-die]');
-  const id = owner?.dataset.die;
-  if (!id || !current(id) || current(id)?.used) return;
-  drag = { id, pointer: event.pointerId, x: event.clientX, y: event.clientY, started: false };
+  const element = event.target as HTMLElement;
+  const item = element.closest<HTMLElement>('[data-drag-item]');
+  const id = element.closest<HTMLElement>('[data-die]')?.dataset.die;
+  let source: Drag['source'];
+  if (item && state.phase === 'reward') source = { kind: 'item', index: Number(item.dataset.dragItem) };
+  else if (id && current(id) && !current(id)?.used) source = { kind: 'die', id };
+  else return;
+  drag = { source, pointer: event.pointerId, x: event.clientX, y: event.clientY, started: false };
 });
 
 function pointTarget(x: number, y: number, id: string): HTMLElement | undefined {
@@ -545,22 +675,36 @@ function pointTarget(x: number, y: number, id: string): HTMLElement | undefined 
 document.addEventListener('pointermove', event => {
   if (!drag || drag.pointer !== event.pointerId) {
     if (selected && !drag) paintTargets(selected, pointTarget(event.clientX, event.clientY, selected));
+    if (variant === 'fixed' && offerIndex !== null && !drag && event.pointerType !== 'touch') paintImprint(offerIndex, imprintAt(event.clientX, event.clientY));
     return;
   }
   if (!drag.started && Math.hypot(event.clientX - drag.x, event.clientY - drag.y) > 6) {
-    const roll = current(drag.id)!;
-    const identity = DICE[owned(drag.id).template];
+    const source = drag.source;
+    if (source.kind === 'item') {
+      const offer = state.offers[source.index];
+      if (offer.kind !== 'item') return;
+      drag.ghost = element('div', 'drag-ghost item-drag-ghost', element('strong', '', ITEMS[offer.id].name), itemNet(offer.id));
+    } else {
+      const roll = current(source.id)!;
+      const identity = DICE[owned(source.id).template];
+      drag.ghost = element('div', `drag-ghost tone-${identity.tone}`, chips(rollFace(state, roll), roll.boost));
+    }
     drag.started = true;
+    tooltips.hide();
+    closeInspection();
     view.setPointerCapture(event.pointerId);
-    drag.ghost = element('div', `drag-ghost tone-${identity.tone}`, chips(rollFace(state, roll), roll.boost));
     document.body.append(drag.ghost);
     view.dataset.dragging = 'true';
   }
   if (!drag.started) return;
   drag.ghost!.style.transform = `translate(${event.clientX}px, ${event.clientY}px) translate(-50%, -50%)`;
-  const isRack = document.elementsFromPoint(event.clientX, event.clientY).some(node => node.closest('[data-hold]'));
-  view.dataset.overRack = '' + isRack;
-  paintTargets(drag.id, pointTarget(event.clientX, event.clientY, drag.id));
+  if (drag.source.kind === 'item') {
+    paintImprint(drag.source.index, imprintAt(event.clientX, event.clientY));
+  } else {
+    const isRack = document.elementsFromPoint(event.clientX, event.clientY).some(node => node.closest('[data-hold]'));
+    view.dataset.overRack = '' + isRack;
+    paintTargets(drag.source.id, pointTarget(event.clientX, event.clientY, drag.source.id));
+  }
 });
 
 function clearDrag(): Drag | null {
@@ -569,6 +713,7 @@ function clearDrag(): Drag | null {
   drag = null;
   delete view.dataset.dragging;
   delete view.dataset.overRack;
+  if (previous?.source.kind === 'item') paintImprint(offerIndex, null);
   return previous;
 }
 
@@ -577,7 +722,12 @@ document.addEventListener('pointerup', event => {
   const ready = clearDrag();
   if (!ready?.started) return;
   suppressedClick = { x: event.clientX, y: event.clientY, until: performance.now() + 100 };
-  const id = ready.id;
+  if (ready.source.kind === 'item') {
+    const id = imprintAt(event.clientX, event.clientY);
+    if (id) finishImprint(ready.source.index, id);
+    return;
+  }
+  const id = ready.source.id;
   if (state.combat?.phase === 'roll') {
     const drop = document.elementsFromPoint(event.clientX, event.clientY);
     const inRack = drop.some(node => node.closest('[data-hold]'));
@@ -595,17 +745,30 @@ document.addEventListener('pointercancel', () => { clearDrag(); paintTargets(sel
 view.addEventListener('pointerleave', () => { if (!drag) paintedClear(); });
 window.addEventListener('blur', () => { clearDrag(); paintTargets(selected); });
 view.addEventListener('focusin', event => {
-  if (!selected || !(event.target instanceof HTMLElement)) return;
+  if (!(event.target instanceof HTMLElement)) return;
+  const imprintTarget = event.target.closest<HTMLElement>('[data-imprint-target]');
+  if (imprintTarget?.matches(':focus-visible') && offerIndex !== null) paintImprint(offerIndex, imprintTarget.dataset.imprintTarget!);
   const target = event.target.closest<HTMLElement>('[data-target-kind]');
-  if (target) paintTargets(selected, target);
+  if (selected && target) paintTargets(selected, target);
 });
 document.addEventListener('keydown', event => {
+  if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) {
+    const anchor = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-inspect-die]') : null;
+    if (anchor && !rolling) {
+      event.preventDefault();
+      openInspection(anchor, true);
+    }
+    return;
+  }
   if (event.key !== 'Escape') return;
+  tooltips.hide();
+  if (inspection) { closeInspection(true); return; }
   if (ledger) { ledger = false; render(); }
   else if (offerIndex !== null) { offerIndex = null; rewardDie = null; render(); }
   else { selected = null; clearDrag(); paintTargets(null); }
 });
 
+await loadEffectImages();
 board = new Battlefield(stage, positionWorld);
 save();
 if (state.phase === 'battle' && state.combat?.phase === 'roll' && state.combat.turn === 1 && state.combat.rerolls === 2) {

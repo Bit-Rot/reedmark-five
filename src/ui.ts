@@ -1,8 +1,9 @@
 import { DICE, ITEMS } from './content.ts';
+import { EFFECTS, effectUrl, faceEffects } from './effects.ts';
+import type { EffectKey } from './effects.ts';
 import { effectiveParts, faceFor } from './game.ts';
 import { SLOTS } from './model.ts';
-import type { Die, Face, Part, Slot } from './model.ts';
-import { names, symbols } from './scene.ts';
+import type { Die, Face, Part } from './model.ts';
 
 type Child = HTMLElement | string | null | undefined;
 
@@ -26,40 +27,83 @@ export function caption(value: string): HTMLElement {
   return element('span', 'eyebrow', value);
 }
 
-export function partText(part: Part): string {
-  return `${part.count && part.count > 1 ? `${part.count} × ` : ''}${part.value} ${names[part.kind]}`;
+function amount(part: Part): string {
+  return `${part.value}${part.count && part.count > 1 ? `×${part.count}` : ''}`;
 }
 
 export function faceText(face: Face, boost = 0): string {
-  const parts = effectiveParts(face, boost).map(partText).join(', ');
-  return face.salvage ? `${parts}, reroll +${face.salvage} Guard` : parts;
+  const parts = effectiveParts(face, boost).map(part => `${amount(part)} ${EFFECTS[part.kind].name}`).join(', ');
+  return face.salvage ? `${parts}, reroll for ${face.salvage} Block` : parts;
+}
+
+export function effectIcon(kind: EffectKey): HTMLElement {
+  const url = effectUrl(kind);
+  const effect = EFFECTS[kind];
+  const node = element('span', `effect-icon effect-icon--${kind}`);
+  node.style.setProperty('--effect-color', effect.color);
+  node.setAttribute('aria-hidden', 'true');
+  if (url) {
+    const img = element('img');
+    img.src = url;
+    img.alt = '';
+    img.draggable = false;
+    node.append(img);
+  } else {
+    node.textContent = effect.symbol;
+  }
+  return node;
+}
+
+export function effectChip(kind: EffectKey, value: number | string): HTMLElement {
+  return element('span', `chip chip--${kind}`, effectIcon(kind), '' + value);
 }
 
 export function chips(face: Face, boost = 0): HTMLElement {
   const row = element('span', 'chips');
-  for (const part of effectiveParts(face, boost)) {
-    row.append(element('span', `chip chip--${part.kind}`,
-      element('span', 'chip-symbol', symbols[part.kind]),
-      '' + part.value + (part.count && part.count > 1 ? `×${part.count}` : ''),
-    ));
-  }
-  if (face.salvage) row.append(element('span', 'chip chip--salvage', `↻${face.salvage}`));
+  for (const part of effectiveParts(face, boost)) row.append(effectChip(part.kind, amount(part)));
+  if (face.salvage) row.append(effectChip('salvage', face.salvage));
   row.setAttribute('aria-hidden', 'true');
   return row;
 }
 
-export function faceNet(die: Die, result?: Die): HTMLElement {
+export function faceEmblem(face: Face): HTMLElement {
+  const [primary, ...rest] = face.parts;
+  const emblem = element('span', 'face-emblem', effectIcon(primary.kind), element('span', 'face-amount', amount(primary)));
+  const extra = element('span', 'face-extra');
+  for (const part of rest) extra.append(effectChip(part.kind, amount(part)));
+  if (face.salvage) extra.append(effectChip('salvage', face.salvage));
+  if (extra.childElementCount) emblem.append(extra);
+  emblem.setAttribute('aria-hidden', 'true');
+  return emblem;
+}
+
+interface FaceHint {
+  face: Face;
+  boost: number;
+  before?: Face;
+}
+
+const hints = new WeakMap<HTMLElement, FaceHint>();
+
+export function helpOn(node: HTMLElement, face: Face, boost = 0, before?: Face): void {
+  node.dataset.faceHelp = 'true';
+  hints.set(node, { face, boost, before });
+}
+
+const slotNames = { left: 'Left', center: 'Center', right: 'Right', far: 'Far right', top: 'Top', bottom: 'Bottom' };
+
+export function faceNet(die: Die, result?: Die, interactive = false): HTMLElement {
   const grid = element('div', 'face-net');
   grid.setAttribute('aria-label', `${DICE[die.template].name} faces`);
   for (const slot of SLOTS) {
     const before = faceFor(die, slot);
     const after = result ? faceFor(result, slot) : before;
-    const changed = (result?.imprints[slot] !== die.imprints[slot] || result?.template !== die.template)
-      && !!result && JSON.stringify(before) !== JSON.stringify(after);
-    const tile = element('div', `net-tile net-tile--${slot}${changed ? ' is-changed' : ''}`);
-    tile.title = changed ? `${slot}: ${faceText(before)} → ${faceText(after)}` : `${slot}: ${faceText(after)}`;
-    tile.append(chips(after));
-    if (changed) tile.append(element('span', 'old-face', chips(before)));
+    const changed = !!result && JSON.stringify(before) !== JSON.stringify(after);
+    const tile = element('span', `net-tile net-tile--${slot}${changed ? ' is-changed' : ''}`, faceEmblem(after));
+    tile.dataset.slot = slot;
+    tile.setAttribute('aria-label', `${slotNames[slot]}, ${faceText(after)}`);
+    if (interactive) tile.tabIndex = 0;
+    helpOn(tile, after, 0, changed ? before : undefined);
     grid.append(tile);
   }
   return grid;
@@ -70,13 +114,107 @@ export function itemNet(itemId: string): HTMLElement {
   const grid = element('div', 'face-net item-net');
   for (const slot of SLOTS) {
     const face = item.edits[slot];
-    const tile = element('div', `net-tile net-tile--${slot}${face ? ' is-changed' : ''}`, face ? chips(face) : '·');
-    tile.title = face ? `${slot}: ${faceText(face)}` : slot;
+    const tile = element('span', `net-tile net-tile--${slot}${face ? ' is-changed' : ' is-empty'}`, face ? faceEmblem(face) : '·');
+    tile.dataset.slot = slot;
+    if (face) {
+      tile.setAttribute('aria-label', `${slotNames[slot]}, ${faceText(face)}`);
+      helpOn(tile, face);
+    } else tile.setAttribute('aria-hidden', 'true');
     grid.append(tile);
   }
   return grid;
 }
 
-export function imprintGlyph(slot: Slot): string {
-  return ['◀', '●', '▶', '»', '▲', '▼'][SLOTS.indexOf(slot)];
+function hintAt(target: EventTarget | null): HTMLElement | null {
+  return target instanceof Element ? target.closest<HTMLElement>('[data-face-help]') : null;
+}
+
+export class FaceTooltips {
+  private active: HTMLElement | null = null;
+  private panel = element('aside', 'face-tooltip');
+
+  constructor(private root: HTMLElement, private suppressed: () => boolean) {
+    this.panel.id = 'reedmark-face-tooltip';
+    this.panel.setAttribute('role', 'tooltip');
+    root.addEventListener('pointerover', event => {
+      if (event.pointerType !== 'touch') this.show(hintAt(event.target));
+    });
+    root.addEventListener('pointerout', event => {
+      if (event.pointerType !== 'touch' && hintAt(event.target) !== hintAt(event.relatedTarget)) {
+        this.show(hintAt(event.relatedTarget));
+      }
+    });
+    root.addEventListener('focusin', event => this.show(hintAt(event.target)));
+    root.addEventListener('focusout', event => {
+      if (hintAt(event.target) !== hintAt(event.relatedTarget)) this.show(hintAt(event.relatedTarget));
+    });
+    root.addEventListener('click', event => {
+      const focus = hintAt(event.target);
+      if (!focus || focus.classList.contains('net-tile')) this.show(focus);
+    });
+    root.addEventListener('scroll', () => this.hide(), { capture: true, passive: true });
+    window.addEventListener('resize', () => this.hide(), { passive: true });
+    window.addEventListener('blur', () => this.hide());
+  }
+
+  hide(): void {
+    this.active?.removeAttribute('aria-describedby');
+    this.active = null;
+    this.panel.remove();
+  }
+
+  private show(anchor: HTMLElement | null): void {
+    if (!anchor || !anchor.isConnected || this.suppressed()) {
+      this.hide();
+      return;
+    }
+    if (this.active === anchor) return;
+    this.hide();
+    const hint = hints.get(anchor);
+    if (!hint) return;
+    const { face, boost, before } = hint;
+    const definitions = element('dl', 'effect-definitions');
+    for (const kind of faceEffects(face)) {
+      const effect = EFFECTS[kind];
+      definitions.append(element('div', 'effect-definition',
+        element('dt', '', effectIcon(kind), effect.name), element('dd', '', effect.description)));
+    }
+    this.panel.replaceChildren(
+      element('strong', 'face-tooltip-heading', faceText(face, boost)),
+      ...(before ? [element('p', 'face-tooltip-before', `Before · ${faceText(before)}`)] : []),
+      definitions,
+    );
+    this.root.append(this.panel);
+    this.active = anchor;
+    anchor.setAttribute('aria-describedby', this.panel.id);
+    const layout = anchor.closest('.die-inspection');
+    if (layout) {
+      const card = layout.getBoundingClientRect();
+      const { width, height } = this.panel.getBoundingClientRect();
+      const gutter = 10;
+      const x = card.right + width + 2 * gutter <= innerWidth ? card.right + gutter
+        : card.left >= width + 2 * gutter ? card.left - width - gutter : null;
+      if (x !== null) {
+        const top = Math.max(gutter, Math.min(card.top, innerHeight - height - gutter));
+        this.panel.style.left = `${x}px`;
+        this.panel.style.top = `${top}px`;
+        return;
+      }
+      positionFloater(this.panel, card, true);
+      return;
+    }
+    positionFloater(this.panel, anchor.getBoundingClientRect(), true);
+  }
+}
+
+export function positionFloater(panel: HTMLElement, anchor: DOMRect, above = false): void {
+  const bounds = panel.getBoundingClientRect();
+  const margin = 10;
+  const x = Math.max(margin, Math.min(innerWidth - bounds.width - margin, anchor.left + (anchor.width - bounds.width) / 2));
+  const top = anchor.top - bounds.height - margin;
+  const bottom = anchor.bottom + margin;
+  const y = above && top >= margin ? top : bottom + bounds.height <= innerHeight - margin ? bottom
+    : top >= margin ? top : Math.max(margin, innerHeight - bounds.height - margin);
+  panel.style.left = `${x}px`;
+  panel.style.top = `${y}px`;
 }

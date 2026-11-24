@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { DICE } from './content.ts';
+import { EFFECTS, effectImage } from './effects.ts';
+import type { EffectKey } from './effects.ts';
 import { facesFor } from './game.ts';
 import type { Die, Enemy, Face, Intent, Kind, Slot } from './model.ts';
 
 const urls = import.meta.glob('./art/*.webp', { eager: true, import: 'default', query: '?url' }) as Record<string, string>;
 export const art = (name: string): string => urls[`./art/${name}.webp`] ?? '';
-export const symbols: Record<Kind, string> = { hit: '✦', guard: '⬟', seep: '◈', boost: '✚', ward: '◒' };
-export const names: Record<Kind, string> = { hit: 'Hit', guard: 'Guard', seep: 'Seep', boost: 'Tune', ward: 'Ward' };
 const colors: Record<string, string> = { rust: '#ad624c', blue: '#4e788a', olive: '#818954', jade: '#487b6f', sand: '#a48b65', slate: '#696e82' };
 const faceOrder: Slot[] = ['right', 'left', 'top', 'bottom', 'center', 'far'];
 const normals = [
@@ -183,37 +183,57 @@ export class Battlefield {
     const ctx = canvas.getContext('2d')!;
     ctx.fillStyle = '#172226';
     ctx.fillRect(0, 0, 128, 128);
-    const sheen = ctx.createLinearGradient(0, 0, 105, 128);
-    sheen.addColorStop(0, colors[tone]);
-    sheen.addColorStop(1, '#253939');
+    const [first, ...rest] = face.parts;
     ctx.beginPath();
     ctx.roundRect(5, 5, 118, 118, 17);
-    ctx.fillStyle = sheen;
-    ctx.fill();
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = '#e6c99a80';
+    ctx.save();
+    ctx.clip();
+    ctx.fillStyle = first.value ? EFFECTS[first.kind].color : '#555d69';
+    ctx.fillRect(5, 5, 118, 118);
+    const artwork = effectImage(first.kind);
+    if (first.value && artwork) ctx.drawImage(artwork, 5, 5, 118, 118);
+    else {
+      ctx.fillStyle = '#fff3d9';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = 'bold 54px sans-serif';
+      ctx.fillText(first.value ? EFFECTS[first.kind].symbol : '·', 64, 61);
+    }
+    ctx.restore();
+    ctx.lineWidth = 2.6;
+    ctx.strokeStyle = colors[tone];
     ctx.stroke();
-    ctx.beginPath();
-    ctx.roundRect(10, 10, 108, 108, 12);
-    ctx.strokeStyle = '#fff1c032';
-    ctx.stroke();
-    const [first, ...rest] = face.parts;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#fff4d8';
-    ctx.shadowColor = '#111717';
-    ctx.shadowBlur = 2;
-    const main = first.value === 0 ? '·' : first.count ? `${first.value}×${first.count}` : `${first.value}`;
-    ctx.font = `bold ${first.count ? 39 : 48}px Georgia`;
-    ctx.fillText(main, 64, rest.length ? 64 : 71);
-    ctx.font = 'bold 24px system-ui';
-    ctx.fillText(symbols[first.kind], 64, rest.length ? 30 : 34);
-    ctx.font = 'bold 17px system-ui';
-    if (rest.length) ctx.fillText(rest.map(part => `${symbols[part.kind]}${part.value}`).join('  '), 64, 101);
-    if (face.salvage) {
-      ctx.textAlign = 'left';
-      ctx.fillStyle = '#ffd881';
-      ctx.fillText(`↻${face.salvage}`, 14, 106);
+
+    const main = first.count && first.count > 1 ? `${first.value}×${first.count}` : `${first.value}`;
+    if (first.value) {
+      ctx.beginPath();
+      ctx.roundRect(10, 87, main.length > 1 ? 58 : 34, 30, 7);
+      ctx.fillStyle = '#142024ee';
+      ctx.fill();
+      ctx.font = 'bold 25px Georgia';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#fff4da';
+      ctx.fillText(main, main.length > 1 ? 39 : 27, 102);
+    }
+    const riders: { kind: EffectKey; value: number }[] = [...rest];
+    if (face.salvage) riders.push({ kind: 'salvage', value: face.salvage });
+    for (const [index, part] of riders.entries()) {
+      const top = 89 - index * 25;
+      ctx.beginPath();
+      ctx.roundRect(73, top, 44, 26, 5);
+      ctx.fillStyle = '#142024ef';
+      ctx.fill();
+      const badge = effectImage(part.kind);
+      if (badge) ctx.drawImage(badge, 76, top + 3, 20, 20);
+      else {
+        ctx.fillStyle = '#fff4da';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.fillText(EFFECTS[part.kind].symbol, 86, top + 13);
+      }
+      ctx.fillStyle = '#fff4da';
+      ctx.font = 'bold 18px Georgia';
+      ctx.fillText('' + part.value, 106, top + 13);
     }
     const texture = new THREE.CanvasTexture(canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
