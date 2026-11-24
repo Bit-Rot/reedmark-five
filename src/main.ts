@@ -1,0 +1,613 @@
+import './style.css';
+import { DICE, ITEMS, ROOMS } from './content.ts';
+import { actionPreview, advance, canPlay, chooseOffer, commitRoll, endTurn, incoming, intentValues, isSave,
+  newRun, offerTargets, play, previewDie, reroll, rollFace, setHold } from './game.ts';
+import type { Die, Offer, Roll, State, Target, Variant } from './model.ts';
+import { art, Battlefield } from './scene.ts';
+import { button, caption, chips, element, faceNet, faceText, itemNet } from './ui.ts';
+
+declare const __VARIANT__: Variant;
+
+const requested = new URLSearchParams(location.search);
+const variant = import.meta.env.DEV && requested.get('mode') === 'pool' ? 'pool' : __VARIANT__;
+const seedParam = requested.get('seed');
+const seeded = seedParam !== null && /^\d{1,10}$/.test(seedParam);
+const randomSeed = () => crypto.getRandomValues(new Uint32Array(1))[0];
+const saveKey = `reedmark:${variant}:v1`;
+const stage = document.querySelector<HTMLElement>('#stage')!;
+const view = document.querySelector<HTMLElement>('#interface')!;
+const announcer = document.querySelector<HTMLElement>('#announcer')!;
+const label = variant === 'fixed' ? 'Fixed Five' : 'Dice Pool';
+document.title = `Reedmark · ${label}`;
+document.querySelector('main')!.setAttribute('aria-label', `Reedmark ${label}`);
+
+function load(): State {
+  if (seeded) return newRun(variant, Number(seedParam));
+  try {
+    const data: unknown = JSON.parse(localStorage.getItem(saveKey) ?? 'null');
+    if (isSave(data, variant)) return data;
+  } catch {
+    // The game can run even when browser storage is unavailable.
+  }
+  return newRun(variant, randomSeed());
+}
+
+let state = load();
+let selected: string | null = null;
+let offerIndex: number | null = null;
+let rewardDie: string | null = null;
+let ledger = false;
+let ledgerDie: string | null = null;
+let rolling = false;
+let animTimer = 0;
+let suppressedClick: { x: number; y: number; until: number } | null = null;
+let board: Battlefield | undefined;
+
+interface Drag {
+  id: string;
+  pointer: number;
+  x: number;
+  y: number;
+  started: boolean;
+  ghost?: HTMLElement;
+}
+let drag: Drag | null = null;
+const moveNames = { hit: 'Hit', guard: 'Guard', power: 'Power', wait: 'Wait' };
+const moveIcons = { hit: '✦', guard: '⬟', power: '✚', wait: '·' };
+
+function save(): void {
+  if (seeded) return;
+  try {
+    localStorage.setItem(saveKey, JSON.stringify(state));
+  } catch {
+    // Finishing a turn does not depend on saving.
+  }
+}
+function tell(value: string): void { announcer.textContent = value; }
+function owned(id: string): Die { return state.dice.find(die => die.id === id)!; }
+function current(id: string): Roll | undefined { return state.combat?.rolls.find(roll => roll.dieId === id); }
+
+function meter(hp: number, max: number, extra = 0): HTMLElement {
+  const bar = element('span', 'meter', element('span', 'meter-fill'));
+  bar.style.setProperty('--fill', `${100 * hp / max}%`);
+  if (extra) bar.style.setProperty('--loss', `${100 * extra / max}%`);
+  return bar;
+}
+
+function hud(): HTMLElement {
+  const rune = element('span', 'rune', '✧');
+  const identity = element('div', 'identity', rune,
+    element('div', '', element('span', 'wordmark', 'Reedmark'), caption(label)));
+  const room = ROOMS[state.room];
+  const path = element('div', 'map-track', caption(room.name));
+  const pips = element('div', 'path-pips');
+  pips.setAttribute('aria-label', `Room ${state.room + 1} of ${ROOMS.length}`);
+  ROOMS.forEach((entry, index) => {
+    const type = entry.type === 'battle' ? entry.rank : entry.type;
+    const dot = element('span', `path-pip path-pip--${type}${index === state.room ? ' is-current' : index < state.room ? ' is-past' : ''}`);
+    dot.title = entry.name;
+    pips.append(dot);
+  });
+  path.append(pips);
+  const health = element('div', 'health-hud', element('span', 'heart', '♥'), element('span', 'hero-hp', `${state.hp}`, element('small', '', ` / ${state.maxHp}`)));
+  health.append(meter(state.hp, state.maxHp));
+  const kit = button('icon-button', 'ledger', variant === 'pool' ? 'View dice bag' : 'View dice kit', '◫');
+  return element('header', 'hud', identity, path, element('div', 'hud-right', health, kit));
+}
+
+function targetFor(node: HTMLElement): Target {
+  return { kind: node.dataset.targetKind as Target['kind'], id: node.dataset.targetId };
+}
+
+function worldLayer(): HTMLElement {
+  const world = element('div', 'world');
+  const combat = state.combat;
+  if (!combat || state.phase !== 'battle') return world;
+  const self = button('actor-target actor-target--self', 'target', 'Courier');
+  self.dataset.actor = 'courier';
+  self.dataset.targetKind = 'self';
+  self.dataset.focus = 'courier';
+  self.append(element('span', 'actor-caption', element('strong', '', 'Courier'),
+    element('span', 'actor-status',
+      combat.guard ? element('span', 'guard-value', `⬟ ${combat.guard}`) : null,
+      combat.ward ? element('span', 'ward-value', `◒ ${combat.ward}`) : null,
+    ),
+  ));
+  world.append(self);
+  const intents = intentValues(combat);
+  for (const enemy of combat.enemies) {
+    if (enemy.hp <= 0) continue;
+    const target = button(`actor-target actor-target--enemy actor-target--${enemy.sprite}`, 'target', `${enemy.name} ${enemy.hp} of ${enemy.maxHp} HP`);
+    target.dataset.actor = enemy.id;
+    target.dataset.targetKind = 'enemy';
+    target.dataset.targetId = enemy.id;
+    target.dataset.focus = enemy.id;
+    const enemyIntents = element('span', 'intents');
+    for (const intent of intents.filter(intent => intent.owner === enemy.id)) {
+      const value = intent.move === 'wait' ? '' : '' + intent.value;
+      const pip = element('span', `intent intent--${intent.move}`, element('span', '', moveIcons[intent.move]), value);
+      pip.title = intent.move === 'wait' ? 'Wait' : `${value} ${moveNames[intent.move]}`;
+      enemyIntents.append(pip);
+    }
+    target.append(enemyIntents, element('span', 'actor-caption',
+      element('strong', '', enemy.name),
+      meter(enemy.hp, enemy.maxHp),
+      element('span', 'enemy-hp', `${enemy.hp}/${enemy.maxHp}`,
+        enemy.guard ? element('span', 'guard-value', `⬟${enemy.guard}`) : null,
+        enemy.seep ? element('span', 'seep-value', `◈${enemy.seep}`) : null,
+      ),
+    ));
+    world.append(target);
+  }
+  combat.rolls.forEach(roll => {
+    if (roll.held || roll.used) return;
+    const die = owned(roll.dieId);
+    const identity = DICE[die.template];
+    const face = rollFace(state, roll);
+    const dieButton = button(`stage-cube tone-${identity.tone}`, 'die', `${identity.name}, ${faceText(face)}`,
+      element('span', 'world-face', chips(face)), element('span', 'cube-tag', identity.name));
+    dieButton.dataset.worldDie = roll.dieId;
+    dieButton.dataset.die = roll.dieId;
+    dieButton.dataset.focus = roll.dieId;
+    world.append(dieButton);
+  });
+  return world;
+}
+
+function tray(): HTMLElement | null {
+  if (state.phase !== 'battle' || !state.combat) return null;
+  const combat = state.combat;
+  const rack = element('div', 'rack');
+  rack.dataset.hold = 'true';
+  rack.setAttribute('aria-label', 'Dice sockets');
+  combat.rolls.forEach((roll, index) => {
+    const slot = element('div', `socket${roll.held ? ' is-filled' : ''}${roll.used ? ' is-spent' : ''}`);
+    slot.dataset.hold = 'true';
+    if (!roll.held) {
+      slot.append(element('span', 'socket-seal', '◇'));
+    } else if (roll.used) {
+      slot.append(element('span', 'socket-seal', '·'));
+    } else {
+      const die = owned(roll.dieId);
+      const identity = DICE[die.template];
+      const face = rollFace(state, roll);
+      const seated = button(`seated tone-${identity.tone}`, 'die', `${identity.name}, ${faceText(face, roll.boost)}`,
+        chips(face, roll.boost), element('small', '', identity.name));
+      seated.dataset.die = roll.dieId;
+      seated.dataset.focus = roll.dieId;
+      if (combat.phase === 'play') {
+        seated.dataset.targetKind = 'die';
+        seated.dataset.targetId = roll.dieId;
+      }
+      seated.title = faceText(face, roll.boost);
+      slot.append(seated);
+    }
+    slot.dataset.socket = '' + index;
+    rack.append(slot);
+  });
+
+  const predicted = incoming(combat);
+  const damage = Math.max(0, predicted - combat.guard);
+  const readout = element('div', 'threat',
+    caption(`Turn ${combat.turn}`),
+    element('span', 'threat-value', `✦ ${predicted}`, element('span', 'muted', ' / '), `⬟ ${combat.guard}`),
+  );
+  readout.title = `Incoming: ${predicted}. Guard: ${combat.guard}. HP loss: ${damage}.`;
+  readout.dataset.threat = 'true';
+  const commands = element('div', 'commands');
+  if (combat.phase === 'roll') {
+    const left = combat.rerolls;
+    const re = button('control control--secondary', 'reroll', `Reroll, ${left} left`,
+      element('span', '', '↻'), 'Reroll', element('kbd', '', '' + left));
+    re.disabled = rolling || !left || combat.rolls.every(roll => roll.held);
+    const lock = button('control control--primary', 'commit', 'Commit dice', 'Commit');
+    lock.disabled = rolling;
+    commands.append(re, lock);
+  } else {
+    commands.append(button('control control--primary', 'end', 'End turn', 'End turn',
+      damage ? element('kbd', 'danger', `−${damage}`) : null));
+  }
+  const panel = element('div', 'combat-tray', element('div', 'tray-controls', readout, commands), rack);
+  panel.setAttribute('aria-busy', '' + rolling);
+  return panel;
+}
+
+function describeOffer(offer: Offer): string {
+  if (offer.kind === 'item') return ITEMS[offer.id].name;
+  if (offer.kind === 'add') return DICE[offer.id].name;
+  if (offer.kind === 'transform') return `Transform · ${DICE[offer.id].name}`;
+  return offer.kind === 'heal' ? 'Rest' : 'Remove';
+}
+
+function offerBody(offer: Offer): HTMLElement {
+  if (offer.kind === 'item') return itemNet(offer.id);
+  if (offer.kind === 'add' || offer.kind === 'transform') return faceNet({ id: '', template: offer.id, imprints: {} });
+  return element('span', 'offer-emblem', offer.kind === 'heal' ? '+10 ♥' : '−1 ◇');
+}
+
+function sheet(title: string, action: HTMLButtonElement): HTMLElement {
+  const node = element('section', 'sheet', element('div', 'sheet-heading', element('h1', '', title), action));
+  node.setAttribute('aria-label', title);
+  return node;
+}
+
+function renderOffers(): HTMLElement {
+  const room = ROOMS[state.room];
+  const offer = offerIndex === null ? undefined : state.offers[offerIndex];
+  const title = offer ? describeOffer(offer) : room.type === 'battle' ? 'Spoils' : room.name;
+  const pane = sheet(title, offer ? button('subtle', 'back', 'Back to rewards', 'Back') : button('subtle', 'skip', 'Skip reward', 'Skip'));
+  if (!offer) {
+    const grid = element('div', 'offer-grid');
+    state.offers.forEach((entry, index) => {
+      const kind = entry.kind === 'item' ? ITEMS[entry.id].rarity : entry.kind === 'add' ? 'New die' : entry.kind;
+      const card = button(`offer-card offer--${kind.toLowerCase().replace(' ', '-')}`, 'offer', describeOffer(entry),
+        caption(kind), element('strong', '', describeOffer(entry)), offerBody(entry));
+      card.dataset.index = '' + index;
+      card.dataset.focus = `offer-${index}`;
+      card.disabled = ['item', 'remove', 'transform'].includes(entry.kind) && !offerTargets(state, entry).length;
+      grid.append(card);
+    });
+    pane.append(grid);
+  } else {
+    const candidates = offerTargets(state, offer);
+    const options = element('div', 'die-picker');
+    for (const die of candidates) {
+      const entry = DICE[die.template];
+      const picker = button(`picker tone-${entry.tone}${rewardDie === die.id ? ' is-selected' : ''}`, 'reward-die',
+        entry.name, element('span', '', '◇'), entry.name);
+      picker.dataset.id = die.id;
+      picker.dataset.focus = `reward-${die.id}`;
+      options.append(picker);
+    }
+    const chosen = candidates.find(die => die.id === rewardDie);
+    const verb = offer.kind === 'item' ? 'Imprint' : offer.kind === 'transform' ? 'Transform' : 'Remove';
+    const confirm = button('control control--primary', 'take', verb, verb);
+    confirm.disabled = !chosen;
+    const detail = element('div', 'placement-detail');
+    if (chosen) {
+      const result = previewDie(state, offer, chosen);
+      detail.append(faceNet(chosen, result ?? undefined));
+    } else if (offer.kind !== 'remove') detail.append(offerBody(offer));
+    pane.append(options, detail, element('div', 'sheet-footer', confirm));
+  }
+  return element('div', 'overlay', pane);
+}
+
+function renderLedger(): HTMLElement {
+  const pane = sheet(variant === 'pool' ? 'Dice bag' : 'Dice kit', button('subtle', 'ledger', 'Close dice', 'Close'));
+  const remaining = state.combat?.bag;
+  const drawn = new Set(state.combat?.rolls.filter(roll => !roll.used).map(roll => roll.dieId));
+  const order = variant === 'pool' && remaining ? [...state.dice].sort((a, b) => {
+    const category = (id: string) => remaining.includes(id) ? 0 : drawn.has(id) ? 1 : 2;
+    return category(a.id) - category(b.id);
+  }) : state.dice;
+  const row = element('div', 'die-picker');
+  for (const die of order) {
+    const entry = DICE[die.template];
+    const status = variant === 'fixed' || !remaining ? '' : remaining.includes(die.id) ? '◇' : drawn.has(die.id) ? '◈' : '·';
+    const pick = button(`picker tone-${entry.tone}${ledgerDie === die.id ? ' is-selected' : ''}`, 'inspect', entry.name, status, entry.name);
+    pick.dataset.id = die.id;
+    pick.dataset.focus = `inspect-${die.id}`;
+    row.append(pick);
+  }
+  const displayed = state.dice.find(die => die.id === ledgerDie) ?? order[0];
+  pane.append(row, element('div', 'placement-detail', faceNet(displayed)));
+  if (variant === 'pool' && remaining) {
+    pane.append(element('div', 'ledger-counts', caption(`${remaining.length} remaining`), caption(`${state.dice.length} owned`)));
+  }
+  return element('div', 'overlay', pane);
+}
+
+function renderEnding(): HTMLElement {
+  const won = state.phase === 'victory';
+  const score = won ? `${state.hp} HP left` : ROOMS[state.room].name;
+  return element('div', 'overlay', element('section', 'sheet ending',
+    element('div', 'end-mark', won ? '✧' : '◇'),
+    element('h1', '', won ? 'Passage clear' : 'Run ended'),
+    caption(score), button('control control--primary', 'new', 'New run', 'New run')));
+}
+
+function positionWorld(): void {
+  if (!board) return;
+  for (const actor of view.querySelectorAll<HTMLElement>('[data-actor]')) {
+    const id = actor.dataset.actor!;
+    const center = board.actorPoint(id, 'center');
+    const captionPoint = board.actorPoint(id, 'label');
+    const intentPoint = board.actorPoint(id, 'intent');
+    if (!center || !captionPoint || !intentPoint) continue;
+    actor.style.setProperty('--x', `${center.x}px`);
+    actor.style.setProperty('--y', `${center.y}px`);
+    actor.style.setProperty('--caption-y', `${captionPoint.y - center.y}px`);
+    actor.style.setProperty('--intent-y', `${intentPoint.y - center.y}px`);
+  }
+  for (const node of view.querySelectorAll<HTMLElement>('[data-world-die]')) {
+    const point = board.diePoint(node.dataset.worldDie!);
+    if (!point) continue;
+    node.style.setProperty('--x', `${point.x}px`);
+    node.style.setProperty('--y', `${point.y}px`);
+  }
+}
+
+function render(animate: ReadonlySet<string> = new Set(), lead = 0): void {
+  const focused = document.activeElement instanceof HTMLElement ? document.activeElement.dataset.focus : null;
+  const combat = state.combat;
+  const fighting = state.phase === 'battle';
+  view.dataset.phase = state.phase;
+  view.dataset.rolling = '' + rolling;
+  view.dataset.variant = variant;
+  view.replaceChildren(hud(), worldLayer());
+  const shelf = tray();
+  if (shelf) view.append(shelf);
+  if (ledger) view.append(renderLedger());
+  else if (state.phase === 'reward') view.append(renderOffers());
+  else if (state.phase === 'victory' || state.phase === 'defeat') view.append(renderEnding());
+  if (art('courier')) stage.dataset.illustrated = 'true';
+  board?.setActors(combat?.enemies ?? []);
+  board?.syncDice(fighting && combat ? combat.rolls.map(roll => ({
+    die: owned(roll.dieId), slot: roll.slot, shown: !roll.held && !roll.used,
+  })) : [], animate, lead);
+  positionWorld();
+  paintTargets(selected);
+  if (focused) [...view.querySelectorAll<HTMLElement>('[data-focus]')].find(node => node.dataset.focus === focused)?.focus({ preventScroll: true });
+}
+
+function paintedClear(): void {
+  view.querySelectorAll('.impact-preview').forEach(node => node.remove());
+  view.querySelectorAll('.is-aimed').forEach(node => node.classList.remove('is-aimed'));
+}
+
+function paintTargets(id: string | null, pointed?: HTMLElement): void {
+  paintedClear();
+  for (const node of view.querySelectorAll<HTMLElement>('[data-target-kind]')) {
+    node.classList.toggle('is-legal', !!id && !ledger && canPlay(state, id, targetFor(node)));
+  }
+  for (const node of view.querySelectorAll<HTMLElement>('[data-die]')) {
+    node.classList.toggle('is-selected', !!id && node.dataset.die === id);
+    if (node.dataset.die === id && !drag?.started) node.setAttribute('aria-pressed', 'true');
+    else node.removeAttribute('aria-pressed');
+  }
+  if (!id || !pointed || !pointed.classList.contains('is-legal') || !state.combat) return;
+  const target = targetFor(pointed);
+  const playResult = actionPreview(state, id, target);
+  if (!playResult) return;
+  const existing = state.combat;
+  const labels: string[] = [];
+  if (target.kind === 'enemy') {
+    const old = existing.enemies.find(enemy => enemy.id === target.id)!;
+    const next = playResult.enemies.find(enemy => enemy.id === target.id)!;
+    if (old.hp !== next.hp) labels.push(next.hp === 0 ? '✦ KO' : `♥ −${old.hp - next.hp}`);
+    if (old.guard !== next.guard) labels.push(`⬟ −${old.guard - next.guard}`);
+    if (old.seep !== next.seep) labels.push(`◈ +${next.seep - old.seep}`);
+  } else if (target.kind === 'die') {
+    const old = existing.rolls.find(roll => roll.dieId === target.id)!;
+    const next = playResult.rolls.find(roll => roll.dieId === target.id)!;
+    labels.push(`✚ +${next.boost - old.boost}`);
+  }
+  if (existing.guard !== playResult.guard) labels.push(`⬟ +${playResult.guard - existing.guard}`);
+  if (existing.ward !== playResult.ward) labels.push(`◒ +${playResult.ward - existing.ward}`);
+  const swing = incoming(existing) - incoming(playResult);
+  if (swing) labels.push(`✦ −${swing} incoming`);
+  pointed.classList.add('is-aimed');
+  if (labels.length) pointed.append(element('span', 'impact-preview', labels.join('  ·  ')));
+}
+
+function animateRoll(ids: string[], newTurn = false): void {
+  clearTimeout(animTimer);
+  const motion = board?.motion.matches;
+  rolling = !motion && !!ids.length && stage.dataset.fallback !== 'true';
+  const lead = rolling && newTurn ? 260 : 0;
+  if (lead && state.combat) board?.tossIntents(intentValues(state.combat));
+  render(new Set(ids), lead);
+  if (rolling) {
+    animTimer = window.setTimeout(() => {
+      rolling = false;
+      render();
+    }, 835 + lead);
+  }
+}
+
+function transition(before: State['phase'], oldTurn: number): void {
+  selected = null;
+  save();
+  const combat = state.combat;
+  if (state.phase === 'battle' && combat && (before !== 'battle' || oldTurn !== combat.turn)) {
+    tell(`Turn ${combat.turn}. ${incoming(combat)} incoming.`);
+    animateRoll(combat.rolls.map(roll => roll.dieId), true);
+  } else {
+    render();
+  }
+}
+
+function apply(id: string, target: Target): void {
+  const combat = state.combat;
+  const forecast = actionPreview(state, id, target);
+  if (!combat || !forecast) return;
+  const actor = target.kind === 'self' ? 'courier' : target.id;
+  const point = target.kind === 'die' ? null : board?.actorPoint(actor!, 'center');
+  const old = combat.enemies.find(enemy => target.kind === 'enemy' && enemy.id === target.id);
+  const after = forecast.enemies.find(enemy => old?.id === enemy.id);
+  const hits = old && after ? old.hp - after.hp + old.guard - after.guard : 0;
+  const guard = forecast.guard - combat.guard;
+  const seep = old && after ? after.seep - old.seep : 0;
+  if (!play(state, id, target)) return;
+  tell(`${DICE[owned(id).template].name} played.`);
+  transition('battle', state.combat?.turn ?? 0);
+  const amount = hits ? `−${hits}` : seep ? `◈ +${seep}` : guard ? `⬟ +${guard}` : '';
+  if (point && amount && !board?.motion.matches) {
+    const effect = element('span', 'impact-fx', amount);
+    effect.style.left = `${point.x}px`;
+    effect.style.top = `${point.y}px`;
+    effect.dataset.tone = hits ? 'strike' : seep ? 'seep' : 'guard';
+    view.parentElement!.append(effect);
+    window.setTimeout(() => effect.remove(), 660);
+  }
+}
+
+function toggleDie(id: string): void {
+  const combat = state.combat;
+  const roll = current(id);
+  if (!combat || !roll || roll.used) return;
+  if (combat.phase === 'roll') {
+    if (setHold(state, id, !roll.held)) {
+      save();
+      render();
+    }
+  } else if (selected && selected !== id && canPlay(state, selected, { kind: 'die', id })) {
+    apply(selected, { kind: 'die', id });
+  } else {
+    selected = selected === id ? null : id;
+    paintTargets(selected);
+  }
+}
+
+view.addEventListener('click', event => {
+  if (suppressedClick && performance.now() < suppressedClick.until && event.detail > 0
+    && Math.hypot(event.clientX - suppressedClick.x, event.clientY - suppressedClick.y) < 3) return;
+  const node = (event.target as HTMLElement).closest<HTMLButtonElement>('button[data-action]');
+  if (!node || node.disabled) return;
+  const action = node.dataset.action;
+  const turn = state.combat?.turn ?? 0;
+
+  if (action === 'ledger') {
+    ledger = !ledger;
+    ledgerDie = state.dice[0].id;
+    selected = null;
+    render();
+    return;
+  }
+  if (action === 'inspect') {
+    ledgerDie = node.dataset.id!;
+    render();
+    return;
+  }
+  if (rolling || ledger) return;
+
+  if (action === 'die') toggleDie(node.dataset.die!);
+  else if (action === 'target' && selected) apply(selected, targetFor(node));
+  else if (action === 'reroll') {
+    const active = state.combat?.rolls.filter(roll => !roll.held).map(roll => roll.dieId) ?? [];
+    if (reroll(state)) {
+      save();
+      tell(`Rerolled ${active.length} dice.`);
+      animateRoll(active);
+    }
+  } else if (action === 'commit' && commitRoll(state)) {
+    tell('Dice committed.');
+    transition('battle', turn);
+  } else if (action === 'end' && endTurn(state)) {
+    transition('battle', turn);
+  } else if (action === 'offer') {
+    const index = Number(node.dataset.index);
+    const offer = state.offers[index];
+    if (offer.kind === 'add' || offer.kind === 'heal') {
+      if (chooseOffer(state, index)) transition('reward', 0);
+    } else {
+      offerIndex = index;
+      rewardDie = null;
+      render();
+      view.querySelector<HTMLButtonElement>('[data-action="reward-die"]')?.focus();
+    }
+  } else if (action === 'reward-die') {
+    rewardDie = node.dataset.id!;
+    render();
+  } else if (action === 'take' && offerIndex !== null && rewardDie && chooseOffer(state, offerIndex, rewardDie)) {
+    offerIndex = null;
+    rewardDie = null;
+    transition('reward', 0);
+  } else if (action === 'back') {
+    offerIndex = null;
+    rewardDie = null;
+    render();
+  } else if (action === 'skip' && advance(state)) {
+    transition('reward', 0);
+  } else if (action === 'new') {
+    const seed = seeded ? Number(seedParam) : randomSeed();
+    state = newRun(variant, seed);
+    offerIndex = null;
+    rewardDie = null;
+    transition('victory', 0);
+  }
+});
+
+view.addEventListener('pointerdown', event => {
+  if (rolling || ledger || event.button !== 0 || drag) return;
+  const owner = (event.target as HTMLElement).closest<HTMLElement>('[data-die]');
+  const id = owner?.dataset.die;
+  if (!id || !current(id) || current(id)?.used) return;
+  drag = { id, pointer: event.pointerId, x: event.clientX, y: event.clientY, started: false };
+});
+
+function pointTarget(x: number, y: number, id: string): HTMLElement | undefined {
+  return document.elementsFromPoint(x, y).map(node => node.closest<HTMLElement>('[data-target-kind]'))
+    .find(node => node && canPlay(state, id, targetFor(node))) ?? undefined;
+}
+
+document.addEventListener('pointermove', event => {
+  if (!drag || drag.pointer !== event.pointerId) {
+    if (selected && !drag) paintTargets(selected, pointTarget(event.clientX, event.clientY, selected));
+    return;
+  }
+  if (!drag.started && Math.hypot(event.clientX - drag.x, event.clientY - drag.y) > 6) {
+    const roll = current(drag.id)!;
+    const identity = DICE[owned(drag.id).template];
+    drag.started = true;
+    view.setPointerCapture(event.pointerId);
+    drag.ghost = element('div', `drag-ghost tone-${identity.tone}`, chips(rollFace(state, roll), roll.boost));
+    document.body.append(drag.ghost);
+    view.dataset.dragging = 'true';
+  }
+  if (!drag.started) return;
+  drag.ghost!.style.transform = `translate(${event.clientX}px, ${event.clientY}px) translate(-50%, -50%)`;
+  const isRack = document.elementsFromPoint(event.clientX, event.clientY).some(node => node.closest('[data-hold]'));
+  view.dataset.overRack = '' + isRack;
+  paintTargets(drag.id, pointTarget(event.clientX, event.clientY, drag.id));
+});
+
+function clearDrag(): Drag | null {
+  const previous = drag;
+  drag?.ghost?.remove();
+  drag = null;
+  delete view.dataset.dragging;
+  delete view.dataset.overRack;
+  return previous;
+}
+
+document.addEventListener('pointerup', event => {
+  if (drag?.pointer !== event.pointerId) return;
+  const ready = clearDrag();
+  if (!ready?.started) return;
+  suppressedClick = { x: event.clientX, y: event.clientY, until: performance.now() + 100 };
+  const id = ready.id;
+  if (state.combat?.phase === 'roll') {
+    const drop = document.elementsFromPoint(event.clientX, event.clientY);
+    const inRack = drop.some(node => node.closest('[data-hold]'));
+    const inStage = drop.includes(stage) && event.clientY < (view.querySelector('.combat-tray')?.getBoundingClientRect().top ?? innerHeight);
+    if ((inRack || inStage) && setHold(state, id, inRack)) save();
+    render();
+  } else {
+    const target = pointTarget(event.clientX, event.clientY, id);
+    if (target) apply(id, targetFor(target));
+    else paintTargets(selected);
+  }
+});
+
+document.addEventListener('pointercancel', () => { clearDrag(); paintTargets(selected); });
+view.addEventListener('pointerleave', () => { if (!drag) paintedClear(); });
+window.addEventListener('blur', () => { clearDrag(); paintTargets(selected); });
+view.addEventListener('focusin', event => {
+  if (!selected || !(event.target instanceof HTMLElement)) return;
+  const target = event.target.closest<HTMLElement>('[data-target-kind]');
+  if (target) paintTargets(selected, target);
+});
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return;
+  if (ledger) { ledger = false; render(); }
+  else if (offerIndex !== null) { offerIndex = null; rewardDie = null; render(); }
+  else { selected = null; clearDrag(); paintTargets(null); }
+});
+
+board = new Battlefield(stage, positionWorld);
+save();
+if (state.phase === 'battle' && state.combat?.phase === 'roll' && state.combat.turn === 1 && state.combat.rerolls === 2) {
+  animateRoll(state.combat.rolls.filter(roll => !roll.held).map(roll => roll.dieId), true);
+} else render();
