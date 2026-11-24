@@ -1,4 +1,8 @@
 
+## Active Dice Faces
+
+These dice faces are active and intended to be enabled and implemented in-game.
+
 | Template      | Targeting    | Keywords                              | Icon Description                                           | Notes                        |
 | ------------- | ------------ | ------------------------------------- | ---------------------------------------------------------- | ---------------------------- |
 | `blank`       | None         |                                       |                                                            | Does nothing, cannot be used |
@@ -9,10 +13,12 @@
 | `slash_block` | Single Enemy | {damage}<br>{selfShield}              | A plain sword and shield                                   |                              |
 | `dash`        | Self         | {block}<br>{cantrip}                  | A foot stepping with speed lines and a small cloud of dust |                              |
 | `poison`      | Single Enemy | {damage}<br>{poison 1}                | A single drop of poison                                    |                              |
-| `hobble`      | Single Enemy | {damage}<br>{weak 1}<br>{exert}       | A curvy kris dagger                                        |                              |
+| `hobble`      | Single Enemy | {damage}<br>{weak 1}<br>              | A curvy kris dagger                                        |                              |
 | `weak`        | Single Enemy | {weak 1}<br>{exert}                   | A sad face                                                 | Pips do nothing at baseline  |
 
-## Shield faces
+## Inactive Dice Faces
+
+These dice faces are for reference only and should be ignored
 
 | Template        | Base effect / targeting    | Keywords              | Single-use | Pips seen     | # heroes | Heroes                                                                                                                                                    | Notes            |
 | --------------- | -------------------------- | --------------------- | ---------- | ------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
