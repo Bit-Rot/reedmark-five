@@ -28,6 +28,11 @@ test('desktop holds a 3D die, rejects an invalid drop, and plays a valid drop', 
   await page.goto('/?seed=231');
   await expect(page.locator('#stage canvas')).toBeVisible();
   await expect(page.locator('.intent')).toHaveCount(5);
+  const hud = (await page.locator('.hud').boundingBox())!;
+  for (const line of await page.locator('.intents').all()) {
+    const bounds = (await line.boundingBox())!;
+    expect(bounds.y).toBeGreaterThan(hud.y + hud.height);
+  }
   await expect(page.locator('.stage-cube')).toHaveCount(5);
   await drag(page, die(page, 'd0'), page.locator('[data-socket="0"]'));
   await expect(page.locator('[data-socket="0"] [data-die="d0"]')).toBeVisible();

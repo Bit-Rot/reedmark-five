@@ -91,7 +91,7 @@
   .actor-target.is-legal::before { border-color: #f1c76f; background: #deb66523; box-shadow: 0 0 18px #ddb4624f; }
   .actor-target.is-aimed::before { background: #ffd3755e; box-shadow: 0 0 20px #ffc46e86; }
   .actor-caption {
-    position: absolute; pointer-events: none; top: var(--caption-y,55px); left: 50%; transform: translateX(-50%);
+    position: absolute; pointer-events: auto; top: calc(50% + var(--caption-y,55px)); left: 50%; transform: translateX(-50%);
     min-width: 104px; padding: 6px 9px 5px; border: 1px solid #a1855b70; border-radius: 6px;
     display: grid; justify-items: center; gap: 5px; background: #142125ec; box-shadow: 0 4px 12px #0006; white-space: nowrap;
   }
@@ -103,7 +103,7 @@
   .ward-value { color: #c8b6f1; }
   .seep-value { color: var(--green); }
   .intents {
-    position: absolute; left: 50%; top: var(--intent-y,-62px); transform: translate(-50%,-50%);
+    position: absolute; left: 50%; top: calc(50% + var(--intent-y,-62px)); transform: translate(-50%,-50%);
     display: flex; gap: 4px; white-space: nowrap; pointer-events: none;
   }
   .intent {

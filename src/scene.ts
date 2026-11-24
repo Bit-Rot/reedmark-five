@@ -353,8 +353,8 @@ export class Battlefield {
     const base = this.projection(actor.position);
     const spriteHeight = actor.height * this.height / (this.camera.top - this.camera.bottom);
     if (point === 'center') return { x: base.x, y: base.y - spriteHeight * .35 };
-    if (point === 'label') return { x: base.x, y: base.y + (this.compact ? 5 : 11) };
-    return { x: base.x, y: Math.max(this.compact ? 83 : 104, base.y - spriteHeight * .92 - 11) };
+    if (point === 'label') return { x: base.x, y: base.y + (this.compact ? -5 : 11) };
+    return { x: base.x, y: Math.max(this.compact ? 96 : 118, base.y - spriteHeight * .92 - 11) };
   }
 
   diePoint(id: string): { x: number; y: number } | null {
