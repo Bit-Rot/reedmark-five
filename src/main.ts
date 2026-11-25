@@ -1,10 +1,10 @@
 import './style.css';
 import './face-ui.css';
-import { CHARACTERS, DICE, ITEMS, ROOMS } from './content.ts';
+import { CHARACTERS, DICE, FACE_IMAGE_PATHS, ITEMS, ROOMS } from './content.ts';
 import { actionPreview, advance, canPlay, chooseOffer, commitRoll, endTurn, incoming, intentValues, isExerted, isSave,
   newRun, offerTargets, play, previewDie, reroll, rollFace, setHold } from './game.ts';
 import type { Die, Offer, Roll, State, Target, Variant } from './model.ts';
-import { EFFECTS, loadEffectImages } from './effects.ts';
+import { EFFECTS, loadEffectImages, loadFaceImages } from './effects.ts';
 import { art, Battlefield } from './scene.ts';
 import { button, caption, chips, effectChip, element, faceEmblem, FaceTooltips, faceNet, faceText, helpOn, itemNet, positionFloater } from './ui.ts';
 
@@ -814,7 +814,7 @@ document.addEventListener('keydown', event => {
   else { selected = null; clearDrag(); paintTargets(null); }
 });
 
-await loadEffectImages();
+await Promise.all([loadEffectImages(), loadFaceImages(FACE_IMAGE_PATHS)]);
 board = new Battlefield(stage, positionWorld);
 save();
 if (!choosing && state.phase === 'battle' && state.combat?.phase === 'roll' && state.combat.turn === 1 && state.combat.rerolls === 2) {

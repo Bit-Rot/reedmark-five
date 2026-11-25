@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { DICE } from './content.ts';
-import { EFFECTS, effectImage } from './effects.ts';
+import { EFFECTS, effectImage, faceImage } from './effects.ts';
 import type { EffectKey } from './effects.ts';
-import { facesFor } from './game.ts';
+import { BLANK_FACE, facesFor } from './game.ts';
 import { FLAG_KINDS } from './model.ts';
 import type { Die, Enemy, Face, Intent, Kind, Slot } from './model.ts';
 
@@ -191,8 +191,9 @@ export class Battlefield {
     ctx.clip();
     ctx.fillStyle = first.value ? EFFECTS[first.kind].color : '#555d69';
     ctx.fillRect(5, 5, 118, 118);
-    const artwork = effectImage(first.kind);
-    if (first.value && artwork) ctx.drawImage(artwork, 5, 5, 118, 118);
+    const picture = faceImage(face.image);
+    const artwork = picture ?? effectImage(first.kind);
+    if ((first.value || picture) && artwork) ctx.drawImage(artwork, 5, 5, 118, 118);
     else {
       ctx.fillStyle = '#fff3d9';
       ctx.textAlign = 'center';
@@ -261,7 +262,7 @@ export class Battlefield {
     for (const [index, entry] of dice.entries()) {
       const template = DICE[entry.die.template];
       const resolved = entry.exerted
-        ? Object.fromEntries(faceOrder.map(slot => [slot, { target: 'none', parts: [{ kind: 'blank', value: 0 }] } as Face])) as Record<Slot, Face>
+        ? Object.fromEntries(faceOrder.map(slot => [slot, BLANK_FACE])) as Record<Slot, Face>
         : facesFor(entry.die);
       const style = JSON.stringify([entry.die.template, entry.die.imprints, !!entry.exerted]);
       let cube = this.cubes.get(entry.die.id);

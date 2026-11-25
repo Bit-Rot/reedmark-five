@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { CHARACTERS, DATA, DATA_ISSUES, DICE, ITEMS } from '../src/content.ts';
+import { existsSync } from 'node:fs';
+import { CHARACTERS, DATA, DATA_ISSUES, DICE, FACE_IMAGE_PATHS, ITEMS } from '../src/content.ts';
 import { IMPLEMENTED_KEYWORDS, compileDb, compileFace } from '../src/data/runtime.ts';
 import { validate } from '../src/data/validate.ts';
 import { canPlay, commitRoll, endTurn, incoming, isExerted, newRun, play, rollFace } from '../src/game.ts';
@@ -24,7 +25,7 @@ test('the keywords the engine runs are exactly the ones flagged implemented in t
 test('faces compile from keywords, pips and X values', () => {
   const face = (id: string) => DATA.faces.find(f => f.id === id) as DataFace;
   assert.deepEqual(compileFace(face('dmg'), 3).parts, [{ kind: 'hit', value: 3 }]);
-  assert.deepEqual(compileFace(face('block'), 2), { id: 'block', target: 'self', parts: [{ kind: 'guard', value: 2 }] });
+  assert.deepEqual(compileFace(face('block'), 2), { id: 'block', target: 'self', parts: [{ kind: 'guard', value: 2 }], image: 'face-art/library/shield.webp' });
   assert.deepEqual(compileFace(face('dmgBlock'), 2).parts, [{ kind: 'hit', value: 2 }, { kind: 'guard', value: 2 }]);
   assert.deepEqual(compileFace(face('dmgVulnerable'), 2).parts, [{ kind: 'hit', value: 2 }, { kind: 'vulnerable', value: 1 }, { kind: 'exert', value: 0 }]);
   assert.deepEqual(compileFace(face('poison'), 1).parts, [{ kind: 'hit', value: 1 }, { kind: 'seep', value: 1 }]);
@@ -186,4 +187,18 @@ test('a block cantrip gives block as soon as it lands', () => {
     return;
   }
   assert.fail('no seed rolled a dash');
+});
+
+test('compiled faces carry the image chosen for their data face, including on dice and items', () => {
+  for (const f of DATA.faces) {
+    if (!f.image) continue;
+    const compiled = compileFace(f, 1);
+    assert.equal(compiled.image, f.image, f.id);
+  }
+  const sword = DICE.die_sword;
+  assert.equal(sword.faces.left.image, DATA.faces.find(f => f.id === 'dmg')!.image);
+  assert.equal(sword.faces.top.image, DATA.faces.find(f => f.id === 'dmg')!.image);
+  assert.equal(sword.faces.right.image, DATA.faces.find(f => f.id === 'block')!.image);
+  assert(FACE_IMAGE_PATHS.length >= 5);
+  for (const path of FACE_IMAGE_PATHS) assert(existsSync(`public/${path}`), `${path} missing from public/`);
 });

@@ -1,5 +1,5 @@
 import { DICE, ITEMS } from './content.ts';
-import { EFFECTS, effectUrl, faceEffects } from './effects.ts';
+import { EFFECTS, effectUrl, faceEffects, faceImageUrl } from './effects.ts';
 import type { EffectKey } from './effects.ts';
 import { effectiveParts, faceFor } from './game.ts';
 import { FLAG_KINDS, SLOTS } from './model.ts';
@@ -37,8 +37,9 @@ export function faceText(face: Face, boost = 0): string {
   return face.salvage ? `${parts}, reroll for ${face.salvage} Block` : parts;
 }
 
-export function effectIcon(kind: EffectKey): HTMLElement {
-  const url = effectUrl(kind);
+/** An effect icon; `image` (a face image path) replaces the effect's own icon when given. */
+export function effectIcon(kind: EffectKey, image?: string): HTMLElement {
+  const url = image ? faceImageUrl(image) : effectUrl(kind);
   const effect = EFFECTS[kind];
   const node = element('span', `effect-icon effect-icon--${kind}`);
   node.style.setProperty('--effect-color', effect.color);
@@ -55,13 +56,13 @@ export function effectIcon(kind: EffectKey): HTMLElement {
   return node;
 }
 
-export function effectChip(kind: EffectKey, value: number | string): HTMLElement {
-  return element('span', `chip chip--${kind}`, effectIcon(kind), '' + value);
+export function effectChip(kind: EffectKey, value: number | string, image?: string): HTMLElement {
+  return element('span', `chip chip--${kind}`, effectIcon(kind, image), '' + value);
 }
 
 export function chips(face: Face, boost = 0): HTMLElement {
   const row = element('span', 'chips');
-  for (const part of effectiveParts(face, boost)) row.append(effectChip(part.kind, amount(part)));
+  effectiveParts(face, boost).forEach((part, i) => row.append(effectChip(part.kind, amount(part), i === 0 ? face.image : undefined)));
   if (face.salvage) row.append(effectChip('salvage', face.salvage));
   row.setAttribute('aria-hidden', 'true');
   return row;
@@ -69,7 +70,7 @@ export function chips(face: Face, boost = 0): HTMLElement {
 
 export function faceEmblem(face: Face): HTMLElement {
   const [primary, ...rest] = face.parts;
-  const emblem = element('span', 'face-emblem', effectIcon(primary.kind), element('span', 'face-amount', amount(primary)));
+  const emblem = element('span', 'face-emblem', effectIcon(primary.kind, face.image), element('span', 'face-amount', amount(primary)));
   const extra = element('span', 'face-extra');
   for (const part of rest) extra.append(effectChip(part.kind, amount(part)));
   if (face.salvage) extra.append(effectChip('salvage', face.salvage));

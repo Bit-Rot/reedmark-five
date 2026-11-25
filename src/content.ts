@@ -4,7 +4,7 @@ import type { Encounter, IntentFace, IntentDie, Room } from './model.ts';
  * Dice, items and characters come from the design data (data/*.json, edited in the editor).
  * Enemies and rooms are still authored here.
  */
-export { CHARACTERS, DATA, DATA_ISSUES, DICE, ITEMS } from './content-data.ts';
+export { BLANK_IMAGE, CHARACTERS, DATA, DATA_ISSUES, DICE, FACE_IMAGE_PATHS, ITEMS } from './content-data.ts';
 
 const H = (n: number): IntentFace => ['hit', n];
 const G = (n: number): IntentFace => ['guard', n];

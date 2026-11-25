@@ -241,3 +241,30 @@ test('picking a hero works right away even with animations enabled', async ({ br
   await expect(page.locator('.stage-cube')).toHaveCount(5);
   await context.close();
 });
+
+test('each face is drawn with the image chosen for its face in the data', async ({ page }) => {
+  const state = newRun('fixed', 231);
+  state.combat!.rolls[0].slot = 'left';
+  state.combat!.rolls[2].slot = 'right';
+  await saveFixture(page, state);
+  await expect(page.locator('#stage canvas')).toBeVisible();
+  await action(page, 'commit').click();
+  // The seated chips and the die layout use the face image, not the generic effect icon.
+  await expect(page.locator('button.seated[data-die="d0"] img')).toHaveAttribute('src', /face-art\/library\/sword\.webp$/);
+  await expect(page.locator('button.seated[data-die="d2"] img')).toHaveAttribute('src', /face-art\/library\/shield\.webp$/);
+  await die(page, 'd2').click({ button: 'right' });
+  const layout = page.getByRole('dialog', { name: 'Shield die layout' });
+  await expect(layout.locator('.net-tile img').first()).toHaveAttribute('src', /face-art\/library\/shield\.webp$/);
+});
+
+test('an exerted die shows the blank face image', async ({ page }) => {
+  const state = newRun('fixed', 231);
+  state.combat!.rolls[4].slot = 'left';
+  await saveFixture(page, state);
+  await action(page, 'commit').click();
+  await die(page, 'd4').click();
+  await actor(page, 'gnat-a').click();
+  await action(page, 'end').click();
+  await action(page, 'commit').click();
+  await expect(page.locator('button.seated[data-die="d4"] img')).toHaveAttribute('src', /face-art\/library\/blank\.webp$/);
+});

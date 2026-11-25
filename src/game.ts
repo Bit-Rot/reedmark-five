@@ -1,8 +1,10 @@
-import { CHARACTERS, DICE, ITEMS, ROOMS } from './content.ts';
+import { BLANK_IMAGE, CHARACTERS, DICE, ITEMS, ROOMS } from './content.ts';
 import { SLOTS } from './model.ts';
 import type { Combat, Die, Encounter, Enemy, Face, Intent, Offer, Part, Roll, Slot, State, Target, Variant } from './model.ts';
 
-const BLANK: Face = { target: 'none', parts: [{ kind: 'blank', value: 0 }] };
+/** What a die shows while it is exerted. */
+export const BLANK_FACE: Face = { target: 'none', parts: [{ kind: 'blank', value: 0 }], ...(BLANK_IMAGE ? { image: BLANK_IMAGE } : {}) };
+const BLANK = BLANK_FACE;
 const DISCOVERIES = Object.keys(DICE);
 
 function step(seed: number): number {

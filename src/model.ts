@@ -19,6 +19,8 @@ export interface Face {
   salvage?: number;
   /** ID of the data face this was built from. */
   id?: string;
+  /** Library image path (e.g. `face-art/library/sword.webp`) that the face is drawn with; effect icons are the fallback. */
+  image?: string;
 }
 export interface DieDefinition {
   name: string;

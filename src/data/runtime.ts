@@ -52,7 +52,7 @@ export function compileFace(face: Face, pips: number | undefined, issues: Diagno
   if (uses.has('cantrip')) parts.push({ kind: 'cantrip', value: 0 });
   // A face with nothing to do (no effect keywords) is a blank and cannot be played.
   if (!parts.some(p => p.kind !== 'exert' && p.kind !== 'cantrip')) {
-    return { id: face.id, target: 'none', parts: [{ kind: 'blank', value: 0 }] };
+    return { id: face.id, target: 'none', parts: [{ kind: 'blank', value: 0 }], ...(face.image ? { image: face.image } : {}) };
   }
   // Merge two guard parts (block + selfShield) so a face shows one Block value.
   const merged: Part[] = [];
@@ -62,7 +62,7 @@ export function compileFace(face: Face, pips: number | undefined, issues: Diagno
     else merged.push(p);
   }
   const defaultTarget: TargetKind = merged.some(p => p.kind === 'hit' || p.kind === 'seep' || p.kind === 'vulnerable' || p.kind === 'weak') ? 'enemy' : 'self';
-  return { id: face.id, target: target && target !== 'none' ? target : defaultTarget, parts: merged };
+  return { id: face.id, target: target && target !== 'none' ? target : defaultTarget, parts: merged, ...(face.image ? { image: face.image } : {}) };
 }
 
 const titleCase = (id: string) => id.replace(/^die_/, '').replace(/[_-]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());

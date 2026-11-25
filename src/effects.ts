@@ -54,6 +54,25 @@ const pictures = new Map<EffectKey, HTMLImageElement>();
 export const effectUrl = (kind: EffectKey): string => artPaths[`./art/faces/${kind}.webp`] ?? '';
 export const effectImage = (kind: EffectKey): HTMLImageElement | undefined => pictures.get(kind);
 
+const facePictures = new Map<string, HTMLImageElement>();
+/** URL of a face image path (relative to the site root) as seen from the page. */
+export const faceImageUrl = (path: string): string => new URL(path, document.baseURI).href;
+export const faceImage = (path: string | undefined): HTMLImageElement | undefined => (path ? facePictures.get(path) : undefined);
+
+/** Preload face images so they can be drawn onto the dice immediately. */
+export async function loadFaceImages(paths: readonly string[]): Promise<void> {
+  await Promise.all(paths.map(async path => {
+    const img = new Image();
+    img.src = faceImageUrl(path);
+    try {
+      await img.decode();
+      facePictures.set(path, img);
+    } catch {
+      // The effect icon still identifies the face if its image can't load.
+    }
+  }));
+}
+
 export async function loadEffectImages(): Promise<void> {
   await Promise.all((Object.keys(EFFECTS) as EffectKey[]).map(async kind => {
     const url = effectUrl(kind);
