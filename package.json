@@ -14,8 +14,7 @@
     "test:browser": "playwright test",
     "face-art": "node --disable-warning=ExperimentalWarning scripts/make-face-art.ts",
     "docs": "node --disable-warning=ExperimentalWarning scripts/export-docs.ts",
-    "docs:check": "node --disable-warning=ExperimentalWarning scripts/export-docs.ts --check",
-    "migrate": "node --disable-warning=ExperimentalWarning scripts/migrate-md.ts"
+    "docs:check": "node --disable-warning=ExperimentalWarning scripts/export-docs.ts --check"
   },
   "dependencies": { "three": "0.187.0" },
   "devDependencies": {

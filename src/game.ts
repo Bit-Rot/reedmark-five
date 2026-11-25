@@ -723,7 +723,7 @@ function discovery(state: State, exclude = ''): string {
   return choices[pick(state, choices.length)];
 }
 
-/** Gold for winning a fight, as in Slay the Spire: normal 10-20, elite 25-35, boss 95-105. */
+/** Gold ranges by encounter rank. */
 export const GOLD_RANGE = { normal: [10, 20], elite: [25, 35], boss: [95, 105] } as const;
 
 function awardGold(state: State, rank: Encounter['rank']): void {

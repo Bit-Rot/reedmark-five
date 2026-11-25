@@ -141,7 +141,7 @@
     "category": "Conditional x2 (state / targeting conditions)",
     "appliesTo": "TARG_PIPS",
     "implemented": "planned",
-    "notes": "Legacy alias: \"alliteration\"."
+    "notes": ""
   },
   {
     "id": "first",

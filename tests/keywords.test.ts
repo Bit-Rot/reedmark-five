@@ -202,7 +202,7 @@ test('compiled faces carry the image chosen for their data face, including on di
   for (const path of FACE_IMAGE_PATHS) assert(existsSync(`public/${path}`), `${path} missing from public/`);
 });
 
-test('winning a fight awards gold in the Slay the Spire ranges and records it for the reward screen', async () => {
+test('winning a fight awards gold by rank and records it for the reward screen', async () => {
   const { GOLD_RANGE, advance } = await import('../src/game.ts');
   assert.deepEqual(GOLD_RANGE, { normal: [10, 20], elite: [25, 35], boss: [95, 105] });
   const seen = new Set<number>();

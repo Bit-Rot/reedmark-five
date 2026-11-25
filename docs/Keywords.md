@@ -28,7 +28,7 @@
 | `inspired`   | x2 if the die played just before had more pips               | PIPS_ONLY      | implemented | Cannot be used with `k<keyword>` generated items. |
 | `patient`    | x2 if I was not used last turn                               | PIPS_ONLY      | planned     |                                                   |
 | `focus`      | x2 vs the target of the previous dice this turn              | TARG_PIPS      | planned     |                                                   |
-| `sloth`      | x2 vs targets with fewer blank faces                         | TARG_PIPS      | planned     | Legacy alias: "alliteration".                     |
+| `sloth`      | x2 vs targets with fewer blank faces                         | TARG_PIPS      | planned     |                                                   |
 | `first`      | x2 if no dice have been used this turn                       | PIPS_ONLY      | planned     |                                                   |
 | `burnDouble` | Deal double damage while you have Burn.                      | DAMAGE         | implemented |                                                   |
 
