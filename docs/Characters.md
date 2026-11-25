@@ -7,155 +7,63 @@
 - **Ability**: a Spell costs mana (mana sides feed a shared pool) and is cast from the hero panel; a Tactic has no mana cost but is paid by *dice sides already used that turn* (a `damage pip` cost is satisfied by damage sides, with a side of value v counting as v pips). The text after `, then` is the spell's `bonusUntargeted` extra effect, applied after the main effect. "power xN" is the balance multiplier passed to `SpellBill.power` / `Tactic`, not a gameplay value. Spells have curly-brace keywords too (`singleCast`, `cooldown`, `deplete`...).
 - Hidden traits that are chat/flavour only are marked as such. Anything generated at pick time (random items, modifiers, heroes) is marked *dynamic*.
 
-## Yellow
+## Colours
 
-Yellow: fighters: damage and shield heavy, many self-cost/"pain" sides. 22 heroes.
+- **Yellow**: fighters: damage and shield heavy, many self-cost/"pain" sides.
+- **Orange**: rogues, rangers and cantrip users: ranged, poison, dodge, cantrips.
+- **Grey**: defenders: shields, redirect, undying, support keywords.
+- **Red**: healers and support: healing, mana, regen, resurrection, group spells.
+- **Blue**: mages: mana sides plus a damage/utility spell.
+- **Green**: "weird" heroes, unlocked as a colour by the 50-achievements milestone; odd traits, on-pick rewards, tactics.
 
-### Yellow tier 1
+## Tier 1
 
-| Hero        |  HP | S1               | S2                | S3                    | S4                    | S5              | S6        | Ability | Traits / notes / unlock                                                                                               |
-| ----------- | --: | ---------------- | ----------------- | --------------------- | --------------------- | --------------- | --------- | ------- | --------------------------------------------------------------------------------------------------------------------- |
-| **Fighter** |   5 | 2 damage         | 2 damage          | 1 damage              | 1 damage              | Shield 1        | Shield 1  | -       | -                                                                                                                     |
-| **Brigand** |   5 | 3 damage {exert} | 3 damage {exert}  | 1 damage {selfShield} | 1 damage {selfShield} | 1 damage        | 1 damage  | -       | Unlock: Alt-T1 set A: complete (win) any run.                                                                         |
-| **Lazy**    |   6 | 3 damage         | Shield 3          | Blank                 | Blank                 | Blank           | Blank     | -       | -                                                                                                                     |
+| Hero | Colour | HP | S1 | S2 | S3 | S4 | S5 | S6 | Ability | Traits / notes / unlock |
+|---|---|---:|---|---|---|---|---|---|---|---|
+| **Fighter** | Yellow | 5 | 2 damage | 2 damage | 1 damage | 1 damage | Shield 1 | Shield 1 | - | - |
+| **Brigand** | Yellow | 5 | 3 damage {exert} | 3 damage {exert} | 1 damage {selfShield} | 1 damage {selfShield} | 1 damage | 1 damage | - | Unlock: Alt-T1 set A: complete (win) any run. |
+| **Lazy** | Yellow | 6 | 3 damage | Shield 3 | Blank | Blank | Blank | Blank | - | - |
+| **Thief** | Orange | 4 | 2 damage {ranged} | 2 damage | Blank | Blank | 2 damage | Blank | - | - |
+| **Scoundrel** | Orange | 7 | 1 damage to all enemies | 1 damage {vulnerable} | Blank | Blank | Blank | Blank | - | - |
+| **Lost** | Orange | 3 | 1 damage {ranged, poison} | 2 damage {cruel} | 1 damage {cruel} | 1 damage {cruel} | Dodge (self: avoid all damage and enemy effects this turn) | Blank | - | Unlock: Alt-T1 set A: complete (win) any run. |
+| **Defender** | Grey | 7 | Shield 3 | Shield 2 | 1 damage | 1 damage | Shield 1 | Blank | - | - |
+| **Squire** | Grey | 5 | Shield 2 {focus} | 1 damage {focus} | Redirect all damage and enemy effects from a target enemy to me {selfShield 2} | Redirect all damage and enemy effects from a target enemy to me {selfShield 2} | Shield 1 | Shield 1 | - | Unlock: Alt-T1 set B: 10 achievements. |
+| **Wallop** | Grey | 5 | Give a hero Undying (cannot die this turn) | 2 damage {selfShield} | Stun an enemy [target hp <= mine] | Stun an enemy [target hp <= mine] | 1 damage {selfShield} | Blank | - | Unlock: Alt-T1 set A: complete (win) any run. |
+| **Housecat** | Green | 3 | 3 damage | 1 damage {cleave} | Blank | Blank | 1 damage {cleave} | Blank | - | Trait ForeverYoung: cannot level up. Trait ReplaceChat: its speech is always a random cat noise. Sides use the wolf-bite (plain damage) and claw-slash (cleave) art. |
 
-### Yellow tier 2
+## Tier 2
 
-| Hero | HP | S1 | S2 | S3 | S4 | S5 | S6 | Ability | Traits / notes / unlock |
-|---|---:|---|---|---|---|---|---|---|---|
-| **Brute** | 8 | 2 damage {selfShield} | 2 damage {selfShield} | 3 damage {heavy} | 3 damage {heavy} | Stun an enemy [target hp <= mine] | Blank | - | - |
-| **Soldier** | 7 | 3 damage | 3 damage | 2 damage | 2 damage | Shield 2 | Shield 2 | - | - |
-| **Whirl** | 8 | 1 damage to all enemies | 3 damage | 1 damage {cleave} | 1 damage {cleave} | Shield 1 {cleave} | Blank | - | - |
-| **Sinew** | 8 | 1 damage {cleave, chain} | Shield 2 | 4 damage {exert} | 4 damage {exert} | Shield 2 | Blank | - | Unlock: 30 achievements. |
+| Hero | Colour | HP | S1 | S2 | S3 | S4 | S5 | S6 | Ability | Traits / notes / unlock |
+|---|---|---:|---|---|---|---|---|---|---|---|
+| **Brute** | Yellow | 8 | 2 damage {selfShield} | 2 damage {selfShield} | 3 damage {heavy} | 3 damage {heavy} | Stun an enemy [target hp <= mine] | Blank | - | - |
+| **Soldier** | Yellow | 7 | 3 damage | 3 damage | 2 damage | 2 damage | Shield 2 | Shield 2 | - | - |
+| **Whirl** | Yellow | 8 | 1 damage to all enemies | 3 damage | 1 damage {cleave} | 1 damage {cleave} | Shield 1 {cleave} | Blank | - | - |
+| **Sinew** | Yellow | 8 | 1 damage {cleave, chain} | Shield 2 | 4 damage {exert} | 4 damage {exert} | Shield 2 | Blank | - | Unlock: 30 achievements. |
+| **Gambler** | Orange | 7 | 5 damage | 3 damage | Blank | Blank | 1 damage | Blank | - | Two hidden flavour traits (chat only): cheers when its die stops on its highest damage side, boos when it stops on a blank with 0 rolls left. |
+| **Rogue** | Orange | 7 | 2 damage {cruel} | 1 damage {cantrip} | 1 damage {poison} | 1 damage {poison} | 1 damage {cantrip} | Dodge (self: avoid all damage and enemy effects this turn) | - | - |
+| **Trapper** | Orange | 8 | Kill a monster with 4 hp or less {ranged} | Dodge (self: avoid all damage and enemy effects this turn) | 1 damage {vulnerable} | 1 damage {vulnerable} | Dodge (self: avoid all damage and enemy effects this turn) | Blank | - | - |
+| **Armorer** | Grey | 9 | 3 damage {heavy} | Shield 4 | Shield 1 {cleave} | Shield 1 {cleave} | Shield 1 {smith} | Shield 1 {smith} | - | - |
+| **Bard** | Grey | 6 | Shield 2 {cantrip} | Gain 1 reroll {cantrip} | Shield 1 to all heroes | Shield 1 to all heroes | 1 damage {cantrip} | Blank | **Else** (tactic, 1x blank side): Shield 1 {cleanse} | Unlock: 40 achievements (tactics). |
+| **Pilgrim** | Grey | 8 | Recharge: another hero can use their die again | Give a hero Undying (cannot die this turn) | Give a hero keyword(s) {selfShield} on all their sides this turn | Give a hero keyword(s) {selfShield} on all their sides this turn | Stun an enemy [target hp <= mine] | Stun an enemy [target hp <= mine] | - | Unlock: 30 achievements. |
+| **Monk** | Grey | 9 | Shield 2 {cleanse} | Shield 1 {thorns} | Redirect all damage and enemy effects from a target enemy to me {selfShield 3} | Redirect all damage and enemy effects from a target enemy to me {selfShield 3} | Shield 1 {thorns} | Blank | - | - |
+| **Warden** | Grey | 10 | Shield 4 | Shield 3 | 2 damage | 2 damage | Shield 2 | Shield 1 | - | - |
+| **Granite** | Green | 5 | Give a hero Undying (cannot die this turn) | 3 damage {heavy} | 2 damage {heavy} | 2 damage {heavy} | Blank | Blank | - | Trait StoneSpecialHp on the inner 2 hp pips: those pips must be removed one at a time (damage is capped to one pip per hit there). |
+| **Statue** | Green | 25 | Blank | Blank | Blank | Blank | Blank | Blank | - | 25 hp, all six sides blank. Picking Statue twice unlocks the item Statuette. |
+| **Mimic** | Green | 10 | Blank (unset: filled by the Mimic trait) | Blank (unset: filled by the Mimic trait) | Blank (unset: filled by the Mimic trait) | Blank (unset: filled by the Mimic trait) | Blank (unset: filled by the Mimic trait) | Blank (unset: filled by the Mimic trait) | - | All sides are "blank (unset)" placeholders. Trait: replaces its sides with the Middle-position base side of other heroes (in petrify order from top to bottom, before items). Dynamic: resolved at runtime from the party. |
+| **Sphere** | Green | 9 | Stun an enemy [target hp <= mine] | Gain 1 reroll {cantrip} | Blank | Blank | Gain 1 reroll {cantrip} | Blank | **Slam** (tactic, 2x 1-keyword side): 4 damage {heavy} | - |
+| **Alien** | Green | 8 | Target enemy: pure keyword effect {poison} 2 | Target enemy: pure keyword effect {damage} 3 | Target ally: pure keyword effect {shield} 3 | Target ally: pure keyword effect {shield} 3 | Target ally: pure keyword effect {cleanse} 2 | Blank | **Devoid** (tactic, 1x blank side + 2x damage pip): Kill a monster [targets with 2 hp or less] | All non-blank sides are pure-keyword "target" sides (no base effect, the pips feed the keyword). |
 
-### Yellow tier 3
+## Tier 3
 
-| Hero | HP | S1 | S2 | S3 | S4 | S5 | S6 | Ability | Traits / notes / unlock |
-|---|---:|---|---|---|---|---|---|---|---|
-| **Veteran** | 11 | 4 damage | 4 damage | 3 damage | 3 damage | Shield 3 | Shield 3 | - | - |
-| **Captain** | 10 | 3 damage {focus} | 1 damage {cleave, chain} | Shield 4 | Shield 4 | 1 damage {cleave, chain} | Blank | **Formation** (tactic, 3x damage pip + 3x shield pip): 2 damage to all enemies, then shield 2 to all heroes | Unlock: 40 achievements (tactics). |
-
-## Orange
-
-Orange: rogues, rangers and cantrip users: ranged, poison, dodge, cantrips. 22 heroes.
-
-### Orange tier 1
-
-| Hero          |  HP | S1                        | S2                      | S3                | S4                | S5                                                         | S6                      | Ability | Traits / notes / unlock                       |
-| ------------- | --: | ------------------------- | ----------------------- | ----------------- | ----------------- | ---------------------------------------------------------- | ----------------------- | ------- | --------------------------------------------- |
-| **Thief**     |   4 | 2 damage {ranged}         | 2 damage                | Blank             | Blank             | 2 damage                                                   | Blank                   | -       | -                                             |
-| **Scoundrel** |   7 | 1 damage to all enemies   | 1 damage {vulnerable}   | Blank             | Blank             | Blank                                                      | Blank                   | -       | -                                             |
-| **Lost**      |   3 | 1 damage {ranged, poison} | 2 damage {cruel}        | 1 damage {cruel}  | 1 damage {cruel}  | Dodge (self: avoid all damage and enemy effects this turn) | Blank                   | -       | Unlock: Alt-T1 set A: complete (win) any run. |
-
-### Orange tier 2
-
-| Hero | HP | S1 | S2 | S3 | S4 | S5 | S6 | Ability | Traits / notes / unlock |
-|---|---:|---|---|---|---|---|---|---|---|
-| **Gambler** | 7 | 5 damage | 3 damage | Blank | Blank | 1 damage | Blank | - | Two hidden flavour traits (chat only): cheers when its die stops on its highest damage side, boos when it stops on a blank with 0 rolls left. |
-| **Rogue** | 7 | 2 damage {cruel} | 1 damage {cantrip} | 1 damage {poison} | 1 damage {poison} | 1 damage {cantrip} | Dodge (self: avoid all damage and enemy effects this turn) | - | - |
-| **Trapper** | 8 | Kill a monster with 4 hp or less {ranged} | Dodge (self: avoid all damage and enemy effects this turn) | 1 damage {vulnerable} | 1 damage {vulnerable} | Dodge (self: avoid all damage and enemy effects this turn) | Blank | - | - |
-
-### Orange tier 3
-
-| Hero | HP | S1 | S2 | S3 | S4 | S5 | S6 | Ability | Traits / notes / unlock |
-|---|---:|---|---|---|---|---|---|---|---|
-| **Ludus** | 7 | 6 damage | 5 damage | 4 damage | 3 damage | 1 damage | 2 damage | - | Hidden flavour traits (chat only): cheers when its die stops on its best side; special chat line ("Brother") on killing a Sudul. Picking Ludus twice unlocks the Sudul monster. |
-| **Sharpshot** | 8 | Kill a monster with 6 hp or less {ranged} | 3 damage {ranged} | 3 damage {ranged} | 3 damage {ranged} | 2 damage {ranged, copycat} | Blank | - | - |
-
-## Grey
-
-Grey: defenders: shields, redirect, undying, support keywords. 20 heroes.
-
-### Grey tier 1
-
-| Hero         |  HP | S1                                         | S2                    | S3                                                                             | S4                                                                             | S5                    | S6                 | Ability | Traits / notes / unlock                                    |
-| ------------ | --: | ------------------------------------------ | --------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ | --------------------- | ------------------ | ------- | ---------------------------------------------------------- |
-| **Defender** |   7 | Shield 3                                   | Shield 2              | 1 damage                                                                       | 1 damage                                                                       | Shield 1              | Blank              | -       | -                                                          |
-| **Squire**   |   5 | Shield 2 {focus}                           | 1 damage {focus}      | Redirect all damage and enemy effects from a target enemy to me {selfShield 2} | Redirect all damage and enemy effects from a target enemy to me {selfShield 2} | Shield 1              | Shield 1           | -       | Unlock: Alt-T1 set B: 10 achievements.                     |
-| **Wallop**   |   5 | Give a hero Undying (cannot die this turn) | 2 damage {selfShield} | Stun an enemy [target hp <= mine]                                              | Stun an enemy [target hp <= mine]                                              | 1 damage {selfShield} | Blank              | -       | Unlock: Alt-T1 set A: complete (win) any run.              |
-
-### Grey tier 2
-
-| Hero         |  HP | S1                                             | S2                                         | S3                                                                             | S4                                                                             | S5                                | S6                                | Ability                                                           | Traits / notes / unlock                                                                                           |
-| ------------ | --: | ---------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ | --------------------------------- | --------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| **Armorer**  |   9 | 3 damage {heavy}                               | Shield 4                                   | Shield 1 {cleave}                                                              | Shield 1 {cleave}                                                              | Shield 1 {smith}                  | Shield 1 {smith}                  | -                                                                 | -                                                                                                                 |
-| **Bard**     |   6 | Shield 2 {cantrip}                             | Gain 1 reroll {cantrip}                    | Shield 1 to all heroes                                                         | Shield 1 to all heroes                                                         | 1 damage {cantrip}                | Blank                             | **Else** (tactic, 1x blank side): Shield 1 {cleanse}              | Unlock: 40 achievements (tactics).                                                                                |
-| **Pilgrim**  |   8 | Recharge: another hero can use their die again | Give a hero Undying (cannot die this turn) | Give a hero keyword(s) {selfShield} on all their sides this turn               | Give a hero keyword(s) {selfShield} on all their sides this turn               | Stun an enemy [target hp <= mine] | Stun an enemy [target hp <= mine] | -                                                                 | Unlock: 30 achievements.                                                                                          |
-| **Monk**     |   9 | Shield 2 {cleanse}                             | Shield 1 {thorns}                          | Redirect all damage and enemy effects from a target enemy to me {selfShield 3} | Redirect all damage and enemy effects from a target enemy to me {selfShield 3} | Shield 1 {thorns}                 | Blank                             | -                                                                 | -                                                                                                                 |
-| **Warden**   |  10 | Shield 4                                       | Shield 3                                   | 2 damage                                                                       | 2 damage                                                                       | Shield 2                          | Shield 1                          | -                                                                 | -                                                                                                                 |
-
-### Grey tier 3
-
-| Hero | HP | S1 | S2 | S3 | S4 | S5 | S6 | Ability | Traits / notes / unlock |
-|---|---:|---|---|---|---|---|---|---|---|
-| **Stoic** | 15 | Stun an enemy [target hp <= mine] | Redirect all damage and enemy effects from a target enemy to me {selfShield 3} | 2 damage {selfShield} | 2 damage {selfShield} | Redirect all damage and enemy effects from a target enemy to me {selfShield 2} | Redirect all damage and enemy effects from a target enemy to me {selfShield 1} | - | - |
-
-## Red
-
-Red: healers and support: healing, mana, regen, resurrection, group spells. 21 heroes.
-
-### Red tier 1
-
-No heroes remain in this group.
-
-### Red tier 2
-
-
-No heroes remain in this group.
-
-
-### Red tier 3
-
-
-No heroes remain in this group.
-
-
-## Blue
-
-Blue: mages: mana sides plus a damage/utility spell. 22 heroes.
-
-### Blue tier 1
-
-No heroes remain in this group.
-
-### Blue tier 2
-
-
-No heroes remain in this group.
-
-
-### Blue tier 3
-
-
-No heroes remain in this group.
-
-
-## Green
-
-Green: "weird" heroes, unlocked as a colour by the 50-achievements milestone; odd traits, on-pick rewards, tactics. 21 heroes.
-
-### Green tier 1
-
-| Hero | HP | S1 | S2 | S3 | S4 | S5 | S6 | Ability | Traits / notes / unlock |
-|---|---:|---|---|---|---|---|---|---|---|
-| **Housecat** | 3 | 3 damage | 1 damage {cleave} | Blank | Blank | 1 damage {cleave} | Blank | - | Trait ForeverYoung: cannot level up. Trait ReplaceChat: its speech is always a random cat noise. Sides use the wolf-bite (plain damage) and claw-slash (cleave) art. |
-
-### Green tier 2
-
-| Hero        |  HP | S1                                           | S2                                           | S3                                          | S4                                          | S5                                           | S6                                       | Ability                                                                                        | Traits / notes / unlock                                                                                                                                                                                                    |
-| ----------- | --: | -------------------------------------------- | -------------------------------------------- | ------------------------------------------- | ------------------------------------------- | -------------------------------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Granite** |   5 | Give a hero Undying (cannot die this turn)   | 3 damage {heavy}                             | 2 damage {heavy}                            | 2 damage {heavy}                            | Blank                                        | Blank                                    | -                                                                                              | Trait StoneSpecialHp on the inner 2 hp pips: those pips must be removed one at a time (damage is capped to one pip per hit there).                                                                                         |
-| **Statue**  |  25 | Blank                                        | Blank                                        | Blank                                       | Blank                                       | Blank                                        | Blank                                    | -                                                                                              | 25 hp, all six sides blank. Picking Statue twice unlocks the item Statuette.                                                                                                                                               |
-| **Mimic**   |  10 | Blank (unset: filled by the Mimic trait)     | Blank (unset: filled by the Mimic trait)     | Blank (unset: filled by the Mimic trait)    | Blank (unset: filled by the Mimic trait)    | Blank (unset: filled by the Mimic trait)     | Blank (unset: filled by the Mimic trait) | -                                                                                              | All sides are "blank (unset)" placeholders. Trait: replaces its sides with the Middle-position base side of other heroes (in petrify order from top to bottom, before items). Dynamic: resolved at runtime from the party. |
-| **Sphere**  |   9 | Stun an enemy [target hp <= mine]            | Gain 1 reroll {cantrip}                      | Blank                                       | Blank                                       | Gain 1 reroll {cantrip}                      | Blank                                    | **Slam** (tactic, 2x 1-keyword side): 4 damage {heavy}                                         | -                                                                                                                                                                                                                          |
-| **Alien**   |   8 | Target enemy: pure keyword effect {poison} 2 | Target enemy: pure keyword effect {damage} 3 | Target ally: pure keyword effect {shield} 3 | Target ally: pure keyword effect {shield} 3 | Target ally: pure keyword effect {cleanse} 2 | Blank                                    | **Devoid** (tactic, 1x blank side + 2x damage pip): Kill a monster [targets with 2 hp or less] | All non-blank sides are pure-keyword "target" sides (no base effect, the pips feed the keyword).                                                                                                                           |
-
-### Green tier 3
-
-| Hero        |  HP | S1                | S2                                                         | S3                | S4                | S5                | S6                | Ability | Traits / notes / unlock                                                              |
-| ----------- | --: | ----------------- | ---------------------------------------------------------- | ----------------- | ----------------- | ----------------- | ----------------- | ------- | ------------------------------------------------------------------------------------ |
-| **Tainted** |  14 | Blank {stasis}    | Dodge (self: avoid all damage and enemy effects this turn) | 3 damage {cleave} | 3 damage {cleave} | 4 damage {poison} | Shield 3 {cleave} | -       | On pick, gain 1 random tier -3 modifier (a curse; generated at pick time - dynamic). |
-| **Luggage** |   5 | Shield 1 {cleave} | Shield 1 {cleave}                                          | Blank             | Blank             | Blank             | Blank             | -       | On pick, gain three random items: one each of tier 6, tier 7 and tier 8 (dynamic).   |
+| Hero | Colour | HP | S1 | S2 | S3 | S4 | S5 | S6 | Ability | Traits / notes / unlock |
+|---|---|---:|---|---|---|---|---|---|---|---|
+| **Veteran** | Yellow | 11 | 4 damage | 4 damage | 3 damage | 3 damage | Shield 3 | Shield 3 | - | - |
+| **Captain** | Yellow | 10 | 3 damage {focus} | 1 damage {cleave, chain} | Shield 4 | Shield 4 | 1 damage {cleave, chain} | Blank | **Formation** (tactic, 3x damage pip + 3x shield pip): 2 damage to all enemies, then shield 2 to all heroes | Unlock: 40 achievements (tactics). |
+| **Ludus** | Orange | 7 | 6 damage | 5 damage | 4 damage | 3 damage | 1 damage | 2 damage | - | Hidden flavour traits (chat only): cheers when its die stops on its best side; special chat line ("Brother") on killing a Sudul. Picking Ludus twice unlocks the Sudul monster. |
+| **Sharpshot** | Orange | 8 | Kill a monster with 6 hp or less {ranged} | 3 damage {ranged} | 3 damage {ranged} | 3 damage {ranged} | 2 damage {ranged, copycat} | Blank | - | - |
+| **Stoic** | Grey | 15 | Stun an enemy [target hp <= mine] | Redirect all damage and enemy effects from a target enemy to me {selfShield 3} | 2 damage {selfShield} | 2 damage {selfShield} | Redirect all damage and enemy effects from a target enemy to me {selfShield 2} | Redirect all damage and enemy effects from a target enemy to me {selfShield 1} | - | - |
+| **Tainted** | Green | 14 | Blank {stasis} | Dodge (self: avoid all damage and enemy effects this turn) | 3 damage {cleave} | 3 damage {cleave} | 4 damage {poison} | Shield 3 {cleave} | - | On pick, gain 1 random tier -3 modifier (a curse; generated at pick time - dynamic). |
+| **Luggage** | Green | 5 | Shield 1 {cleave} | Shield 1 {cleave} | Blank | Blank | Blank | Blank | - | On pick, gain three random items: one each of tier 6, tier 7 and tier 8 (dynamic). |
 
 ## Extras and non-designed heroes
 
