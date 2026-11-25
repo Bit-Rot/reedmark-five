@@ -1,15 +1,32 @@
 import { BOSS_IDS, CAMPAIGN_FIGHTS } from './campaign-content.ts';
-import { bossDue, cycleAt, frontier, nextBoss, visibleTile } from './campaign-map.ts';
+import { CENTER, bossDue, cycleAt, frontier, nextBoss, visibleTile } from './campaign-map.ts';
 import type { CampaignMap, Tile, VisibleTile } from './campaign-map.ts';
 import { button, element } from './ui.ts';
+import campArt from './art/map/camp.webp';
+import chestArt from './art/map/chest.webp';
+import eliteArt from './art/map/elite.webp';
+import eventArt from './art/map/event.webp';
+import fightArt from './art/map/fight.webp';
+import shopArt from './art/map/shop.webp';
+import startArt from './art/map/start.webp';
 
 const labels: Record<VisibleTile, string> = {
   normal: 'Combat', elite: 'Elite', camp: 'Campfire', shop: 'Shop', event: 'Event',
   treasure: 'Treasure', unknown: 'Unrevealed', cleared: 'Cleared',
 };
-const markers: Record<VisibleTile, string> = {
-  normal: '⚔', elite: '✦', camp: '♨', shop: '◈', event: '?', treasure: '◆', unknown: '·', cleared: '✓',
+const landmarks = {
+  normal: fightArt, elite: eliteArt, event: eventArt,
+  camp: campArt, shop: shopArt, treasure: chestArt,
 };
+
+function landmark(src: string): HTMLImageElement {
+  const image = element('img', 'map-landmark');
+  image.src = src;
+  image.alt = '';
+  image.draggable = false;
+  return image;
+}
+
 const x = (tile: Tile) => Math.sqrt(3) * (tile.q + tile.r / 2);
 const y = (tile: Tile) => 1.5 * tile.r;
 
@@ -34,15 +51,26 @@ export function campaignScreen(map: CampaignMap): HTMLElement {
   const cells = map.tiles.map(tile => {
     const kind = visibleTile(tile, reachable);
     const current = map.last === tile.id;
-    const tag = element('span', 'hex-marker', current ? '⬟' : markers[kind]);
-    tag.setAttribute('aria-hidden', 'true');
-    const label = labels[kind] + ' at ' + tile.q + ', ' + tile.r + (current ? ', your position' : '');
+    const start = tile.id === CENTER;
+    const marker = element('span', 'hex-marker');
+    marker.setAttribute('aria-hidden', 'true');
+    if (start) {
+      marker.append(landmark(startArt), element('span', 'hex-start-name', 'Start'),
+        element('span', 'hex-start-state', 'Cleared'));
+    } else if (kind === 'cleared') {
+      marker.textContent = '✓';
+    } else if (kind !== 'unknown') {
+      marker.append(landmark(landmarks[kind]));
+    }
+    const name = start ? 'Start, already explored' : labels[kind];
+    const label = name + ' at ' + tile.q + ', ' + tile.r + (current ? ', your position' : '');
     const active = !due && reachable.has(tile.id);
     const cell = active
-      ? button('campaign-hex', 'explore-tile', 'Explore ' + label, tag)
-      : element('span', 'campaign-hex', tag);
+      ? button('campaign-hex', 'explore-tile', 'Explore ' + label, marker)
+      : element('span', 'campaign-hex', marker);
     cell.dataset.tile = tile.id;
     cell.dataset.kind = kind;
+    if (start) cell.dataset.start = 'true';
     if (active) {
       cell.dataset.focus = 'map-' + tile.id;
       cell.dataset.reachable = 'true';
@@ -50,7 +78,7 @@ export function campaignScreen(map: CampaignMap): HTMLElement {
       cell.setAttribute('role', 'img');
       cell.setAttribute('aria-label', label);
     }
-    cell.title = labels[kind];
+    cell.title = name;
     if (current) cell.dataset.current = 'true';
     board.append(cell);
     return { tile, cell };
@@ -119,10 +147,11 @@ export function campaignScreen(map: CampaignMap): HTMLElement {
 
   const legend = element('div', 'campaign-legend');
   for (const kind of ['normal', 'elite', 'event', 'camp', 'shop', 'treasure'] as const) {
-    legend.append(element('span', '', element('b', '', markers[kind]), labels[kind]));
+    legend.append(element('span', '', landmark(landmarks[kind]), labels[kind]));
   }
   const panel = element('section', 'campaign-panel',
-    element('div', 'campaign-heading', element('div', '', heading, timer), controls),
+    element('div', 'campaign-heading', element('div', '', heading, timer,
+      due ? null : element('p', 'campaign-path-hint', 'Explore a gold-edged hex.')), controls),
     viewport, legend);
   panel.setAttribute('aria-label', 'Exploration map');
   panel.dataset.turn = String(map.turn);

@@ -613,6 +613,12 @@ test('the campaign map supports keyboard exploration and discards an old Fixed F
   await expect(page.getByRole('heading', { name: 'Explore Reedmark' })).toBeVisible();
   await expect(page.locator('.campaign-hex')).toHaveCount(127);
   await expect(page.locator('[data-action="explore-tile"]')).toHaveCount(6);
+  const start = page.getByRole('img', { name: 'Start, already explored at 0, 0, your position' });
+  await expect(start).toBeVisible();
+  await expect(start.getByText('Start', { exact: true })).toBeVisible();
+  await expect(start.getByText('Cleared', { exact: true })).toBeVisible();
+  await start.click();
+  await expect(page.locator('.map-track')).toContainText('0/48');
   await expect(page.locator('.campaign-timer')).toHaveText('Boss in 16 turns');
   await expect(page.locator('.campaign-hex[data-kind="unknown"]').first()).toHaveAccessibleName(/Unrevealed/);
   const normal = page.locator('button[data-kind="normal"]').first();
