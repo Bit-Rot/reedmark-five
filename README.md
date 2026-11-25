@@ -23,6 +23,16 @@ Development defaults to Fixed Five. Use `?mode=pool` for Dice Pool. Add `seed=23
 
 The stage uses Three.js. The rules and authored content have no rendering dependencies. The original marsh background and sprite atlas were made with the built-in ImageGen tool and prepared as optimized WebP assets under `src/art/`.
 
+## Design data and editor
+
+Design data (keywords, faces, dice, characters, items, relics, room types) lives in `data/*.json`; each entity has a stable `id` and everything refers to other entities by ID. The `docs/*.md` tables are **generated** from it (`npm run docs`, checked by `npm test`), so edit data, not those files. The old Slice & Dice extraction is kept for reference in `docs/legacy/`.
+
+The editor is a static page at `/editor/` on the published site (also installable as an app on Android). It edits `data/*.json`, shows where each ID is used, renames an ID everywhere at once, validates references, and uploads face images (converted to WebP into `public/face-art/`).
+
+To save from the published page, open the settings (gear) and paste a GitHub fine-grained personal access token limited to this repository with **Contents: Read and write**. The token stays in that browser only. **Save** makes one commit on `main` containing the data, regenerated docs and any images; if `main` moved since you loaded, the changes are merged per entity and any clashes are offered for you to resolve.
+
+Unsaved edits are kept in the browser, so closing the tab does not lose them. Locally, `npm run dev` serves the editor at `http://localhost:4177/editor/`; `npm run migrate` re-imports the legacy md tables (one-off, it overwrites `data/`).
+
 ## Deployment
 
 `npm run build:fixed` and `npm run build:pool` produce standalone static games. This repository publishes the fixed build. The [Dice Pool deployment repository](https://github.com/Bit-Rot/reedmark-pool) pins a source commit and builds the pool variant from it. Update that pin to release a tested shared revision to the pool site.
