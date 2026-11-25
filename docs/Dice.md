@@ -17,11 +17,11 @@ The below chart describes which face corresponds to which position in a die's "t
 
 ## Dice
 
-| ID           | Face 1     | Face 2     | Face 3          | Face 4          | Face 5    | Face 6    |
-| ------------ | ---------- | ---------- | --------------- | --------------- | --------- | --------- |
-| `die_sword`  | `slash` 3  | `slash` 2  | `slash` 1       | `slash` 1       | `block` 1 | `block` 1 |
-| `die_shield` | `block` 3  | `block` 2  | `block` 2       | `block` 2       | `block` 1 | `block` 1 |
-| `die_hammer` | `bash` 2   | `bash` 2   | `slash_block` 1 | `slash_block` 1 | `blank`   | `blank`   |
-| `die_dagger` | `stab` 1   | `stab` 1   | `stab` 1        | `stab` 1        | `blank`   | `blank`   |
-| `die_dodge`  | `dash` 1   | `dash` 1   | `dash` 1        | `dash` 1        | `blank`   | `blank`   |
-| `die_kris`   | `hobble` 2 | `hobble` 2 | `slash` 2       | `slash` 2       | `blank`   | `blank`   |
+| ID           | Face 1            | Face 2            | Face 3           | Face 4           | Face 5    | Face 6    |
+| ------------ | ----------------- | ----------------- | ---------------- | ---------------- | --------- | --------- |
+| `die_sword`  | `dmg` 3           | `dmg` 2           | `dmg` 1          | `dmg` 1          | `block` 1 | `block` 1 |
+| `die_shield` | `block` 3         | `block` 2         | `block` 2        | `block` 2        | `block` 1 | `block` 1 |
+| `die_hammer` | `dmgVulnerable` 2 | `dmgVulnerable` 2 | `dmgBlock` 1     | `dmgBlock` 1     | `blank`   | `blank`   |
+| `die_dagger` | `dmgCantrip` 1    | `dmgCantrip` 1    | `dmgCantrip` 1   | `dmgCantrip` 1   | `blank`   | `blank`   |
+| `die_dodge`  | `blockCantrip` 1  | `blockCantrip` 1  | `blockCantrip` 1 | `blockCantrip` 1 | `blank`   | `blank`   |
+| `die_kris`   | `dmgWeak` 2       | `dmgWeak` 2       | `dmg` 2          | `dmg` 2          | `blank`   | `blank`   |

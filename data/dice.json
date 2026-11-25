@@ -4,19 +4,19 @@
     "name": "Sword",
     "faces": [
       {
-        "face": "slash",
+        "face": "dmg",
         "pips": 3
       },
       {
-        "face": "slash",
+        "face": "dmg",
         "pips": 2
       },
       {
-        "face": "slash",
+        "face": "dmg",
         "pips": 1
       },
       {
-        "face": "slash",
+        "face": "dmg",
         "pips": 1
       },
       {
@@ -68,19 +68,19 @@
     "name": "Hammer",
     "faces": [
       {
-        "face": "bash",
+        "face": "dmgVulnerable",
         "pips": 2
       },
       {
-        "face": "bash",
+        "face": "dmgVulnerable",
         "pips": 2
       },
       {
-        "face": "slash_block",
+        "face": "dmgBlock",
         "pips": 1
       },
       {
-        "face": "slash_block",
+        "face": "dmgBlock",
         "pips": 1
       },
       {
@@ -98,19 +98,19 @@
     "name": "Dagger",
     "faces": [
       {
-        "face": "stab",
+        "face": "dmgCantrip",
         "pips": 1
       },
       {
-        "face": "stab",
+        "face": "dmgCantrip",
         "pips": 1
       },
       {
-        "face": "stab",
+        "face": "dmgCantrip",
         "pips": 1
       },
       {
-        "face": "stab",
+        "face": "dmgCantrip",
         "pips": 1
       },
       {
@@ -128,19 +128,19 @@
     "name": "Dodge",
     "faces": [
       {
-        "face": "dash",
+        "face": "blockCantrip",
         "pips": 1
       },
       {
-        "face": "dash",
+        "face": "blockCantrip",
         "pips": 1
       },
       {
-        "face": "dash",
+        "face": "blockCantrip",
         "pips": 1
       },
       {
-        "face": "dash",
+        "face": "blockCantrip",
         "pips": 1
       },
       {
@@ -158,19 +158,19 @@
     "name": "Kris",
     "faces": [
       {
-        "face": "hobble",
+        "face": "dmgWeak",
         "pips": 2
       },
       {
-        "face": "hobble",
+        "face": "dmgWeak",
         "pips": 2
       },
       {
-        "face": "slash",
+        "face": "dmg",
         "pips": 2
       },
       {
-        "face": "slash",
+        "face": "dmg",
         "pips": 2
       },
       {

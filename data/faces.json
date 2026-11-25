@@ -9,7 +9,7 @@
     "status": "active"
   },
   {
-    "id": "slash",
+    "id": "dmg",
     "targeting": "singleEnemy",
     "keywords": [
       {
@@ -35,7 +35,7 @@
     "status": "active"
   },
   {
-    "id": "stab",
+    "id": "dmgCantrip",
     "targeting": "singleEnemy",
     "keywords": [
       {
@@ -51,7 +51,7 @@
     "status": "active"
   },
   {
-    "id": "bash",
+    "id": "dmgVulnerable",
     "targeting": "singleEnemy",
     "keywords": [
       {
@@ -71,7 +71,7 @@
     "status": "active"
   },
   {
-    "id": "slash_block",
+    "id": "dmgBlock",
     "targeting": "singleEnemy",
     "keywords": [
       {
@@ -87,7 +87,7 @@
     "status": "active"
   },
   {
-    "id": "dash",
+    "id": "blockCantrip",
     "targeting": "self",
     "keywords": [
       {
@@ -120,7 +120,7 @@
     "status": "active"
   },
   {
-    "id": "hobble",
+    "id": "dmgWeak",
     "targeting": "singleEnemy",
     "keywords": [
       {
