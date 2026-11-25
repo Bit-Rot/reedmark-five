@@ -80,7 +80,20 @@
   .gold-hud { font-size: .95rem; }
   .gold-coin { width: 1.25em; height: 1.25em; border-radius: 50%; object-fit: cover; }
   .gold-banner { font-size: 1.15rem; margin: -4px 0 12px; }
-  .menu-sheet { width: min(380px,100%); }
+  .upgrade-body { display: flex; align-items: center; gap: 8px; text-align: left; font-size: .86rem; line-height: 1.25; color: #e8d6b0; }
+  .upgrade-body .effect-icon { width: 2.4em; height: 2.4em; flex: none; }
+  .upgrade-kit .upgrade-die { padding: 6px; border: 1px solid #a789625c; border-radius: 7px; background: #17282e; }
+  .upgrade-kit .net-tile { cursor: default; }
+  /* A <button> tile does not stretch its child to 100% height the way a <span> does. */
+  button.net-tile { position: relative; }
+  button.net-tile > .face-emblem { position: absolute; inset: 0; width: auto; height: auto; }
+  .net-tile.is-upgradable { border: 2px solid #ffe19a; box-shadow: 0 0 10px #ffcd6655; cursor: pointer; }
+  .net-tile.is-upgradable:hover { box-shadow: 0 0 14px #ffe19a99; }
+  .net-tile.is-locked { opacity: .32; }
+  .sheet.upgrade-sheet { width: min(980px, 100%); }
+  .upgrade-sheet .menu-note { margin-bottom: 12px; }
+  .upgrade-kit .upgrade-die { padding: 10px; }
+  .sheet.menu-sheet { width: min(380px,100%); }
   .menu-note { margin: 0 0 14px; line-height: 1.4; }
   .menu-actions { display: grid; gap: 10px; }
   .control--danger { color: #ffe3dc; background: linear-gradient(#a24a3f, #7b3027); border-color: #d98b7b; }

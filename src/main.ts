@@ -2,11 +2,12 @@ import './style.css';
 import './face-ui.css';
 import { CHARACTERS, DICE, FACE_IMAGE_PATHS, ITEMS, ROOMS } from './content.ts';
 import { actionPreview, advance, canPlay, chooseOffer, commitRoll, endTurn, incoming, intentValues, isExerted, isSave,
-  newRun, offerTargets, play, previewDie, reroll, rollFace, setHold } from './game.ts';
-import type { Die, Face, Offer, Roll, State, Target, Variant } from './model.ts';
+  faceFor, newRun, offerTargets, play, previewDie, previewUpgrade, reroll, rollFace, setHold } from './game.ts';
+import { SLOTS } from './model.ts';
+import type { Die, Face, Offer, Roll, Slot, State, Target, Variant } from './model.ts';
 import { EFFECTS, faceImageUrl, loadEffectImages, loadFaceImages } from './effects.ts';
 import { art, Battlefield } from './scene.ts';
-import { button, caption, chips, effectChip, element, faceEmblem, FaceTooltips, faceNet, faceText, helpOn, itemNet, positionFloater } from './ui.ts';
+import { UPGRADE_INFO, button, caption, chips, effectChip, effectIcon, element, faceEmblem, FaceTooltips, faceNet, faceText, helpOn, itemNet, positionFloater, upgradeLabel } from './ui.ts';
 
 declare const __VARIANT__: Variant;
 
@@ -246,11 +247,16 @@ function describeOffer(offer: Offer): string {
   if (offer.kind === 'item') return ITEMS[offer.id].name;
   if (offer.kind === 'add') return 'New die';
   if (offer.kind === 'transform') return 'Transform a die';
+  if (offer.kind === 'upgrade') return `Upgrade: ${upgradeLabel(offer)}`;
   return offer.kind === 'heal' ? 'Rest' : 'Remove';
 }
 
 function offerBody(offer: Offer): HTMLElement {
   if (offer.kind === 'item') return itemNet(offer.id);
+  if (offer.kind === 'upgrade') {
+    const info = UPGRADE_INFO[offer.keyword];
+    return element('span', 'upgrade-body', info ? effectIcon(info.effect) : null, element('span', '', info?.text ?? 'Add a keyword to a face.'));
+  }
   if (offer.kind === 'add' || offer.kind === 'transform') return faceNet({ id: '', template: offer.id, imprints: {} });
   return element('span', 'offer-emblem', offer.kind === 'heal' ? '+10 ♥' : '−1 ◇');
 }
@@ -264,12 +270,12 @@ function sheet(title: string, action: HTMLButtonElement): HTMLElement {
 function offerGrid(direct = false): HTMLElement {
   const grid = element('div', 'offer-grid');
   state.offers.forEach((entry, index) => {
-    const kind = entry.kind === 'item' ? ITEMS[entry.id].rarity : entry.kind === 'add' ? 'New die' : entry.kind;
+    const kind = entry.kind === 'item' ? ITEMS[entry.id].rarity : entry.kind === 'add' ? 'New die' : entry.kind === 'upgrade' ? 'Face upgrade' : entry.kind;
     const card = button(`offer-card offer--${kind.toLowerCase().replace(' ', '-')}`, 'offer', describeOffer(entry),
       caption(kind), element('strong', '', describeOffer(entry)), offerBody(entry));
     card.dataset.index = '' + index;
     card.dataset.focus = `offer-${index}`;
-    card.disabled = ['item', 'remove', 'transform'].includes(entry.kind) && !offerTargets(state, entry).length;
+    card.disabled = ['item', 'remove', 'transform', 'upgrade'].includes(entry.kind) && !offerTargets(state, entry).length;
     if (direct && entry.kind === 'item') {
       card.dataset.dragItem = '' + index;
       card.setAttribute('aria-pressed', '' + (offerIndex === index));
@@ -277,6 +283,42 @@ function offerGrid(direct = false): HTMLElement {
     grid.append(card);
   });
   return grid;
+}
+
+type UpgradeOffer = Extract<Offer, { kind: 'upgrade' }>;
+
+function selectedUpgrade(): UpgradeOffer | null {
+  const offer = offerIndex === null ? undefined : state.offers[offerIndex];
+  return offer?.kind === 'upgrade' ? offer : null;
+}
+
+const slotLabel: Record<Slot, string> = { left: 'Left', center: 'Center', right: 'Right', far: 'Far right', top: 'Top', bottom: 'Bottom' };
+
+/** Every die's faces; the ones the upgrade can go on are lit and clickable, and show the result. */
+function renderUpgradePicker(offer: UpgradeOffer): HTMLElement {
+  const pane = sheet(describeOffer(offer), button('subtle', 'back', 'Back to rewards', 'Back'));
+  pane.classList.add('upgrade-sheet');
+  pane.append(element('p', 'menu-note', `${UPGRADE_INFO[offer.keyword]?.text ?? ''} Choose a face to upgrade.`));
+  const kit = element('div', 'imprint-kit upgrade-kit');
+  for (const die of state.dice) {
+    const net = element('div', 'face-net');
+    for (const slot of SLOTS) {
+      const before = faceFor(die, slot);
+      const after = previewUpgrade(die, slot, offer);
+      const shown = after ?? before;
+      const tile = button(`net-tile net-tile--${slot}${after ? ' is-upgradable' : ' is-locked'}`, 'upgrade-face',
+        `${dieLabel(die.id)}, ${slotLabel[slot]}: ${faceText(shown)}`, faceEmblem(shown));
+      tile.dataset.upgradeDie = die.id;
+      tile.dataset.slot = slot;
+      tile.dataset.focus = `upgrade-${die.id}-${slot}`;
+      tile.disabled = !after;
+      if (after) helpOn(tile, after, 0, before);
+      net.append(tile);
+    }
+    kit.append(element('div', 'upgrade-die', net));
+  }
+  pane.append(kit);
+  return element('div', 'overlay', pane);
 }
 
 function goldBanner(): HTMLElement | null {
@@ -290,6 +332,8 @@ function goldBanner(): HTMLElement | null {
 }
 
 function fixedOfferSheet(): HTMLElement {
+  const chosen = selectedUpgrade();
+  if (chosen) return renderUpgradePicker(chosen);
   const room = ROOMS[state.room];
   const pane = sheet(room.type === 'battle' ? 'Spoils' : room.name, button('subtle', 'skip', 'Skip reward', 'Skip'));
   pane.classList.add('fixed-spoils');
@@ -311,6 +355,8 @@ function fixedOfferSheet(): HTMLElement {
 
 function renderOffers(): HTMLElement {
   if (variant === 'fixed') return fixedOfferSheet();
+  const chosen = selectedUpgrade();
+  if (chosen) return renderUpgradePicker(chosen);
   const room = ROOMS[state.room];
   const offer = offerIndex === null ? undefined : state.offers[offerIndex];
   const title = offer ? describeOffer(offer) : room.type === 'battle' ? 'Spoils' : room.name;
@@ -783,6 +829,11 @@ view.addEventListener('click', event => {
         offerIndex = null;
         transition('reward', 0);
       }
+    } else if (offer.kind === 'upgrade') {
+      offerIndex = index;
+      rewardDie = null;
+      render();
+      view.querySelector<HTMLElement>('.net-tile.is-upgradable')?.focus();
     } else if (variant === 'fixed' && offer.kind === 'item') {
       offerIndex = offerIndex === index ? null : index;
       render();
@@ -796,6 +847,11 @@ view.addEventListener('click', event => {
   } else if (action === 'imprint-die') {
     if (offerIndex !== null) finishImprint(offerIndex, node.dataset.imprintTarget!);
     else openInspection(node, event.detail === 0);
+  } else if (action === 'upgrade-face') {
+    if (offerIndex !== null && chooseOffer(state, offerIndex, node.dataset.upgradeDie, node.dataset.slot as Slot)) {
+      offerIndex = null;
+      transition('reward', 0);
+    }
   } else if (action === 'reward-die') {
     rewardDie = node.dataset.id!;
     render();

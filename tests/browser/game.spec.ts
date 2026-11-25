@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
-import { newRun, rollFace } from '../../src/game.ts';
+import { advance, newRun, rollFace } from '../../src/game.ts';
 import type { State, Variant } from '../../src/model.ts';
 import { act, takeReward } from '../../scripts/policy.ts';
 import type { Command } from '../../scripts/policy.ts';
@@ -166,7 +166,9 @@ async function perform(page: Page, command: Command): Promise<void> {
     else if (target.kind === 'die') await die(page, target.id!).click();
   } else if (command.action === 'take') {
     await page.locator(`button[data-action="offer"][data-index="${command.index}"]`).click();
-    if (command.id) {
+    if (command.id && command.slot) {
+      await page.locator(`button[data-action="upgrade-face"][data-upgrade-die="${command.id}"][data-slot="${command.slot}"]`).click();
+    } else if (command.id) {
       const direct = page.locator(`button[data-imprint-target="${command.id}"]`);
       if (await direct.count()) await direct.click();
       else {
@@ -393,4 +395,66 @@ test('an aimed die still waits for a target after being clicked', async ({ page 
   await expect(actor(page, 'gnat-a')).toHaveClass(/is-legal/);
   await actor(page, 'gnat-a').click();
   await expect(page.locator('[data-socket="0"].is-spent')).toBeVisible();
+});
+
+
+function campFixture(): State {
+  const state = newRun('fixed', 231);
+  state.room = 4;
+  state.phase = 'reward';
+  state.combat = null;
+  advance(state); // the camp
+  state.offers = [{ kind: 'heal' }, { kind: 'upgrade', keyword: 'cleave' }];
+  return state;
+}
+
+test('the camp offers a face upgrade; picking it, then a face, adds the keyword and moves on', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await saveFixture(page, campFixture());
+  await expect(page.getByRole('heading', { name: 'Camp' })).toBeVisible();
+  const card = page.getByRole('button', { name: 'Upgrade: Cleave' });
+  await expect(card).toBeVisible();
+  await expect(card).toContainText('Hits every enemy');
+  await expect(page.getByRole('button', { name: /Rest/ })).toBeVisible();
+  await card.click();
+  await expect(page.getByRole('heading', { name: 'Upgrade: Cleave' })).toBeVisible();
+  // Only faces that can be cleaved (damage faces) are lit; blocks and blanks are locked.
+  const lit = page.locator('.net-tile.is-upgradable');
+  expect(await lit.count()).toBeGreaterThan(0);
+  expect(await page.locator('.net-tile.is-locked').count()).toBeGreaterThan(0);
+  await expect(page.locator('.net-tile.is-locked').first()).toBeDisabled();
+  const first = lit.first();
+  const dieId = await first.getAttribute('data-upgrade-die');
+  const slot = await first.getAttribute('data-slot');
+  await first.click();
+  await expect(page.locator('#interface')).toHaveAttribute('data-phase', 'battle');
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('reedmark:fixed:v1')!)) as State;
+  expect(saved.room).toBe(5 + 1);
+  const die = saved.dice.find(d => d.id === dieId)!;
+  expect(die.upgrades?.[slot as 'left']).toEqual([{ keyword: 'cleave' }]);
+  expect(saved.dice.reduce((n, d) => n + Object.values(d.upgrades ?? {}).flat().length, 0)).toBe(1);
+  expect(errors).toEqual([]);
+});
+
+test('backing out of the upgrade picker keeps the camp offers', async ({ page }) => {
+  await saveFixture(page, campFixture());
+  await page.getByRole('button', { name: 'Upgrade: Cleave' }).click();
+  await page.getByRole('button', { name: 'Back to rewards' }).click();
+  await expect(page.getByRole('button', { name: 'Upgrade: Cleave' })).toBeVisible();
+  await page.getByRole('button', { name: 'Upgrade: Cleave' }).click();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('button', { name: 'Upgrade: Cleave' })).toBeVisible();
+});
+
+test('a cleave-upgraded die is used with a single click and hits every enemy', async ({ page }) => {
+  const state = newRun('fixed', 231);
+  state.dice[0].upgrades = { left: [{ keyword: 'cleave' }] };
+  state.combat!.rolls[0].slot = 'left';
+  await saveFixture(page, state);
+  await action(page, 'commit').click();
+  await die(page, 'd0').click();
+  await expect(page.locator('[data-socket="0"].is-spent')).toBeVisible();
+  await expect(actor(page, 'gnat-a')).not.toContainText('7/7');
+  await expect(actor(page, 'gnat-b')).not.toContainText('7/7');
 });

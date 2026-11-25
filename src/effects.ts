@@ -1,6 +1,6 @@
 import type { Face, Kind } from './model.ts';
 
-export type EffectKey = Kind | 'salvage';
+export type EffectKey = Kind | 'salvage' | 'cleave';
 
 export const EFFECTS: Record<EffectKey, { name: string; color: string; symbol: string; description: string }> = {
   hit: {
@@ -47,11 +47,35 @@ export const EFFECTS: Record<EffectKey, { name: string; color: string; symbol: s
     name: 'Blank', color: '#555d69', symbol: '·',
     description: 'Does nothing and cannot be played.',
   },
+  growth: {
+    name: 'Growth', color: '#4f8a3a', symbol: '↗',
+    description: 'After this face is played, its pips increase by the listed amount for the rest of the fight.',
+  },
+  inspired: {
+    name: 'Inspired', color: '#b08a2a', symbol: '✧',
+    description: 'Doubles this face’s pips if the die played just before it had more pips.',
+  },
+  cleave: {
+    name: 'Cleave', color: '#a2552e', symbol: '≋',
+    description: 'Hits every enemy instead of one, and is played without choosing a target.',
+  },
+};
+
+/** Library art for effects that have no hand-made icon of their own. */
+const EFFECT_ART: Partial<Record<EffectKey, string>> = {
+  vulnerable: 'face-art/library/cracked_shield.webp',
+  weak: 'face-art/library/sad_face.webp',
+  exert: 'face-art/library/hourglass.webp',
+  cantrip: 'face-art/library/sparkle.webp',
+  growth: 'face-art/library/leaf.webp',
+  inspired: 'face-art/library/star.webp',
+  cleave: 'face-art/library/axe.webp',
+  blank: 'face-art/library/blank.webp',
 };
 
 const artPaths = import.meta.glob('./art/faces/*.webp', { eager: true, import: 'default', query: '?url' }) as Record<string, string>;
 const pictures = new Map<EffectKey, HTMLImageElement>();
-export const effectUrl = (kind: EffectKey): string => artPaths[`./art/faces/${kind}.webp`] ?? '';
+export const effectUrl = (kind: EffectKey): string => artPaths[`./art/faces/${kind}.webp`] ?? (EFFECT_ART[kind] ? faceImageUrl(EFFECT_ART[kind]!) : '');
 export const effectImage = (kind: EffectKey): HTMLImageElement | undefined => pictures.get(kind);
 
 const facePictures = new Map<string, HTMLImageElement>();
@@ -90,6 +114,7 @@ export async function loadEffectImages(): Promise<void> {
 
 export function faceEffects(face: Face): EffectKey[] {
   const kinds: EffectKey[] = [...new Set(face.parts.map(part => part.kind))];
+  if (face.target === 'all') kinds.push('cleave');
   if (face.salvage) {
     kinds.push('salvage');
     if (!kinds.includes('guard')) kinds.push('guard');

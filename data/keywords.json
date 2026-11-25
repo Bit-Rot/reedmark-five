@@ -110,10 +110,10 @@
   {
     "id": "inspired",
     "valueKind": "none",
-    "ruleText": "x2 if the previous dice this turn had more pips",
+    "ruleText": "x2 if the die played just before had more pips",
     "category": "Conditional x2 (state / targeting conditions)",
     "appliesTo": "PIPS_ONLY",
-    "implemented": "planned",
+    "implemented": "implemented",
     "notes": "Cannot be used with `k<keyword>` generated items."
   },
   {
@@ -284,7 +284,7 @@
     "ruleText": "gets +X pips this fight after use",
     "category": "Growth and decay",
     "appliesTo": "PIPS_ONLY",
-    "implemented": "planned",
+    "implemented": "implemented",
     "notes": "X is written on the keyword, e.g. `growth 1`. Cannot be used with `k<keyword>` generated items. Extra text: \"Every time you use this face, the pips on it increase by X for this fight only\""
   },
   {
@@ -443,10 +443,10 @@
   {
     "id": "cleave",
     "valueKind": "none",
-    "ruleText": "also hits all targets",
+    "ruleText": "hits every enemy instead of one (no target to pick)",
     "category": "Targeting and restrictions",
     "appliesTo": "SINGLE_TARGET",
-    "implemented": "planned",
+    "implemented": "implemented",
     "notes": ""
   },
   {

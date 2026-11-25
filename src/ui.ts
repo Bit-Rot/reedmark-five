@@ -34,10 +34,27 @@ function amount(part: Part): string {
 
 export function faceText(face: Face, boost = 0): string {
   const parts = effectiveParts(face, boost).map(part => `${amount(part)} ${EFFECTS[part.kind].name}`.trim()).join(', ');
-  return face.salvage ? `${parts}, reroll for ${face.salvage} Block` : parts;
+  const text = face.target === 'all' ? `${parts}, all enemies` : parts;
+  return face.salvage ? `${text}, reroll for ${face.salvage} Block` : text;
 }
 
 /** An effect icon; `image` (a face image path) replaces the effect's own icon when given. */
+/** How each camp upgrade is shown to the player. */
+export const UPGRADE_INFO: Record<string, { name: string; effect: EffectKey; text: string }> = {
+  cantrip: { name: 'Cantrip', effect: 'cantrip', text: 'Fires by itself when rolled, and the die can still be played.' },
+  selfShield: { name: 'Self shield', effect: 'guard', text: 'Also gain Block equal to the damage.' },
+  inspired: { name: 'Inspired', effect: 'inspired', text: 'Doubled if the die played just before had more pips.' },
+  growth: { name: 'Growth', effect: 'growth', text: 'Gains pips each time it is played, for the rest of the fight.' },
+  weak: { name: 'Weak', effect: 'weak', text: 'Also makes the enemy Weak.' },
+  vulnerable: { name: 'Vulnerable', effect: 'vulnerable', text: 'Also makes the enemy Vulnerable.' },
+  cleave: { name: 'Cleave', effect: 'cleave', text: 'Hits every enemy, with no target to pick.' },
+};
+
+export function upgradeLabel(upgrade: { keyword: string; x?: number }): string {
+  const info = UPGRADE_INFO[upgrade.keyword];
+  return `${info?.name ?? upgrade.keyword}${upgrade.x !== undefined ? ` ${upgrade.x}` : ''}`;
+}
+
 export function effectIcon(kind: EffectKey, image?: string): HTMLElement {
   const url = image ? faceImageUrl(image) : effectUrl(kind);
   const effect = EFFECTS[kind];
@@ -63,6 +80,7 @@ export function effectChip(kind: EffectKey, value: number | string, image?: stri
 export function chips(face: Face, boost = 0): HTMLElement {
   const row = element('span', 'chips');
   effectiveParts(face, boost).forEach((part, i) => row.append(effectChip(part.kind, amount(part), i === 0 ? face.image : undefined)));
+  if (face.target === 'all') row.append(effectChip('cleave', ''));
   if (face.salvage) row.append(effectChip('salvage', face.salvage));
   row.setAttribute('aria-hidden', 'true');
   return row;
@@ -73,6 +91,7 @@ export function faceEmblem(face: Face): HTMLElement {
   const emblem = element('span', 'face-emblem', effectIcon(primary.kind, face.image), element('span', 'face-amount', amount(primary)));
   const extra = element('span', 'face-extra');
   for (const part of rest) extra.append(effectChip(part.kind, amount(part)));
+  if (face.target === 'all') extra.append(effectChip('cleave', ''));
   if (face.salvage) extra.append(effectChip('salvage', face.salvage));
   if (extra.childElementCount) emblem.append(extra);
   emblem.setAttribute('aria-hidden', 'true');

@@ -1,9 +1,9 @@
 export const SLOTS = ['left', 'center', 'right', 'far', 'top', 'bottom'] as const;
 export type Slot = typeof SLOTS[number];
 export type Variant = 'fixed' | 'pool';
-export type Kind = 'hit' | 'guard' | 'seep' | 'boost' | 'ward' | 'vulnerable' | 'weak' | 'exert' | 'cantrip' | 'blank';
+export type Kind = 'hit' | 'guard' | 'seep' | 'boost' | 'ward' | 'vulnerable' | 'weak' | 'exert' | 'cantrip' | 'blank' | 'growth' | 'inspired';
 /** Kinds that carry no number (they are either present or not). */
-export const FLAG_KINDS: readonly Kind[] = ['exert', 'cantrip', 'blank'];
+export const FLAG_KINDS: readonly Kind[] = ['exert', 'cantrip', 'blank', 'inspired'];
 export type TargetKind = 'enemy' | 'self' | 'die' | 'none' | 'all';
 export type Target = { kind: TargetKind; id?: string };
 
@@ -32,10 +32,17 @@ export interface Item {
   rarity: 'common' | 'uncommon' | 'rare';
   edits: Partial<Record<Slot, Face>>;
 }
+/** A keyword added to one face of a die (a camp upgrade). */
+export interface Upgrade {
+  keyword: string;
+  x?: number;
+}
 export interface Die {
   id: string;
   template: string;
   imprints: Partial<Record<Slot, string>>;
+  /** Keywords added to individual faces; an imprint replaces the face and clears that face's upgrades. */
+  upgrades?: Partial<Record<Slot, Upgrade[]>>;
   item?: string;
 }
 export interface Roll {
@@ -94,14 +101,19 @@ export interface Combat {
   ward: number;
   /** Die ID -> the turn number during which all of that die's faces are blank. */
   exerted: Record<string, number>;
+  /** `dieId:slot` -> pips a face has gained this fight (growth). */
+  grown: Record<string, number>;
+  /** Pips of the die played just before, this turn (inspired); null before the first one. */
+  previous: number | null;
   /** What happened on the last roll that the player did not click (cantrips). */
   events: string[];
 }
 export type Offer =
   | { kind: 'item' | 'add' | 'transform'; id: string }
+  | { kind: 'upgrade'; keyword: string; x?: number }
   | { kind: 'remove' | 'heal' };
 export interface State {
-  version: 3;
+  version: 4;
   variant: Variant;
   character: string;
   seed: number;

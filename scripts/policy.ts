@@ -1,7 +1,7 @@
 import { DICE } from '../src/content.ts';
-import { actionPreview, advance, canPlay, chooseOffer, commitRoll, effectiveParts, endTurn, facesFor, incoming,
-  offerTargets, play, previewDie, reroll, rollFace, setHold } from '../src/game.ts';
-import type { Face, State, Target } from '../src/model.ts';
+import { actionPreview, advance, canPlay, chooseOffer, commitRoll, effectiveParts, endTurn, faceFor, facesFor, incoming,
+  offerTargets, play, previewDie, previewUpgrade, reroll, rollFace, setHold, upgradeTargets } from '../src/game.ts';
+import type { Face, Slot, State, Target } from '../src/model.ts';
 
 function weight(face: Face): number {
   return face.parts.reduce((sum, part) => sum + part.value * (part.count ?? 1)
@@ -15,13 +15,20 @@ export type Command =
   | { action: 'reroll' | 'commit' | 'end' | 'skip' }
   | { action: 'hold'; id: string }
   | { action: 'play'; id: string; target: Target }
-  | { action: 'take'; index: number; id?: string };
+  | { action: 'take'; index: number; id?: string; slot?: Slot };
 
 export function takeReward(s: State, commands?: Command[]): void {
-  const choices = [];
+  const choices: { score: number; index: number; id: string | undefined; slot?: Slot }[] = [];
   for (const [index, offer] of s.offers.entries()) {
     if (offer.kind === 'heal') {
       choices.push({ score: Math.min(10, s.maxHp - s.hp) * .24, index, id: undefined });
+    } else if (offer.kind === 'upgrade') {
+      const bonus: Record<string, number> = { cleave: 1.2, cantrip: 1, inspired: .4, growth: .6 };
+      for (const { dieId, slot } of upgradeTargets(s, offer)) {
+        const die = s.dice.find(d => d.id === dieId)!;
+        const gain = weight(previewUpgrade(die, slot, offer)!) - weight(faceFor(die, slot)) + (bonus[offer.keyword] ?? 0);
+        choices.push({ score: gain, index, id: dieId, slot });
+      }
     } else if (offer.kind === 'add') {
       choices.push({ score: strength(Object.values(DICE[offer.id].faces)) - 3.5 - Math.max(0,s.dice.length - 10) * .5, index, id: undefined });
     } else for (const die of offerTargets(s, offer)) {
@@ -32,8 +39,8 @@ export function takeReward(s: State, commands?: Command[]): void {
   }
   const best = choices.sort((a, b) => b.score - a.score)[0];
   if (best?.score > .12) {
-    chooseOffer(s, best.index, best.id);
-    commands?.push({ action: 'take', index: best.index, id: best.id });
+    chooseOffer(s, best.index, best.id, best.slot);
+    commands?.push({ action: 'take', index: best.index, id: best.id, slot: best.slot });
   } else {
     advance(s);
     commands?.push({ action: 'skip' });

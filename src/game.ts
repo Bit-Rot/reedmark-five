@@ -1,4 +1,5 @@
-import { BLANK_IMAGE, CHARACTERS, DICE, ITEMS, ROOMS } from './content.ts';
+import { BLANK_IMAGE, CAMP_UPGRADES, CHARACTERS, DICE, ITEMS, ROOMS } from './content.ts';
+import { addKeywordToFace } from './data/runtime.ts';
 import { SLOTS } from './model.ts';
 import type { Combat, Die, Encounter, Enemy, Face, Intent, Offer, Part, Roll, Slot, State, Target, Variant } from './model.ts';
 
@@ -32,7 +33,7 @@ export function newRun(variant: Variant, seed: number, character = CHARACTERS[0]
   // Dice Pool starts with ten dice: the character's five, twice.
   const ids = variant === 'fixed' ? hero.starterDice : [...hero.starterDice, ...hero.starterDice];
   const state: State = {
-    version: 3, character: hero.id, variant, seed: seed >>> 0, rng: (seed ^ 0x6bdc) >>> 0, combatRng: 0,
+    version: 4, character: hero.id, variant, seed: seed >>> 0, rng: (seed ^ 0x6bdc) >>> 0, combatRng: 0,
     room: 0, hp: 44, maxHp: 44, gold: 0, lastGold: 0, nextDie: ids.length, dice: ids.map(newDie), phase: 'battle',
     combat: null, offers: [],
   };
@@ -44,12 +45,13 @@ export function isSave(data: unknown, variant: Variant): data is State {
   if (!data || typeof data !== 'object') return false;
   const save = data as State;
   try {
-    return save.version === 3 && Number.isInteger(save.gold) && save.gold >= 0 && Number.isInteger(save.lastGold) && save.variant === variant && CHARACTERS.some(c => c.id === save.character) && Number.isInteger(save.seed)
+    return save.version === 4 && Number.isInteger(save.gold) && save.gold >= 0 && Number.isInteger(save.lastGold) && save.variant === variant && CHARACTERS.some(c => c.id === save.character) && Number.isInteger(save.seed)
       && Number.isInteger(save.room) && !!ROOMS[save.room] && Number.isFinite(save.hp)
       && ['battle', 'reward', 'victory', 'defeat'].includes(save.phase)
       && Array.isArray(save.dice) && save.dice.length >= 5
       && new Set(save.dice.map(die => die.id)).size === save.dice.length
       && save.dice.every(die => DICE[die.template] && die.imprints
+        && (!die.upgrades || Object.entries(die.upgrades).every(([slot, list]) => SLOTS.includes(slot as Slot) && Array.isArray(list)))
         && Object.entries(die.imprints).every(([slot, item]) => ITEMS[item]?.edits[slot as Slot]))
       && Array.isArray(save.offers)
       && (save.phase !== 'battle' || (save.combat?.rolls.length === 5 && save.combat.intents.length === 5
@@ -68,7 +70,7 @@ function enterRoom(state: State): void {
     state.phase = 'battle';
     state.combatRng = step((state.seed ^ Math.imul(state.room + 1, 0x90ad)) >>> 0);
     state.combat = {
-      turn: 0, phase: 'roll', rerolls: 2, enemies, intents: [], rolls: [], bag: [], guard: 0, ward: 0, exerted: {}, events: [],
+      turn: 0, phase: 'roll', rerolls: 2, enemies, intents: [], rolls: [], bag: [], guard: 0, ward: 0, exerted: {}, grown: {}, previous: null, events: [],
     };
     startTurn(state, room, state.combat);
     if (state.combat.enemies.every(enemy => enemy.hp <= 0)) finishFight(state);
@@ -77,7 +79,7 @@ function enterRoom(state: State): void {
     if (room.type === 'workshop' && state.variant === 'pool') {
       state.offers = [{ kind: 'transform', id: discovery(state) }, { kind: 'remove' }];
     } else if (room.type === 'camp') {
-      state.offers = [{ kind: 'heal' }, { kind: 'item', id: itemChoices(state, 1, true)[0] }];
+      state.offers = [{ kind: 'heal' }, { kind: 'upgrade', ...CAMP_UPGRADES[pick(state, CAMP_UPGRADES.length)] }];
     } else {
       state.offers = itemChoices(state, 3).map(id => ({ kind: 'item', id }));
     }
@@ -98,6 +100,7 @@ function drawDice(state: State, combat: Combat): string[] {
 
 function startTurn(state: State, room: Encounter, combat: Combat): void {
   combat.turn++;
+  combat.previous = null;
   combat.phase = 'roll';
   combat.rerolls = 2;
   combat.guard = combat.ward;
@@ -153,12 +156,29 @@ export function facesFor(die: Die): Record<Slot, Face> {
 
 export function faceFor(die: Die, slot: Slot): Face {
   const item = die.imprints[slot];
-  return (item && ITEMS[item].edits[slot]) || DICE[die.template].faces[slot];
+  let face = (item && ITEMS[item].edits[slot]) || DICE[die.template].faces[slot];
+  for (const upgrade of die.upgrades?.[slot] ?? []) face = addKeywordToFace(face, upgrade.keyword, upgrade.x) ?? face;
+  return face;
 }
 
+const PIPS = ['hit', 'guard'];
+const withPips = (face: Face, change: (value: number) => number): Face =>
+  ({ ...face, parts: face.parts.map(part => (PIPS.includes(part.kind) ? { ...part, value: change(part.value) } : part)) });
+/** The pips of a face: the value of its first damage or block part. */
+export const mainPips = (face: Pick<Face, 'parts'>): number => face.parts.find(part => PIPS.includes(part.kind))?.value ?? 0;
+
+/** The face a rolled die shows right now: blank while exerted, with the pips it has grown and any inspired bonus. */
 export function rollFace(state: State, roll: Roll): Face {
   if (isExerted(state, roll.dieId)) return BLANK;
-  return faceFor(state.dice.find(die => die.id === roll.dieId)!, roll.slot);
+  let face = faceFor(state.dice.find(die => die.id === roll.dieId)!, roll.slot);
+  const combat = state.combat;
+  const grown = combat?.grown[`${roll.dieId}:${roll.slot}`] ?? 0;
+  if (grown) face = withPips(face, value => value + grown);
+  // Inspired: doubled when the die played just before had more pips.
+  if (combat && combat.previous !== null && face.parts.some(part => part.kind === 'inspired') && combat.previous > mainPips(face)) {
+    face = withPips(face, value => value * 2);
+  }
+  return face;
 }
 
 /** An exerted die shows blank faces until the end of the turn after the one it was used on. */
@@ -232,10 +252,17 @@ export function canPlay(state: State, dieId: string, target: Target): boolean {
 function applyFace(state: State, combat: Combat, roll: Roll, target: Target): void {
   const enemy = combat.enemies.find(e => target.kind === 'enemy' && e.id === target.id);
   const die = combat.rolls.find(r => target.kind === 'die' && r.dieId === target.id);
+  const face = rollFace(state, roll);
   roll.used = true;
-  const parts = effectiveParts(rollFace(state, roll), roll.boost);
+  const parts = effectiveParts(face, roll.boost);
   if (target.kind === 'all') applyToAll(combat, roll, parts);
   else applyParts(combat, roll, parts, enemy, die);
+  combat.previous = mainPips({ parts });
+  const growth = face.parts.find(part => part.kind === 'growth');
+  if (growth) {
+    const key = `${roll.dieId}:${roll.slot}`;
+    combat.grown[key] = (combat.grown[key] ?? 0) + growth.value;
+  }
 }
 
 const AIMED = ['hit', 'seep', 'vulnerable', 'weak'];
@@ -397,7 +424,20 @@ export function offerTargets(state: State, offer: Offer): Die[] {
   if (offer.kind === 'item') return state.dice.filter(die => state.variant === 'fixed' || !die.item);
   if (offer.kind === 'remove') return state.dice.length > 5 ? state.dice : [];
   if (offer.kind === 'transform') return state.dice.filter(die => die.template !== offer.id);
+  if (offer.kind === 'upgrade') return state.dice.filter(die => SLOTS.some(slot => previewUpgrade(die, slot, offer)));
   return [];
+}
+
+export interface UpgradeTarget { dieId: string; slot: Slot }
+
+/** The face the upgrade would produce on that slot, or null when the keyword does not fit it. */
+export function previewUpgrade(die: Die, slot: Slot, offer: Offer): Face | null {
+  if (offer.kind !== 'upgrade') return null;
+  return addKeywordToFace(faceFor(die, slot), offer.keyword, offer.x) ?? null;
+}
+
+export function upgradeTargets(state: State, offer: Offer): UpgradeTarget[] {
+  return state.dice.flatMap(die => SLOTS.filter(slot => previewUpgrade(die, slot, offer)).map(slot => ({ dieId: die.id, slot })));
 }
 
 export function previewDie(state: State, offer: Offer, die: Die): Die | null {
@@ -405,11 +445,16 @@ export function previewDie(state: State, offer: Offer, die: Die): Die | null {
   if (offer.kind === 'transform') return { ...die, template: offer.id };
   if (offer.kind !== 'item') return null;
   const imprints = { ...die.imprints };
-  for (const slot of SLOTS) if (ITEMS[offer.id].edits[slot]) imprints[slot] = offer.id;
-  return { ...die, imprints, item: state.variant === 'pool' ? offer.id : undefined };
+  const upgrades: NonNullable<Die['upgrades']> = { ...die.upgrades };
+  for (const slot of SLOTS) {
+    if (!ITEMS[offer.id].edits[slot]) continue;
+    imprints[slot] = offer.id;
+    delete upgrades[slot]; // a replaced face loses the upgrades it had
+  }
+  return { ...die, imprints, upgrades, item: state.variant === 'pool' ? offer.id : undefined };
 }
 
-export function chooseOffer(state: State, index: number, dieId?: string): boolean {
+export function chooseOffer(state: State, index: number, dieId?: string, slot?: Slot): boolean {
   if (state.phase !== 'reward') return false;
   const offer = state.offers[index];
   if (!offer) return false;
@@ -417,6 +462,11 @@ export function chooseOffer(state: State, index: number, dieId?: string): boolea
     state.hp = Math.min(state.maxHp, state.hp + 10);
   } else if (offer.kind === 'add') {
     state.dice.push(newDie(offer.id, state.nextDie++));
+  } else if (offer.kind === 'upgrade') {
+    const die = state.dice.find(d => d.id === dieId);
+    if (!die || !slot || !previewUpgrade(die, slot, offer)) return false;
+    die.upgrades ??= {};
+    (die.upgrades[slot] ??= []).push({ keyword: offer.keyword, ...(offer.x !== undefined ? { x: offer.x } : {}) });
   } else {
     const die = offerTargets(state, offer).find(die => die.id === dieId);
     if (!die) return false;

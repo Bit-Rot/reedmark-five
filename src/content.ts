@@ -4,6 +4,20 @@ import type { Encounter, IntentFace, IntentDie, Room } from './model.ts';
  * Dice, items and characters come from the design data (data/*.json, edited in the editor).
  * Enemies and rooms are still authored here.
  */
+/**
+ * The keywords a camp can offer as a face upgrade: one is picked at random, then the player chooses which
+ * die face receives it. `x` is the value written on the keyword.
+ */
+export const CAMP_UPGRADES: readonly { keyword: string; x?: number }[] = [
+  { keyword: 'cantrip' },
+  { keyword: 'selfShield' },
+  { keyword: 'inspired' },
+  { keyword: 'growth', x: 1 },
+  { keyword: 'weak', x: 1 },
+  { keyword: 'vulnerable', x: 1 },
+  { keyword: 'cleave' },
+];
+
 export { BLANK_IMAGE, CHARACTERS, DATA, DATA_ISSUES, DICE, FACE_IMAGE_PATHS, ITEMS } from './content-data.ts';
 
 const H = (n: number): IntentFace => ['hit', n];

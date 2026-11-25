@@ -8,7 +8,7 @@ import type { Collections, Die, Face, Item, Keyword, SlotName, Targeting } from 
 import { SLOT_NAMES } from './types.ts';
 
 /** Keywords the game engine can execute. Anything else on a face is reported by `compileDb`. */
-export const IMPLEMENTED_KEYWORDS = ['damage', 'block', 'selfShield', 'poison', 'vulnerable', 'weak', 'exert', 'cantrip'] as const;
+export const IMPLEMENTED_KEYWORDS = ['damage', 'block', 'selfShield', 'poison', 'vulnerable', 'weak', 'exert', 'cantrip', 'growth', 'inspired', 'cleave'] as const;
 export const TARGETINGS_SUPPORTED: readonly Targeting[] = ['none', 'self', 'singleEnemy', 'allEnemies'];
 /** Item operations the game can execute. */
 export const ITEM_OPS_SUPPORTED = ['setFace'] as const;
@@ -23,6 +23,52 @@ const TARGET_TO_GAME: Record<Targeting, TargetKind | undefined> = {
 };
 
 export interface Diagnostic { where: string; message: string }
+
+/**
+ * Add one keyword to an already compiled face (used by camp upgrades and by `compileFace`).
+ * Returns undefined when the keyword makes no sense on that face (a blank, an unaimed face for weak, ...).
+ */
+export function addKeywordToFace(face: GameFace, keyword: string, x?: number): GameFace | undefined {
+  if (face.parts.some(part => part.kind === 'blank')) return undefined;
+  const parts = [...face.parts];
+  const hit = parts.find(part => part.kind === 'hit');
+  const hasPips = parts.some(part => part.kind === 'hit' || part.kind === 'guard');
+  const aimed = face.target === 'enemy' || face.target === 'all';
+  const bump = (kind: Part['kind'], value: number) => {
+    const at = parts.findIndex(part => part.kind === kind);
+    if (at >= 0) parts[at] = { ...parts[at], value: parts[at].value + value };
+    else parts.push({ kind, value });
+  };
+  switch (keyword) {
+    case 'cantrip':
+      if (face.target === 'none' || parts.some(part => part.kind === 'cantrip')) return undefined;
+      parts.push({ kind: 'cantrip', value: 0 });
+      break;
+    case 'selfShield':
+      if (!hit) return undefined;
+      bump('guard', hit.value);
+      break;
+    case 'weak':
+    case 'vulnerable':
+      if (!aimed) return undefined;
+      bump(keyword, x ?? 1);
+      break;
+    case 'growth':
+      if (!hasPips) return undefined;
+      bump('growth', x ?? 1);
+      break;
+    case 'inspired':
+      if (!hasPips || parts.some(part => part.kind === 'inspired')) return undefined;
+      parts.push({ kind: 'inspired', value: 0 });
+      break;
+    case 'cleave':
+      if (face.target !== 'enemy') return undefined;
+      return { ...face, parts, target: 'all' };
+    default:
+      return undefined;
+  }
+  return { ...face, parts };
+}
 
 /** Build a game face from a data face and the pips it carries on a die. */
 export function compileFace(face: Face, pips: number | undefined, issues: Diagnostic[] = []): GameFace {
@@ -62,7 +108,14 @@ export function compileFace(face: Face, pips: number | undefined, issues: Diagno
     else merged.push(p);
   }
   const defaultTarget: TargetKind = merged.some(p => p.kind === 'hit' || p.kind === 'seep' || p.kind === 'vulnerable' || p.kind === 'weak') ? 'enemy' : 'self';
-  return { id: face.id, target: target && target !== 'none' ? target : defaultTarget, parts: merged, ...(face.image ? { image: face.image } : {}) };
+  let result: GameFace = { id: face.id, target: target && target !== 'none' ? target : defaultTarget, parts: merged, ...(face.image ? { image: face.image } : {}) };
+  for (const keyword of ['growth', 'inspired', 'cleave']) {
+    if (!uses.has(keyword)) continue;
+    const next = addKeywordToFace(result, keyword, keyword === 'growth' ? xOf('growth') : undefined);
+    if (next) result = next;
+    else issues.push({ where, message: `keyword "${keyword}" does not fit this face` });
+  }
+  return result;
 }
 
 const titleCase = (id: string) => id.replace(/^die_/, '').replace(/[_-]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
