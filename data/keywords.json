@@ -9,12 +9,12 @@
     "notes": ""
   },
   {
-    "id": "shield",
+    "id": "block",
     "valueKind": "pips",
-    "ruleText": "shield the target for N",
+    "ruleText": "gain N block (absorbs incoming damage this turn)",
     "category": "Effect-type keywords",
     "appliesTo": "TARG_PIPS",
-    "implemented": "planned",
+    "implemented": "implemented",
     "notes": ""
   },
   {
@@ -23,7 +23,7 @@
     "ruleText": "damage the target for N",
     "category": "Effect-type keywords",
     "appliesTo": "TARG_PIPS",
-    "implemented": "planned",
+    "implemented": "implemented",
     "notes": ""
   },
   {
@@ -38,10 +38,10 @@
   {
     "id": "selfShield",
     "valueKind": "pips",
-    "ruleText": "shield myself for N",
+    "ruleText": "also gain N block",
     "category": "Effect-type keywords",
     "appliesTo": "PIPS_ONLY",
-    "implemented": "planned",
+    "implemented": "implemented",
     "notes": ""
   },
   {
@@ -317,10 +317,10 @@
   {
     "id": "vulnerable",
     "valueKind": "x",
-    "ruleText": "target gains X stacks of Vulnerable (takes 50% more damage). Lose 1 stack at the end of each turn of whoever has it (player or enemy)",
+    "ruleText": "target gains X stacks of Vulnerable (takes 50% more damage, rounded down). Lose 1 stack at the end of each turn of whoever has it",
     "category": "Target effects (buffs, debuffs, status)",
     "appliesTo": "UNKIND_TARG_PIPS",
-    "implemented": "planned",
+    "implemented": "implemented",
     "notes": "X is written on the keyword, e.g. `vulnerable 2`."
   },
   {
@@ -334,20 +334,20 @@
   },
   {
     "id": "poison",
-    "valueKind": "pips",
-    "ruleText": "also inflicts N unblockable damage at the end of each turn",
+    "valueKind": "x",
+    "ruleText": "target gains X stacks of Poison: after enemies act it loses HP equal to its stacks (ignores block), then loses 1 stack",
     "category": "Target effects (buffs, debuffs, status)",
     "appliesTo": "UNKIND_TARG_PIPS",
-    "implemented": "planned",
+    "implemented": "implemented",
     "notes": "Poison part is unblockable; can only be avoided by cleanse or killing the source. Extra text: \"The amount of poison damage is equal to the pips on the face. The poison part of poison damage is unblockable. You can't prevent yourself from being poisoned except by using cleanse or killing the attacking monster.\""
   },
   {
     "id": "weak",
     "valueKind": "x",
-    "ruleText": "target gains X stacks of Weak (deals 50% less damage). Lose 1 stack at the end of each turn of whoever has it (player or enemy)",
+    "ruleText": "target gains X stacks of Weak (deals 50% less damage, rounded down). Lose 1 stack at the end of each turn of whoever has it",
     "category": "Target effects (buffs, debuffs, status)",
     "appliesTo": "UNKIND_TARG_PIPS",
-    "implemented": "planned",
+    "implemented": "implemented",
     "notes": "X is written on the keyword, e.g. `weak 2`."
   },
   {
@@ -488,10 +488,10 @@
   {
     "id": "exert",
     "valueKind": "none",
-    "ruleText": "replace all faces with blanks until the end of next turn",
+    "ruleText": "after this face is used, all of this die's faces are blank until the end of next turn",
     "category": "Costs, drawbacks and usage limits",
     "appliesTo": "NONBLANK",
-    "implemented": "planned",
+    "implemented": "implemented",
     "notes": ""
   },
   {
@@ -515,10 +515,10 @@
   {
     "id": "cantrip",
     "valueKind": "none",
-    "ruleText": "activates during rolling if it lands face-up",
+    "ruleText": "fires when it lands face-up (at a random target) without using the die; the die can still be rerolled and used",
     "category": "Face behaviour, copying and randomness",
     "appliesTo": "CANTRIP",
-    "implemented": "planned",
+    "implemented": "implemented",
     "notes": "Fired during rolling, targets random. Extra text: \"Targets chosen randomly. This one is a bit weird... Whilst rolling dice, if this face lands face-up, it gets used instantly without taking up that hero's turn. You can still reroll it and use it as normal.\""
   },
   {

@@ -27,6 +27,26 @@ export const EFFECTS: Record<EffectKey, { name: string; color: string; symbol: s
     name: 'Salvage', color: '#91601e', symbol: '↻',
     description: 'Reroll this face to gain the listed Block, once per die each turn.',
   },
+  vulnerable: {
+    name: 'Vulnerable', color: '#b0562e', symbol: '⚠',
+    description: 'The target takes 50% more damage (rounded down) while it has stacks. It loses 1 stack at the end of each enemy turn.',
+  },
+  weak: {
+    name: 'Weak', color: '#7d6a8f', symbol: '▾',
+    description: 'The target deals 50% less damage (rounded down) while it has stacks. It loses 1 stack at the end of each enemy turn.',
+  },
+  exert: {
+    name: 'Exert', color: '#8a6d3b', symbol: '⌛',
+    description: 'After this face is used, every face on this die is blank until the end of next turn.',
+  },
+  cantrip: {
+    name: 'Cantrip', color: '#a2427d', symbol: '✺',
+    description: 'Fires by itself when it lands face up, at a random target. The die can still be rerolled and played.',
+  },
+  blank: {
+    name: 'Blank', color: '#555d69', symbol: '·',
+    description: 'Does nothing and cannot be played.',
+  },
 };
 
 const artPaths = import.meta.glob('./art/faces/*.webp', { eager: true, import: 'default', query: '?url' }) as Record<string, string>;

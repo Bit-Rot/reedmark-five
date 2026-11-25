@@ -82,7 +82,7 @@ export function exportCharacters(db: Collections): string {
 function effectLabel(e: ItemEffect): string {
   const where = e.target === 'all' ? 'all faces' : e.target.join(', ');
   switch (e.op) {
-    case 'setFace': return `${where}: become ${code(e.face ?? '?')}`;
+    case 'setFace': return `${where}: become ${code(e.face ?? '?')}${e.pips !== undefined ? ` ${e.pips}` : ''}`;
     case 'addKeyword': return `${where}: gain ${code(e.keyword ?? '?')}${e.x !== undefined ? ` ${e.x}` : ''}`;
     case 'pipDelta': return `${where}: pips ${(e.delta ?? 0) >= 0 ? '+' : ''}${e.delta ?? 0}`;
     case 'setPips': return `${where}: pips = ${e.pips ?? 0}`;

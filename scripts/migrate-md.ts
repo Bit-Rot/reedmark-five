@@ -123,7 +123,7 @@ function migrateDice(db: Collections) {
     const id = unTick(r[0]).replace(/\*/g, '');
     const faces = r.slice(1, 1 + SLOT_NAMES.length).map((c, i) => parseDieCell(c, id, i));
     if (faces.length !== SLOT_NAMES.length) note(`dice: ${id}: expected ${SLOT_NAMES.length} faces, found ${faces.length}`);
-    db.dice.push({ id, name: '', faces, notes: '' });
+    db.dice.push({ id, name: '', tone: 'rust', faces, notes: '' });
   }
 }
 

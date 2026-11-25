@@ -1,4 +1,4 @@
-import { cpSync, existsSync } from 'node:fs';
+import { cpSync, existsSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 
@@ -21,6 +21,10 @@ export default defineConfig(({ mode }) => {
       closeBundle() {
         if (existsSync('data')) cpSync('data', `${outDir}/data`, { recursive: true });
       },
-    }] : [],
+    }] : [{
+      name: 'drop-editor-files',
+      // The editor's manifest and service worker live in public/; the pool build does not ship the editor.
+      closeBundle() { rmSync(`${outDir}/editor`, { recursive: true, force: true }); },
+    }],
   };
 });

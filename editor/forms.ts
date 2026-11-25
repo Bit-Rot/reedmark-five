@@ -157,7 +157,7 @@ function effectRow(ctx: FormCtx, item: Item, e: ItemEffect, i: number): HTMLElem
     onInput: (ev: Event) => { const t = (ev.target as HTMLInputElement).value; if (t === '') delete e[key]; else e[key] = Number(t); ctx.changed(); },
   });
   const detail: HTMLElement[] = [];
-  if (e.op === 'setFace') detail.push(select(ids(ctx.db.faces), e.face ?? '', v => { e.face = v; ctx.changed(); }));
+  if (e.op === 'setFace') detail.push(select(ids(ctx.db.faces), e.face ?? '', v => { e.face = v; ctx.changed(); }), num('pips', 'pips'));
   if (e.op === 'addKeyword') {
     detail.push(select(ids(ctx.db.keywords), e.keyword ?? '', v => { e.keyword = v; ctx.rerender(); }));
     if (ctx.db.keywords.find(k => k.id === e.keyword)?.valueKind === 'x') detail.push(num('x', 'X'));

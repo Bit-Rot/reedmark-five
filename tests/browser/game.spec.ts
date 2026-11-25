@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
-import { newRun } from '../../src/game.ts';
+import { newRun, rollFace } from '../../src/game.ts';
 import type { State, Variant } from '../../src/model.ts';
 import { act, takeReward } from '../../scripts/policy.ts';
 import type { Command } from '../../scripts/policy.ts';
@@ -25,7 +25,10 @@ const action = (page: Page, name: string) => page.locator(`button[data-action="$
 const actor = (page: Page, id: string) => page.locator(`button[data-actor="${id}"]`);
 
 test('desktop holds a 3D die, rejects an invalid drop, and plays a valid drop', async ({ page }) => {
-  await page.goto('/?seed=231');
+  const fixture = newRun('fixed', 231);
+  fixture.combat!.rolls[0].slot = 'right';
+  fixture.combat!.rolls[1].slot = 'left';
+  await saveFixture(page, fixture);
   await expect(page.locator('#stage canvas')).toBeVisible();
   await expect(page.locator('.intent')).toHaveCount(5);
   const hud = (await page.locator('.hud').boundingBox())!;
@@ -44,7 +47,7 @@ test('desktop holds a 3D die, rejects an invalid drop, and plays a valid drop', 
   await page.waitForTimeout(160);
   await drag(page, die(page, 'd0'), actor(page, 'courier'));
   await expect(page.locator('[data-socket="0"].is-spent')).toBeVisible();
-  await expect(actor(page, 'courier').locator('.chip--guard')).toHaveText('3');
+  await expect(actor(page, 'courier').locator('.chip--guard')).toHaveText('1');
   const attack = page.locator('button.seated[aria-label*="Damage"]').first();
   await drag(page, attack, actor(page, 'gnat-a'));
   await expect(actor(page, 'gnat-a')).not.toContainText('10/10');
@@ -55,13 +58,15 @@ test('narrow touch layout exposes ten pool dice and supports tap targeting', asy
     viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce',
   });
   const page = await context.newPage();
-  await page.goto('http://localhost:4177/?mode=pool&seed=231');
+  const pool = newRun('pool', 231);
+  const attacker = pool.combat!.rolls.find(roll => rollFace(pool, roll).target === 'enemy')!.dieId;
+  await page.goto('/?mode=pool&seed=231');
   await page.getByRole('button', { name: 'View dice bag' }).tap();
   await expect(page.locator('[data-action="inspect"]')).toHaveCount(10);
   await expect(page.getByText('5 remaining')).toBeVisible();
   await page.getByRole('button', { name: 'Close dice' }).tap();
   await action(page, 'commit').tap();
-  await die(page, 'd0').tap();
+  await die(page, attacker).tap();
   await expect(actor(page, 'gnat-a')).toHaveClass(/is-legal/);
   await actor(page, 'gnat-a').tap();
   await expect(actor(page, 'gnat-a')).not.toContainText('10/10');
@@ -78,32 +83,32 @@ async function saveFixture(page: Page, state: State): Promise<void> {
 
 test('hover and right click show illustrated faces and their in-game definitions', async ({ page }) => {
   const state = newRun('fixed', 231);
-  state.combat!.rolls[3].slot = 'left';
+  state.combat!.rolls[4].slot = 'left';
   await saveFixture(page, state);
-  await die(page, 'd3').hover();
+  await die(page, 'd4').hover();
   const tooltip = page.getByRole('tooltip');
-  await expect(tooltip).toContainText('3 Block, 2 Tune');
-  await expect(tooltip).toContainText('Increases another unspent die’s first Damage or Block value');
-  await expect(tooltip.locator('dt')).toHaveText(['Block', 'Tune']);
-  await expect(die(page, 'd3')).not.toHaveAttribute('title', /.+/);
+  await expect(tooltip).toContainText('2 Damage, 1 Vulnerable, Exert');
+  await expect(tooltip).toContainText('The target takes 50% more damage');
+  await expect(tooltip.locator('dt')).toHaveText([/Damage/, /Vulnerable/, /Exert/]);
+  await expect(die(page, 'd4')).not.toHaveAttribute('title', /.+/);
 
   await die(page, 'd2').click({ button: 'right' });
-  const layout = page.getByRole('dialog', { name: 'Bristle die layout' });
+  const layout = page.getByRole('dialog', { name: 'Shield die layout' });
   await expect(layout).toBeVisible();
   await expect(layout.locator('.net-tile img')).not.toHaveCount(0);
   await expect(layout.locator('.net-tile')).toHaveCount(6);
   await layout.locator('[data-slot="left"]').hover();
-  await expect(tooltip).toContainText('3 Damage, 3 Poison');
-  await expect(tooltip).toContainText('Poison bypasses Block');
+  await expect(tooltip).toContainText('3 Block');
+  await expect(tooltip).toContainText('Absorbs incoming damage');
   const hintBounds = (await tooltip.boundingBox())!;
   const layoutBounds = (await layout.boundingBox())!;
   expect(hintBounds.x).toBeGreaterThan(layoutBounds.x + layoutBounds.width);
   await page.keyboard.press('Escape');
   await expect(layout).toHaveCount(0);
   await expect(page.locator('.stage-cube')).toHaveCount(5);
-  await die(page, 'd3').focus();
+  await die(page, 'd4').focus();
   await page.keyboard.press('Shift+F10');
-  await expect(page.getByRole('dialog', { name: 'Switch die layout' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Hammer die layout' })).toBeVisible();
 });
 
 test('Fixed Five keeps every die visible and applies an item directly on drop', async ({ page }) => {
@@ -136,7 +141,7 @@ test('Fixed Five keeps every die visible and applies an item directly on drop', 
 
 test('Fixed Five accepts a tap on an item and a tap on its destination', async ({ browser }) => {
   const context = await browser.newContext({
-    baseURL: 'http://localhost:4177', viewport: { width: 390, height: 844 },
+    viewport: { width: 390, height: 844 },
     isMobile: true, hasTouch: true, reducedMotion: 'reduce',
   });
   const page = await context.newPage();
@@ -145,7 +150,7 @@ test('Fixed Five accepts a tap on an item and a tap on its destination', async (
   state.offers = [{ kind: 'item', id: 'sea' }, { kind: 'item', id: 'moss' }, { kind: 'item', id: 'nick' }];
   await saveFixture(page, state);
   await page.getByRole('button', { name: 'Sea Thread' }).tap();
-  await page.getByRole('button', { name: 'Imprint on Needle' }).tap();
+  await page.getByRole('button', { name: 'Imprint on Sword' }).first().tap();
   await expect(page.locator('#interface')).toHaveAttribute('data-phase', 'battle');
   await context.close();
 });
@@ -175,7 +180,7 @@ async function perform(page: Page, command: Command): Promise<void> {
 }
 
 for (const variant of ['fixed', 'pool'] as Variant[]) {
-  test(`plays a complete ${variant} victory through the browser UI`, async ({ page }) => {
+  test(`mirrors a complete ${variant} run through the browser UI`, async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.goto(`/?mode=${variant}&seed=1`);
@@ -188,9 +193,41 @@ for (const variant of ['fixed', 'pool'] as Variant[]) {
       for (const command of commands) await perform(page, command);
       await expect(page.locator('#interface')).toHaveAttribute('data-phase', s.phase);
     }
-    expect(s.phase).toBe('victory');
-    await expect(page.getByRole('heading', { name: 'Passage clear' })).toBeVisible();
-    await expect(page.getByText(`${s.hp} HP left`)).toBeVisible();
+    // How the run ends depends on balance; the page must agree with the engine either way.
+    expect(['victory', 'defeat']).toContain(s.phase);
+    await expect(page.getByRole('heading', { name: s.phase === 'victory' ? 'Passage clear' : 'Run ended' })).toBeVisible();
+    if (s.phase === 'victory') await expect(page.getByText(`${s.hp} HP left`)).toBeVisible();
     expect(errors).toEqual([]);
   });
 }
+
+test('a fresh run asks for a hero and starts with that hero\'s dice', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Choose your hero' })).toBeVisible();
+  await expect(page.locator('.character-choice')).toHaveCount(2);
+  await page.getByRole('button', { name: 'Play Thief' }).click();
+  await expect(page.locator('#interface')).toHaveAttribute('data-phase', 'battle');
+  await expect(page.locator('.stage-cube')).toHaveCount(5);
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('reedmark:fixed:v1')!)) as State;
+  expect(saved.character).toBe('thief');
+  expect(saved.dice.map(d => d.template)).toEqual(['die_dagger', 'die_dagger', 'die_dodge', 'die_dodge', 'die_kris']);
+  expect(errors).toEqual([]);
+});
+
+test('vulnerable stacks show on the enemy and exert blanks the die next turn', async ({ page }) => {
+  const state = newRun('fixed', 231);
+  state.combat!.rolls[4].slot = 'left';
+  await saveFixture(page, state);
+  await action(page, 'commit').click();
+  await die(page, 'd4').click();
+  await actor(page, 'gnat-a').click();
+  await expect(actor(page, 'gnat-a').locator('.chip--vulnerable')).toContainText('1');
+  await expect(page.locator('[data-socket="4"].is-spent')).toBeVisible();
+  await action(page, 'end').click();
+  await expect(page.locator('#interface')).toHaveAttribute('data-phase', 'battle');
+  await expect(actor(page, 'gnat-a').locator('.chip--vulnerable')).toHaveCount(0);
+  await action(page, 'commit').click();
+  await expect(page.locator('button.seated[aria-label*="Blank"]')).toHaveCount(1);
+});

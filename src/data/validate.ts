@@ -1,6 +1,7 @@
 import type { Collections, CollectionName } from './types.ts';
 import { COLLECTION_NAMES, SLOT_NAMES } from './types.ts';
 import { find, forEachRef, validId } from './graph.ts';
+import { compileDb } from './runtime.ts';
 
 export interface Issue {
   severity: 'error' | 'warning';
@@ -64,6 +65,13 @@ export function validate(db: Collections): Issue[] {
       if (e.op === 'setPips' && e.pips === undefined) add('error', 'items', it.id, `effects[${i}] setPips needs pips`);
       if (e.target !== 'all' && e.target.length === 0) add('error', 'items', it.id, `effects[${i}] has no target slots`);
     });
+  }
+
+  // Things that keep a die, item or character out of the game.
+  const kinds: Record<string, CollectionName> = { die: 'dice', item: 'items', character: 'characters' };
+  for (const issue of compileDb(db).issues) {
+    const m = /^(die|item|character) (\S+)/.exec(issue.where);
+    if (m) add('warning', kinds[m[1]], m[2], `not usable in the game: ${issue.where.slice(m[0].length).trim() ? issue.where.slice(m[0].length).trim() + ': ' : ''}${issue.message}`);
   }
 
   return issues;

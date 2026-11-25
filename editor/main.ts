@@ -195,7 +195,7 @@ function blankEntity(c: CollectionName, id: string): Entity {
   switch (c) {
     case 'keywords': return { id, valueKind: 'none', ruleText: '', category: '', appliesTo: '', implemented: 'planned', notes: '' };
     case 'faces': return { id, targeting: 'none', keywords: [], iconDescription: '', image: '', notes: '', status: 'active' };
-    case 'dice': return { id, name: '', faces: SLOT_NAMES.map(() => ({ face: faceId })), notes: '' };
+    case 'dice': return { id, name: '', tone: 'rust', faces: SLOT_NAMES.map(() => ({ face: faceId })), notes: '' };
     case 'characters': return { id, name: id, starterDice: [], items: [], unlocks: [], notes: '' };
     case 'items': return { id, name: id, rarity: 'common', description: '', effects: [], implemented: 'planned' };
     case 'relics': return { id, name: id, description: '', trigger: '', implemented: 'planned' };

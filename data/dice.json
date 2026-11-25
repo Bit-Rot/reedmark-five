@@ -1,7 +1,7 @@
 [
   {
     "id": "die_sword",
-    "name": "",
+    "name": "Sword",
     "faces": [
       {
         "face": "slash",
@@ -20,19 +20,20 @@
         "pips": 1
       },
       {
-        "face": "shield",
+        "face": "block",
         "pips": 1
       },
       {
-        "face": "shield",
+        "face": "block",
         "pips": 1
       }
     ],
-    "notes": ""
+    "notes": "",
+    "tone": "rust"
   },
   {
     "id": "die_shield",
-    "name": "",
+    "name": "Shield",
     "faces": [
       {
         "face": "block",
@@ -59,11 +60,12 @@
         "pips": 1
       }
     ],
-    "notes": ""
+    "notes": "",
+    "tone": "blue"
   },
   {
     "id": "die_hammer",
-    "name": "",
+    "name": "Hammer",
     "faces": [
       {
         "face": "bash",
@@ -74,11 +76,11 @@
         "pips": 2
       },
       {
-        "face": "slash_bash",
+        "face": "slash_block",
         "pips": 1
       },
       {
-        "face": "slash_bash",
+        "face": "slash_block",
         "pips": 1
       },
       {
@@ -88,11 +90,12 @@
         "face": "blank"
       }
     ],
-    "notes": ""
+    "notes": "",
+    "tone": "sand"
   },
   {
     "id": "die_dagger",
-    "name": "",
+    "name": "Dagger",
     "faces": [
       {
         "face": "stab",
@@ -117,11 +120,12 @@
         "face": "blank"
       }
     ],
-    "notes": ""
+    "notes": "",
+    "tone": "jade"
   },
   {
     "id": "die_dodge",
-    "name": "",
+    "name": "Dodge",
     "faces": [
       {
         "face": "dash",
@@ -146,11 +150,12 @@
         "face": "blank"
       }
     ],
-    "notes": ""
+    "notes": "",
+    "tone": "olive"
   },
   {
     "id": "die_kris",
-    "name": "",
+    "name": "Kris",
     "faces": [
       {
         "face": "hobble",
@@ -175,6 +180,7 @@
         "face": "blank"
       }
     ],
-    "notes": ""
+    "notes": "",
+    "tone": "rust"
   }
 ]

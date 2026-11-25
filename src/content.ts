@@ -1,58 +1,10 @@
-import { SLOTS } from './model.ts';
-import type { DieDefinition, Encounter, Face, IntentDie, IntentFace, Item, Part, Room, Slot, TargetKind } from './model.ts';
+import type { Encounter, IntentFace, IntentDie, Room } from './model.ts';
 
-const part = (kind: Part['kind'], value: number, count?: number): Part => ({ kind, value, count });
-const face = (target: TargetKind, ...parts: Part[]): Face => ({ target, parts });
-const strike = (n: number, count?: number) => face('enemy', part('hit', n, count));
-const guard = (n: number, salvage?: number): Face => ({ ...face('self', part('guard', n)), salvage });
-const seep = (n: number, hit = 0) => face('enemy', ...(hit ? [part('hit', hit), part('seep', n)] : [part('seep', n)]));
-const split = (hit: number, cover: number) => face('enemy', part('hit', hit), part('guard', cover));
-const brace = (cover: number, ward: number) => face('self', part('guard', cover), part('ward', ward));
-const tune = (cover: number, value: number) => face('die', part('guard', cover), part('boost', value));
-
-function die(name: string, tone: string, left: Face, center: Face, right: Face, far: Face, top: Face, bottom: Face): DieDefinition {
-  const values = [left, center, right, far, top, bottom];
-  return { name, tone, faces: Object.fromEntries(SLOTS.map((slot, i) => [slot, values[i]])) as Record<Slot, Face> };
-}
-
-export const DICE: Record<string, DieDefinition> = {
-  needle: die('Needle', 'rust', strike(2, 3), strike(4), strike(3), strike(2), guard(3), seep(1, 2)),
-  cowl: die('Cowl', 'blue', guard(6), guard(4), guard(3), strike(2), guard(4), brace(2, 2)),
-  bristle: die('Bristle', 'olive', seep(3, 3), seep(1, 3), seep(2), strike(2), guard(3), face('enemy', part('guard', 2), part('seep', 1))),
-  switch: die('Switch', 'jade', tune(3, 2), strike(3), guard(3, 2), strike(2), guard(3), tune(2, 1)),
-  whet: die('Whet', 'sand', strike(6), strike(4), strike(3), strike(2), guard(4), split(2, 2)),
-  fork: die('Fork', 'rust', strike(2, 3), strike(2, 2), strike(3), guard(2), guard(3), split(2, 1)),
-  mantle: die('Mantle', 'blue', guard(5), guard(4), guard(3, 2), strike(2), guard(4), brace(2, 2)),
-  tincture: die('Tincture', 'olive', seep(4, 2), seep(3), seep(1, 3), strike(1), guard(3), face('enemy', part('guard', 2), part('seep', 1))),
-  shuttle: die('Shuttle', 'jade', tune(4, 2), guard(3), strike(3), strike(2), brace(2, 2), guard(2, 2)),
-  skirmish: die('Skirmish', 'sand', split(5, 2), strike(4), split(3, 1), strike(2), guard(3), guard(4)),
-  knurl: die('Knurl', 'rust', strike(2, 4), strike(5), strike(2, 2), strike(2), guard(3), split(3, 2)),
-  reservoir: die('Reservoir', 'olive', seep(5, 2), seep(3, 2), seep(3), split(2, 1), guard(4), brace(3, 2)),
-  shuck: die('Shuck', 'blue', brace(5, 4), guard(5, 2), guard(4), split(2, 1), guard(5), strike(4)),
-  ricochet: die('Ricochet', 'jade', tune(4, 3), split(4, 2), guard(3, 3), strike(3), tune(2, 2), strike(2, 2)),
-  emberpin: die('Emberpin', 'sand', split(7, 2), strike(6), seep(2, 3), strike(3), guard(5), guard(4, 2)),
-};
-export const STARTERS = ['needle', 'cowl', 'bristle', 'switch', 'whet', 'fork', 'mantle', 'tincture', 'shuttle', 'skirmish'];
-export const DISCOVERIES = ['knurl', 'reservoir', 'shuck', 'ricochet', 'emberpin'];
-
-export const ITEMS: Record<string, Item> = {
-  chitin: { name: 'Chitin Stitch', rarity: 'common', edits: { left: strike(7) } },
-  sea: { name: 'Sea Thread', rarity: 'common', edits: { top: guard(4), bottom: brace(3, 2) } },
-  nick: { name: 'Nickstone', rarity: 'common', edits: { center: split(4, 2) } },
-  shale: { name: 'Shale Tooth', rarity: 'common', edits: { far: strike(4) } },
-  moss: { name: 'Moss Vial', rarity: 'common', edits: { right: seep(2, 2) } },
-  copper: { name: 'Copper Flecks', rarity: 'common', edits: { far: guard(3, 2) } },
-  clove: { name: 'Iron Clove', rarity: 'common', edits: { bottom: seep(2, 3) } },
-  spindles: { name: 'Twin Spindles', rarity: 'uncommon', edits: { right: strike(2, 2), far: split(3, 2) } },
-  wreath: { name: 'Wicker Wreath', rarity: 'uncommon', edits: { top: guard(5), bottom: brace(4, 2) } },
-  retort: { name: 'Violet Retort', rarity: 'uncommon', edits: { center: seep(3, 3) } },
-  snag: { name: 'Snag Loop', rarity: 'uncommon', edits: { center: guard(4, 3), far: strike(4) } },
-  wax: { name: 'Pitchwax', rarity: 'uncommon', edits: { left: tune(4, 3), bottom: guard(4) } },
-  salt: { name: 'Salt Crown', rarity: 'rare', edits: { left: seep(5, 4) } },
-  burr: { name: 'Moon Burr', rarity: 'rare', edits: { left: strike(3, 3), far: split(4, 2) } },
-  mast: { name: 'Flood Bell', rarity: 'rare', edits: { top: brace(6, 3), bottom: guard(5, 3) } },
-  still: { name: 'Stillwicket', rarity: 'rare', edits: { left: split(5, 4), right: tune(3, 3) } }
-};
+/**
+ * Dice, items and characters come from the design data (data/*.json, edited in the editor).
+ * Enemies and rooms are still authored here.
+ */
+export { CHARACTERS, DATA, DATA_ISSUES, DICE, ITEMS } from './content-data.ts';
 
 const H = (n: number): IntentFace => ['hit', n];
 const G = (n: number): IntentFace => ['guard', n];

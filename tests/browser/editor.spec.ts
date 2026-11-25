@@ -32,8 +32,17 @@ test('lists data, shows the T diagram, flags dangling references, and renames wi
   await page.locator('#nav button', { hasText: 'Dice' }).click();
   await page.locator('#items button', { hasText: 'die_hammer' }).click();
   await expect(page.locator('.tdiagram .slot[data-slot]')).toHaveCount(6);
+  await expect(page.locator('.slot[data-slot="top"] select')).not.toHaveClass(/missing/);
+
+  // Deleting a face that a die still uses leaves a flagged dangling reference.
+  await page.locator('#nav button', { hasText: 'Faces' }).click();
+  await page.locator('#items button', { hasText: /^slash_block$/ }).click();
+  await page.getByRole('button', { name: 'Delete' }).click();
+  await page.getByRole('button', { name: /click again to delete anyway/ }).click();
+  await page.locator('#nav button', { hasText: 'Dice' }).click();
+  await page.locator('#items button', { hasText: 'die_hammer' }).click();
   await expect(page.locator('.slot[data-slot="top"] select')).toHaveClass(/missing/);
-  await expect(page.locator('.issues .error').first()).toContainText('slash_bash');
+  await expect(page.locator('.issues .error').first()).toContainText('slash_block');
 
   await page.locator('#nav button', { hasText: 'Faces' }).click();
   await page.locator('#items button', { hasText: /^slash$/ }).click();

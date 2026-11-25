@@ -21,7 +21,7 @@ function sample(): Collections {
     { id: 'blank', targeting: 'none', keywords: [], iconDescription: '', image: '', notes: '', status: 'active' },
   );
   db.dice.push({
-    id: 'die_a', name: 'A', notes: '',
+    id: 'die_a', name: 'A', tone: 'rust', notes: '',
     faces: [{ face: 'slash', pips: 2 }, { face: 'slash', pips: 2 }, { face: 'hobble', pips: 1 }, { face: 'blank' }, { face: 'blank' }, { face: 'blank' }],
   });
   db.characters.push({ id: 'hero', name: 'Hero', starterDice: ['die_a'], items: [], unlocks: [], notes: '' });
@@ -72,7 +72,7 @@ test('validation reports dangling references, missing X values, and wrong face c
   assert.equal(validate(db).filter(i => i.severity === 'error').length, 0);
   db.dice[0].faces[0].face = 'missing';
   delete db.faces[1].keywords[1].x;
-  db.dice.push({ id: 'short', name: '', faces: [{ face: 'slash' }], notes: '' });
+  db.dice.push({ id: 'short', name: '', tone: 'rust', faces: [{ face: 'slash' }], notes: '' });
   const msgs = validate(db).map(i => i.message);
   assert(msgs.some(m => m.includes('"missing"') && m.includes('does not exist')));
   assert(msgs.some(m => m.includes('needs an X value')));

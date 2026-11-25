@@ -1,1 +1,338 @@
-[]
+[
+  {
+    "id": "chitin",
+    "name": "Chitin Stitch",
+    "rarity": "common",
+    "description": "Left becomes a 7 damage slash.",
+    "effects": [
+      {
+        "target": [
+          "left"
+        ],
+        "op": "setFace",
+        "face": "slash",
+        "pips": 7
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "sea",
+    "name": "Sea Thread",
+    "rarity": "common",
+    "description": "Top becomes block 4, bottom block 3.",
+    "effects": [
+      {
+        "target": [
+          "top"
+        ],
+        "op": "setFace",
+        "face": "block",
+        "pips": 4
+      },
+      {
+        "target": [
+          "bottom"
+        ],
+        "op": "setFace",
+        "face": "block",
+        "pips": 3
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "nick",
+    "name": "Nickstone",
+    "rarity": "common",
+    "description": "Middle becomes slash and block 3.",
+    "effects": [
+      {
+        "target": [
+          "middle"
+        ],
+        "op": "setFace",
+        "face": "slash_block",
+        "pips": 3
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "shale",
+    "name": "Shale Tooth",
+    "rarity": "common",
+    "description": "Rightmost becomes a 4 damage slash.",
+    "effects": [
+      {
+        "target": [
+          "rightmost"
+        ],
+        "op": "setFace",
+        "face": "slash",
+        "pips": 4
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "moss",
+    "name": "Moss Vial",
+    "rarity": "common",
+    "description": "Right becomes a 2 damage poison face.",
+    "effects": [
+      {
+        "target": [
+          "right"
+        ],
+        "op": "setFace",
+        "face": "poison",
+        "pips": 2
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "copper",
+    "name": "Copper Flecks",
+    "rarity": "common",
+    "description": "Rightmost becomes block 3.",
+    "effects": [
+      {
+        "target": [
+          "rightmost"
+        ],
+        "op": "setFace",
+        "face": "block",
+        "pips": 3
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "clove",
+    "name": "Iron Clove",
+    "rarity": "common",
+    "description": "Bottom becomes a 2 damage poison face.",
+    "effects": [
+      {
+        "target": [
+          "bottom"
+        ],
+        "op": "setFace",
+        "face": "poison",
+        "pips": 2
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "spindles",
+    "name": "Twin Spindles",
+    "rarity": "uncommon",
+    "description": "Right becomes slash 2, rightmost slash and block 3.",
+    "effects": [
+      {
+        "target": [
+          "right"
+        ],
+        "op": "setFace",
+        "face": "slash",
+        "pips": 2
+      },
+      {
+        "target": [
+          "rightmost"
+        ],
+        "op": "setFace",
+        "face": "slash_block",
+        "pips": 3
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "wreath",
+    "name": "Wicker Wreath",
+    "rarity": "uncommon",
+    "description": "Top becomes block 5, bottom block 4.",
+    "effects": [
+      {
+        "target": [
+          "top"
+        ],
+        "op": "setFace",
+        "face": "block",
+        "pips": 5
+      },
+      {
+        "target": [
+          "bottom"
+        ],
+        "op": "setFace",
+        "face": "block",
+        "pips": 4
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "retort",
+    "name": "Violet Retort",
+    "rarity": "uncommon",
+    "description": "Middle becomes a 3 damage poison face.",
+    "effects": [
+      {
+        "target": [
+          "middle"
+        ],
+        "op": "setFace",
+        "face": "poison",
+        "pips": 3
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "snag",
+    "name": "Snag Loop",
+    "rarity": "uncommon",
+    "description": "Middle becomes block 4, rightmost slash 4.",
+    "effects": [
+      {
+        "target": [
+          "middle"
+        ],
+        "op": "setFace",
+        "face": "block",
+        "pips": 4
+      },
+      {
+        "target": [
+          "rightmost"
+        ],
+        "op": "setFace",
+        "face": "slash",
+        "pips": 4
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "wax",
+    "name": "Pitchwax",
+    "rarity": "uncommon",
+    "description": "Left and bottom become block 4.",
+    "effects": [
+      {
+        "target": [
+          "left"
+        ],
+        "op": "setFace",
+        "face": "block",
+        "pips": 4
+      },
+      {
+        "target": [
+          "bottom"
+        ],
+        "op": "setFace",
+        "face": "block",
+        "pips": 4
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "salt",
+    "name": "Salt Crown",
+    "rarity": "rare",
+    "description": "Left becomes a 5 damage poison face.",
+    "effects": [
+      {
+        "target": [
+          "left"
+        ],
+        "op": "setFace",
+        "face": "poison",
+        "pips": 5
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "burr",
+    "name": "Moon Burr",
+    "rarity": "rare",
+    "description": "Left becomes slash 3, rightmost slash and block 4.",
+    "effects": [
+      {
+        "target": [
+          "left"
+        ],
+        "op": "setFace",
+        "face": "slash",
+        "pips": 3
+      },
+      {
+        "target": [
+          "rightmost"
+        ],
+        "op": "setFace",
+        "face": "slash_block",
+        "pips": 4
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "mast",
+    "name": "Flood Bell",
+    "rarity": "rare",
+    "description": "Top becomes block 6, bottom block 5.",
+    "effects": [
+      {
+        "target": [
+          "top"
+        ],
+        "op": "setFace",
+        "face": "block",
+        "pips": 6
+      },
+      {
+        "target": [
+          "bottom"
+        ],
+        "op": "setFace",
+        "face": "block",
+        "pips": 5
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "still",
+    "name": "Stillwicket",
+    "rarity": "rare",
+    "description": "Left becomes slash and block 5, right block 3.",
+    "effects": [
+      {
+        "target": [
+          "left"
+        ],
+        "op": "setFace",
+        "face": "slash_block",
+        "pips": 5
+      },
+      {
+        "target": [
+          "right"
+        ],
+        "op": "setFace",
+        "face": "block",
+        "pips": 3
+      }
+    ],
+    "implemented": "implemented"
+  }
+]

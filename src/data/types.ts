@@ -23,6 +23,9 @@ export type EffectOp = (typeof EFFECT_OPS)[number];
 export const ROOM_KINDS = ['upgrade', 'shop', 'other'] as const;
 export type RoomKind = (typeof ROOM_KINDS)[number];
 
+export const TONES = ['rust', 'blue', 'olive', 'jade', 'sand'] as const;
+export type Tone = (typeof TONES)[number];
+
 export const SHOP_OFFERS = ['items', 'relics', 'potions'] as const;
 export type ShopOffer = (typeof SHOP_OFFERS)[number];
 
@@ -62,6 +65,8 @@ export interface DieSlot {
 export interface Die {
   id: string;
   name: string;
+  /** Colour family used to draw the die in the game. */
+  tone: Tone;
   /** Exactly six entries, in the order of SLOT_NAMES. */
   faces: DieSlot[];
   notes: string;
@@ -80,6 +85,7 @@ export interface ItemEffect {
   /** Slots affected, or 'all' for every face on the die. */
   target: SlotName[] | 'all';
   op: EffectOp;
+  /** setFace: the face to place; setPips/pipDelta use `pips`/`delta`. */
   face?: string;
   keyword?: string;
   x?: number;

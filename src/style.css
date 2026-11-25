@@ -275,6 +275,12 @@
   .ending { width: min(410px,100%); text-align: center; display: grid; gap: 13px; justify-items: center; }
   .end-mark { font-size: 39px; color: #ebc87b; }
   .ending .control { margin-top: 6px; }
+  .select { width: min(520px,100%); display: grid; gap: 12px; }
+  .character-list { display: grid; gap: 10px; }
+  .character-choice { display: grid; gap: 3px; text-align: left; padding: 12px 14px; color: #f3e6c8; background: linear-gradient(#26373c, #1a2a2f); border: 1px solid #c09e69a0; border-radius: 8px; cursor: pointer; }
+  .character-choice:hover { border-color: #f8d382; background: linear-gradient(#2e4247, #20343a); }
+  .character-choice strong { font: 700 1.25rem/1.1 var(--serif); }
+  .character-choice small { opacity: .75; }
 
   @media (max-width: 660px) {
     .hud { gap: 6px; padding: max(14px,env(safe-area-inset-top)) 12px 12px; min-height: 85px; }

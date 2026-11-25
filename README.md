@@ -31,6 +31,8 @@ The editor is a static page at `/editor/` on the published site (also installabl
 
 To save from the published page, open the settings (gear) and paste a GitHub fine-grained personal access token limited to this repository with **Contents: Read and write**. The token stays in that browser only. **Save** makes one commit on `main` containing the data, regenerated docs and any images; if `main` moved since you loaded, the changes are merged per entity and any clashes are offered for you to resolve.
 
+The game itself reads this data: dice, items and characters come from `data/*.json` (compiled in `src/data/runtime.ts`), while enemies and rooms are still authored in `src/content.ts`. A run starts with a hero chosen on a select screen (or `?character=thief`); each hero starts with its five `starterDice`. Keywords the engine can run are `damage`, `block`, `selfShield`, `poison X`, `vulnerable X`, `weak X`, `exert` and `cantrip` (flagged `implemented` in the editor); a die, item or hero that uses anything else is left out of the game and the editor's validation panel says why.
+
 Unsaved edits are kept in the browser, so closing the tab does not lose them. Locally, `npm run dev` serves the editor at `http://localhost:4177/editor/`; `npm run migrate` re-imports the legacy md tables (one-off, it overwrites `data/`).
 
 ## Deployment

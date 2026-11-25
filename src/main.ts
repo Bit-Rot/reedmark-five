@@ -1,7 +1,7 @@
 import './style.css';
 import './face-ui.css';
-import { DICE, ITEMS, ROOMS } from './content.ts';
-import { actionPreview, advance, canPlay, chooseOffer, commitRoll, endTurn, incoming, intentValues, isSave,
+import { CHARACTERS, DICE, ITEMS, ROOMS } from './content.ts';
+import { actionPreview, advance, canPlay, chooseOffer, commitRoll, endTurn, incoming, intentValues, isExerted, isSave,
   newRun, offerTargets, play, previewDie, reroll, rollFace, setHold } from './game.ts';
 import type { Die, Offer, Roll, State, Target, Variant } from './model.ts';
 import { EFFECTS, loadEffectImages } from './effects.ts';
@@ -14,6 +14,7 @@ const requested = new URLSearchParams(location.search);
 const variant = import.meta.env.DEV && requested.get('mode') === 'pool' ? 'pool' : __VARIANT__;
 const seedParam = requested.get('seed');
 const seeded = seedParam !== null && /^\d{1,10}$/.test(seedParam);
+const characterParam = CHARACTERS.find(c => c.id === requested.get('character'))?.id;
 const randomSeed = () => crypto.getRandomValues(new Uint32Array(1))[0];
 const saveKey = `reedmark:${variant}:v1`;
 const root = document.querySelector<HTMLElement>('#game')!;
@@ -24,14 +25,19 @@ const label = variant === 'fixed' ? 'Fixed Five' : 'Dice Pool';
 document.title = `Reedmark · ${label}`;
 document.querySelector('main')!.setAttribute('aria-label', `Reedmark ${label}`);
 
+/** True while the player has not yet picked a hero for a new run. */
+let choosing = false;
+
 function load(): State {
-  if (seeded) return newRun(variant, Number(seedParam));
+  if (seeded) return newRun(variant, Number(seedParam), characterParam);
   try {
     const data: unknown = JSON.parse(localStorage.getItem(saveKey) ?? 'null');
     if (isSave(data, variant)) return data;
   } catch {
     // The game can run even when browser storage is unavailable.
   }
+  if (characterParam) return newRun(variant, randomSeed(), characterParam);
+  choosing = true;
   return newRun(variant, randomSeed());
 }
 
@@ -61,7 +67,7 @@ const moveNames = { hit: EFFECTS.hit.name, guard: EFFECTS.guard.name, power: 'Po
 const moveIcons = { hit: 'hit', guard: 'guard', power: 'boost' } as const;
 
 function save(): void {
-  if (seeded) return;
+  if (seeded || choosing) return;
   try {
     localStorage.setItem(saveKey, JSON.stringify(state));
   } catch {
@@ -108,11 +114,12 @@ function worldLayer(): HTMLElement {
   const world = element('div', 'world');
   const combat = state.combat;
   if (!combat || state.phase !== 'battle') return world;
-  const self = button('actor-target actor-target--self', 'target', 'Courier');
+  const heroName = CHARACTERS.find(c => c.id === state.character)?.name ?? 'Courier';
+  const self = button('actor-target actor-target--self', 'target', heroName);
   self.dataset.actor = 'courier';
   self.dataset.targetKind = 'self';
   self.dataset.focus = 'courier';
-  self.append(element('span', 'actor-caption', element('strong', '', 'Courier'),
+  self.append(element('span', 'actor-caption', element('strong', '', heroName),
     element('span', 'actor-status',
       combat.guard ? effectChip('guard', combat.guard) : null,
       combat.ward ? effectChip('ward', combat.ward) : null,
@@ -141,6 +148,8 @@ function worldLayer(): HTMLElement {
       element('span', 'enemy-hp', `${enemy.hp}/${enemy.maxHp}`,
         enemy.guard ? effectChip('guard', enemy.guard) : null,
         enemy.seep ? effectChip('seep', enemy.seep) : null,
+        enemy.vulnerable ? effectChip('vulnerable', enemy.vulnerable) : null,
+        enemy.weak ? effectChip('weak', enemy.weak) : null,
       ),
     ));
     world.append(target);
@@ -336,6 +345,17 @@ function renderLedger(): HTMLElement {
   return element('div', 'overlay', pane);
 }
 
+function renderSelect(): HTMLElement {
+  const choices = CHARACTERS.map(hero => {
+    const dice = hero.starterDice.map(id => DICE[id].name).join(' · ');
+    const choice = button('control character-choice', 'character', `Play ${hero.name}`, element('strong', '', hero.name), element('small', '', dice));
+    choice.dataset.id = hero.id;
+    return choice;
+  });
+  return element('div', 'overlay', element('section', 'sheet select',
+    element('h1', '', 'Choose your hero'), caption('Five dice to start'), element('div', 'character-list', ...choices)));
+}
+
 function renderEnding(): HTMLElement {
   const won = state.phase === 'victory';
   const score = won ? `${state.hp} HP left` : ROOMS[state.room].name;
@@ -370,6 +390,14 @@ function render(animate: ReadonlySet<string> = new Set(), lead = 0): void {
   const focused = document.activeElement instanceof HTMLElement ? document.activeElement.dataset.focus : null;
   closeInspection();
   tooltips.hide();
+  if (choosing) {
+    view.dataset.phase = 'select';
+    view.dataset.variant = variant;
+    view.replaceChildren(hud(), renderSelect());
+    board?.setActors([]);
+    board?.syncDice([], animate, lead);
+    return;
+  }
   const combat = state.combat;
   const fighting = state.phase === 'battle';
   view.dataset.phase = state.phase;
@@ -384,7 +412,7 @@ function render(animate: ReadonlySet<string> = new Set(), lead = 0): void {
   if (art('courier')) stage.dataset.illustrated = 'true';
   board?.setActors(combat?.enemies ?? []);
   board?.syncDice(fighting && combat ? combat.rolls.map(roll => ({
-    die: owned(roll.dieId), slot: roll.slot, shown: !roll.held && !roll.used,
+    die: owned(roll.dieId), slot: roll.slot, shown: !roll.held && !roll.used, exerted: isExerted(state, roll.dieId),
   })) : [], animate, lead);
   positionWorld();
   paintTargets(selected);
@@ -419,6 +447,8 @@ function paintTargets(id: string | null, pointed?: HTMLElement): void {
     if (old.hp !== next.hp) labels.push(next.hp === 0 ? '✦ KO' : `♥ −${old.hp - next.hp}`);
     if (old.guard !== next.guard) labels.push(`⬟ −${old.guard - next.guard}`);
     if (old.seep !== next.seep) labels.push(`◈ +${next.seep - old.seep}`);
+    if (old.vulnerable !== next.vulnerable) labels.push(`⚠ +${next.vulnerable - old.vulnerable}`);
+    if (old.weak !== next.weak) labels.push(`▾ +${next.weak - old.weak}`);
   } else if (target.kind === 'die') {
     const old = existing.rolls.find(roll => roll.dieId === target.id)!;
     const next = playResult.rolls.find(roll => roll.dieId === target.id)!;
@@ -452,7 +482,7 @@ function transition(before: State['phase'], oldTurn: number): void {
   save();
   const combat = state.combat;
   if (state.phase === 'battle' && combat && (before !== 'battle' || oldTurn !== combat.turn)) {
-    tell(`Turn ${combat.turn}. ${incoming(combat)} incoming.`);
+    tell(`Turn ${combat.turn}. ${incoming(combat)} incoming. ${combat.events.join('. ')}`.trim());
     animateRoll(combat.rolls.map(roll => roll.dieId), true);
   } else {
     render();
@@ -603,7 +633,7 @@ view.addEventListener('click', event => {
     const active = state.combat?.rolls.filter(roll => !roll.held).map(roll => roll.dieId) ?? [];
     if (reroll(state)) {
       save();
-      tell(`Rerolled ${active.length} dice.`);
+      tell(`Rerolled ${active.length} dice. ${state.combat?.events.join('. ') ?? ''}`.trim());
       animateRoll(active);
     }
   } else if (action === 'commit' && commitRoll(state)) {
@@ -646,12 +676,24 @@ view.addEventListener('click', event => {
   } else if (action === 'skip' && advance(state)) {
     offerIndex = null;
     transition('reward', 0);
-  } else if (action === 'new') {
-    const seed = seeded ? Number(seedParam) : randomSeed();
-    state = newRun(variant, seed);
+  } else if (action === 'character') {
+    state = newRun(variant, randomSeed(), node.dataset.id);
+    choosing = false;
     offerIndex = null;
     rewardDie = null;
     transition('victory', 0);
+  } else if (action === 'new') {
+    offerIndex = null;
+    rewardDie = null;
+    if (seeded) {
+      state = newRun(variant, Number(seedParam), state.character);
+      transition('victory', 0);
+    } else {
+      choosing = true;
+      state = newRun(variant, randomSeed(), state.character);
+      selected = null;
+      render();
+    }
   }
 });
 

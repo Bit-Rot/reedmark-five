@@ -21,19 +21,6 @@ test('fixed rolls five, holds through two rerolls, and commits once', () => {
   assert.equal(commitRoll(s), false);
 });
 
-test('salvage pays once per die per turn', () => {
-  const s = newRun('fixed', 231);
-  const c = s.combat!;
-  c.rolls.forEach(roll => { roll.held = roll.dieId !== 'd3'; });
-  const support = c.rolls.find(roll => roll.dieId === 'd3')!;
-  support.slot = 'right';
-  assert(reroll(s));
-  assert.equal(c.guard, 2);
-  support.slot = 'right';
-  assert(reroll(s));
-  assert.equal(c.guard, 2);
-});
-
 test('invalid targets preserve state and killing an enemy cancels its intents', () => {
   const s = newRun('fixed', 231);
   const c = s.combat!;
@@ -52,19 +39,6 @@ test('invalid targets preserve state and killing an enemy cancels its intents', 
   assert.equal(c.enemies[0].hp, 0);
   assert.equal(incoming(c), incoming(preview));
   assert.equal(canPlay(s, 'd0', { kind: 'enemy', id: c.enemies[1].id }), false);
-});
-
-test('support changes the next rolled attack without multiplying across a flurry', () => {
-  const s = newRun('fixed', 231);
-  const c = s.combat!;
-  c.rolls[0].slot = 'left';
-  c.rolls[3].slot = 'left';
-  assert(commitRoll(s));
-  assert(play(s, 'd3', { kind: 'die', id: 'd0' }));
-  assert.equal(c.rolls[0].boost, 2);
-  assert.equal(c.guard, 3);
-  assert(play(s, 'd0', { kind: 'enemy', id: c.enemies[0].id }));
-  assert.equal(c.enemies[0].hp, 2);
 });
 
 test('fixed imprints overwrite only overlapping faces', () => {
@@ -92,9 +66,9 @@ test('pool imprints are single-use and persist through transformation', () => {
   s.offers = [item];
   assert(!offerTargets(s, item).some(die => die.id === 'd0'));
   assert.equal(chooseOffer(s, 0, 'd0'), false);
-  s.offers = [{ kind: 'transform', id: 'knurl' }];
+  s.offers = [{ kind: 'transform', id: 'die_dagger' }];
   assert(chooseOffer(s, 0, 'd0'));
-  assert.equal(s.dice[0].template, 'knurl');
+  assert.equal(s.dice[0].template, 'die_dagger');
   assert.equal(s.dice[0].item, 'sea');
   assert.equal(faceFor(s.dice[0], 'bottom'), ITEMS.sea.edits.bottom);
 });

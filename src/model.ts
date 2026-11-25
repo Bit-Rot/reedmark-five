@@ -1,8 +1,10 @@
 export const SLOTS = ['left', 'center', 'right', 'far', 'top', 'bottom'] as const;
 export type Slot = typeof SLOTS[number];
 export type Variant = 'fixed' | 'pool';
-export type Kind = 'hit' | 'guard' | 'seep' | 'boost' | 'ward';
-export type TargetKind = 'enemy' | 'self' | 'die';
+export type Kind = 'hit' | 'guard' | 'seep' | 'boost' | 'ward' | 'vulnerable' | 'weak' | 'exert' | 'cantrip' | 'blank';
+/** Kinds that carry no number (they are either present or not). */
+export const FLAG_KINDS: readonly Kind[] = ['exert', 'cantrip', 'blank'];
+export type TargetKind = 'enemy' | 'self' | 'die' | 'none';
 export type Target = { kind: TargetKind; id?: string };
 
 export interface Part {
@@ -15,6 +17,8 @@ export interface Face {
   target: TargetKind;
   parts: readonly Part[];
   salvage?: number;
+  /** ID of the data face this was built from. */
+  id?: string;
 }
 export interface DieDefinition {
   name: string;
@@ -57,6 +61,10 @@ export interface Enemy extends EnemyDefinition {
   guard: number;
   seep: number;
   power: number;
+  /** Stacks: +50% damage taken while above 0, lose 1 at the end of the enemy turn. */
+  vulnerable: number;
+  /** Stacks: -50% damage dealt while above 0, lose 1 at the end of the enemy turn. */
+  weak: number;
 }
 export type IntentFace = readonly [Move, number];
 export interface IntentDie {
@@ -82,13 +90,18 @@ export interface Combat {
   bag: string[];
   guard: number;
   ward: number;
+  /** Die ID -> the turn number during which all of that die's faces are blank. */
+  exerted: Record<string, number>;
+  /** What happened on the last roll that the player did not click (cantrips). */
+  events: string[];
 }
 export type Offer =
   | { kind: 'item' | 'add' | 'transform'; id: string }
   | { kind: 'remove' | 'heal' };
 export interface State {
-  version: 1;
+  version: 2;
   variant: Variant;
+  character: string;
   seed: number;
   rng: number;
   combatRng: number;

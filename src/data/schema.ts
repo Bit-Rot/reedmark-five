@@ -1,6 +1,6 @@
 import type { CollectionName } from './types.ts';
 import {
-  EFFECT_OPS, FACE_STATUS, IMPLEMENTED, RARITIES, ROOM_KINDS, SHOP_OFFERS, TARGETING, VALUE_KINDS,
+  EFFECT_OPS, FACE_STATUS, IMPLEMENTED, RARITIES, ROOM_KINDS, SHOP_OFFERS, TARGETING, TONES, VALUE_KINDS,
 } from './types.ts';
 
 /**
@@ -54,6 +54,7 @@ export const SCHEMA: Record<CollectionName, CollectionSchema> = {
     name: 'dice', singular: 'die', label: 'Dice', nameField: 'name',
     fields: [
       { key: 'name', label: 'Name', kind: 'text' },
+      { key: 'tone', label: 'Colour', kind: 'enum', options: TONES },
       { key: 'faces', label: 'Faces', kind: 'dieFaces' },
       { key: 'notes', label: 'Notes', kind: 'longtext' },
     ],

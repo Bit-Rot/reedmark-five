@@ -2,7 +2,7 @@ import { DICE, ITEMS } from './content.ts';
 import { EFFECTS, effectUrl, faceEffects } from './effects.ts';
 import type { EffectKey } from './effects.ts';
 import { effectiveParts, faceFor } from './game.ts';
-import { SLOTS } from './model.ts';
+import { FLAG_KINDS, SLOTS } from './model.ts';
 import type { Die, Face, Part } from './model.ts';
 
 type Child = HTMLElement | string | null | undefined;
@@ -28,11 +28,12 @@ export function caption(value: string): HTMLElement {
 }
 
 function amount(part: Part): string {
+  if (FLAG_KINDS.includes(part.kind)) return '';
   return `${part.value}${part.count && part.count > 1 ? `×${part.count}` : ''}`;
 }
 
 export function faceText(face: Face, boost = 0): string {
-  const parts = effectiveParts(face, boost).map(part => `${amount(part)} ${EFFECTS[part.kind].name}`).join(', ');
+  const parts = effectiveParts(face, boost).map(part => `${amount(part)} ${EFFECTS[part.kind].name}`.trim()).join(', ');
   return face.salvage ? `${parts}, reroll for ${face.salvage} Block` : parts;
 }
 

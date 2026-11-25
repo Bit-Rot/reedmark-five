@@ -1,6 +1,9 @@
-import { DICE, DISCOVERIES, ITEMS, ROOMS, STARTERS } from './content.ts';
+import { CHARACTERS, DICE, ITEMS, ROOMS } from './content.ts';
 import { SLOTS } from './model.ts';
 import type { Combat, Die, Encounter, Enemy, Face, Intent, Offer, Part, Roll, Slot, State, Target, Variant } from './model.ts';
+
+const BLANK: Face = { target: 'none', parts: [{ kind: 'blank', value: 0 }] };
+const DISCOVERIES = Object.keys(DICE);
 
 function step(seed: number): number {
   return (Math.imul(seed, 1664525) + 1013904223) >>> 0;
@@ -22,10 +25,12 @@ function shuffled<T>(values: T[], state: State): T[] {
 
 const newDie = (template: string, index: number): Die => ({ id: `d${index}`, template, imprints: {} });
 
-export function newRun(variant: Variant, seed: number): State {
-  const ids = variant === 'fixed' ? STARTERS.slice(0, 5) : STARTERS;
+export function newRun(variant: Variant, seed: number, character = CHARACTERS[0].id): State {
+  const hero = CHARACTERS.find(c => c.id === character) ?? CHARACTERS[0];
+  // Dice Pool starts with ten dice: the character's five, twice.
+  const ids = variant === 'fixed' ? hero.starterDice : [...hero.starterDice, ...hero.starterDice];
   const state: State = {
-    version: 1, variant, seed: seed >>> 0, rng: (seed ^ 0x6bdc) >>> 0, combatRng: 0,
+    version: 2, character: hero.id, variant, seed: seed >>> 0, rng: (seed ^ 0x6bdc) >>> 0, combatRng: 0,
     room: 0, hp: 44, maxHp: 44, nextDie: ids.length, dice: ids.map(newDie), phase: 'battle',
     combat: null, offers: [],
   };
@@ -37,7 +42,7 @@ export function isSave(data: unknown, variant: Variant): data is State {
   if (!data || typeof data !== 'object') return false;
   const save = data as State;
   try {
-    return save.version === 1 && save.variant === variant && Number.isInteger(save.seed)
+    return save.version === 2 && save.variant === variant && CHARACTERS.some(c => c.id === save.character) && Number.isInteger(save.seed)
       && Number.isInteger(save.room) && !!ROOMS[save.room] && Number.isFinite(save.hp)
       && ['battle', 'reward', 'victory', 'defeat'].includes(save.phase)
       && Array.isArray(save.dice) && save.dice.length >= 5
@@ -57,13 +62,14 @@ function enterRoom(state: State): void {
   state.offers = [];
   state.combat = null;
   if (room.type === 'battle') {
-    const enemies: Enemy[] = room.enemies.map(enemy => ({ ...enemy, maxHp: enemy.hp, guard: 0, seep: 0, power: 0 }));
+    const enemies: Enemy[] = room.enemies.map(enemy => ({ ...enemy, maxHp: enemy.hp, guard: 0, seep: 0, power: 0, vulnerable: 0, weak: 0 }));
     state.phase = 'battle';
     state.combatRng = step((state.seed ^ Math.imul(state.room + 1, 0x90ad)) >>> 0);
     state.combat = {
-      turn: 0, phase: 'roll', rerolls: 2, enemies, intents: [], rolls: [], bag: [], guard: 0, ward: 0,
+      turn: 0, phase: 'roll', rerolls: 2, enemies, intents: [], rolls: [], bag: [], guard: 0, ward: 0, exerted: {}, events: [],
     };
     startTurn(state, room, state.combat);
+    if (state.combat.enemies.every(enemy => enemy.hp <= 0)) finishFight(state);
   } else {
     state.phase = 'reward';
     if (room.type === 'workshop' && state.variant === 'pool') {
@@ -108,6 +114,30 @@ function startTurn(state: State, room: Encounter, combat: Combat): void {
   combat.rolls = drawDice(state, combat).map(dieId => ({
     dieId, slot: SLOTS[pick(state, 6, 'combatRng')], held: false, used: false, boost: 0, salvaged: false,
   }));
+  fireCantrips(state, combat, combat.rolls);
+}
+
+function describe(face: Face): string {
+  const names: Record<string, string> = { hit: 'damage', guard: 'block', seep: 'poison', vulnerable: 'vulnerable', weak: 'weak' };
+  return face.parts.filter(part => names[part.kind]).map(part => `${part.value} ${names[part.kind]}`).join(', ');
+}
+
+/** Cantrips fire when they land face-up: random target, the die stays usable and can still be rerolled. */
+function fireCantrips(state: State, combat: Combat, rolls: Roll[]): void {
+  combat.events = [];
+  for (const roll of rolls) {
+    const face = rollFace(state, roll);
+    if (!face.parts.some(part => part.kind === 'cantrip')) continue;
+    let enemy: Enemy | undefined;
+    if (face.target === 'enemy') {
+      const alive = combat.enemies.filter(e => e.hp > 0);
+      if (!alive.length) continue;
+      enemy = alive[pick(state, alive.length, 'combatRng')];
+    } else if (face.target !== 'self') continue;
+    applyParts(combat, roll, face.parts.filter(part => part.kind !== 'exert' && part.kind !== 'cantrip'), enemy, undefined);
+    const owner = state.dice.find(die => die.id === roll.dieId);
+    combat.events.push(`${owner ? DICE[owner.template].name : 'Die'} cantrip: ${describe(face)}${enemy ? ` on ${enemy.name}` : ''}`);
+  }
 }
 
 export function facesFor(die: Die): Record<Slot, Face> {
@@ -120,7 +150,13 @@ export function faceFor(die: Die, slot: Slot): Face {
 }
 
 export function rollFace(state: State, roll: Roll): Face {
+  if (isExerted(state, roll.dieId)) return BLANK;
   return faceFor(state.dice.find(die => die.id === roll.dieId)!, roll.slot);
+}
+
+/** An exerted die shows blank faces until the end of the turn after the one it was used on. */
+export function isExerted(state: State, dieId: string): boolean {
+  return !!state.combat && state.combat.exerted[dieId] === state.combat.turn;
 }
 
 export function effectiveParts(face: Face, boost: number): readonly Part[] {
@@ -158,6 +194,8 @@ export function reroll(state: State): boolean {
     }
     roll.slot = SLOTS[pick(state, 6, 'combatRng')];
   }
+  fireCantrips(state, combat, combat.rolls.filter(roll => !roll.held));
+  if (combat.enemies.every(enemy => enemy.hp <= 0)) finishFight(state);
   return true;
 }
 
@@ -173,7 +211,8 @@ export function canPlay(state: State, dieId: string, target: Target): boolean {
   const combat = state.combat;
   const roll = combat?.rolls.find(r => r.dieId === dieId);
   if (state.phase !== 'battle' || !combat || combat.phase !== 'play' || !roll || roll.used) return false;
-  if (rollFace(state, roll).target !== target.kind) return false;
+  const face = rollFace(state, roll);
+  if (face.target === 'none' || face.target !== target.kind) return false;
   if (target.kind === 'enemy') return combat.enemies.some(enemy => enemy.id === target.id && enemy.hp > 0);
   if (target.kind === 'die') {
     return combat.rolls.some(other => other.dieId === target.id && other !== roll && !other.used
@@ -186,17 +225,29 @@ function applyFace(state: State, combat: Combat, roll: Roll, target: Target): vo
   const enemy = combat.enemies.find(e => target.kind === 'enemy' && e.id === target.id);
   const die = combat.rolls.find(r => target.kind === 'die' && r.dieId === target.id);
   roll.used = true;
-  for (const part of effectiveParts(rollFace(state, roll), roll.boost)) {
+  applyParts(combat, roll, effectiveParts(rollFace(state, roll), roll.boost), enemy, die);
+}
+
+function applyParts(combat: Combat, roll: Roll, parts: readonly Part[], enemy: Enemy | undefined, die: Roll | undefined): void {
+  for (const part of parts) {
     if (part.kind === 'hit' && enemy) {
+      // Vulnerable: +50% damage, rounded down.
+      const damage = enemy.vulnerable > 0 ? Math.floor(part.value * 1.5) : part.value;
       for (let i = 0; i < (part.count ?? 1); i++) {
-        const blocked = Math.min(part.value, enemy.guard);
+        const blocked = Math.min(damage, enemy.guard);
         enemy.guard -= blocked;
-        enemy.hp = Math.max(0, enemy.hp - part.value + blocked);
+        enemy.hp = Math.max(0, enemy.hp - damage + blocked);
       }
     } else if (part.kind === 'guard') {
       combat.guard += part.value;
     } else if (part.kind === 'seep' && enemy && enemy.hp > 0) {
       enemy.seep += part.value;
+    } else if (part.kind === 'vulnerable' && enemy && enemy.hp > 0) {
+      enemy.vulnerable += part.value;
+    } else if (part.kind === 'weak' && enemy && enemy.hp > 0) {
+      enemy.weak += part.value;
+    } else if (part.kind === 'exert') {
+      combat.exerted[roll.dieId] = combat.turn + 1;
     } else if (part.kind === 'boost' && die) {
       die.boost += part.value;
     } else if (part.kind === 'ward') {
@@ -222,11 +273,13 @@ export function play(state: State, dieId: string, target: Target): boolean {
 
 export function intentValues(combat: Combat): (Intent & { active: boolean })[] {
   const power = new Map(combat.enemies.map(enemy => [enemy.id, enemy.power]));
+  const weak = new Map(combat.enemies.map(enemy => [enemy.id, enemy.weak > 0]));
   return combat.intents.map(intent => {
     const active = combat.enemies.some(enemy => enemy.id === intent.owner && enemy.hp > 0);
     const livePower = power.get(intent.owner) ?? 0;
     if (active && intent.move === 'power') power.set(intent.owner, Math.min(2, livePower + intent.value));
-    const value = intent.move === 'hit' ? intent.value + livePower : intent.value;
+    // Weak: -50% damage dealt, rounded down.
+    const value = intent.move === 'hit' ? Math.floor((intent.value + livePower) * (weak.get(intent.owner) ? .5 : 1)) : intent.value;
     return { ...intent, value, active };
   });
 }
@@ -260,9 +313,14 @@ export function endTurn(state: State): boolean {
   for (const enemy of combat.enemies) {
     enemy.hp = Math.max(0, enemy.hp - enemy.seep);
     enemy.seep = Math.max(0, enemy.seep - 1);
+    enemy.vulnerable = Math.max(0, enemy.vulnerable - 1);
+    enemy.weak = Math.max(0, enemy.weak - 1);
   }
   if (combat.enemies.every(enemy => enemy.hp <= 0)) finishFight(state);
-  else startTurn(state, room, combat);
+  else {
+    startTurn(state, room, combat);
+    if (combat.enemies.every(enemy => enemy.hp <= 0)) finishFight(state);
+  }
   return true;
 }
 
@@ -271,7 +329,9 @@ function itemChoices(state: State, count: number, rich = false): string[] {
   for (let i = 0; i < count; i++) {
     const chance = pick(state, 100);
     const rarity = chance < (rich ? 30 : 8) ? 'rare' : chance < (rich ? 100 : 35) ? 'uncommon' : 'common';
-    const available = Object.keys(ITEMS).filter(id => ITEMS[id].rarity === rarity && !choices.includes(id));
+    let available = Object.keys(ITEMS).filter(id => ITEMS[id].rarity === rarity && !choices.includes(id));
+    if (!available.length) available = Object.keys(ITEMS).filter(id => !choices.includes(id));
+    if (!available.length) available = Object.keys(ITEMS);
     choices.push(available[pick(state, available.length)]);
   }
   return choices;
