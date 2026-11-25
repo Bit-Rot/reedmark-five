@@ -1,0 +1,156 @@
+[
+  {
+    "id": "blank",
+    "targeting": "none",
+    "keywords": [],
+    "iconDescription": "",
+    "image": "",
+    "notes": "Does nothing, cannot be used",
+    "status": "active"
+  },
+  {
+    "id": "slash",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      }
+    ],
+    "iconDescription": "A plain sword",
+    "image": "",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "block",
+    "targeting": "self",
+    "keywords": [
+      {
+        "keyword": "block"
+      }
+    ],
+    "iconDescription": "A plain shield",
+    "image": "",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "stab",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "cantrip"
+      }
+    ],
+    "iconDescription": "A plain dagger",
+    "image": "",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "bash",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "exert"
+      },
+      {
+        "keyword": "vulnerable",
+        "x": 1
+      }
+    ],
+    "iconDescription": "A plain hammer",
+    "image": "",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "slash_block",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "selfShield"
+      }
+    ],
+    "iconDescription": "A plain sword and shield",
+    "image": "",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "dash",
+    "targeting": "self",
+    "keywords": [
+      {
+        "keyword": "block"
+      },
+      {
+        "keyword": "cantrip"
+      }
+    ],
+    "iconDescription": "A foot stepping with speed lines and a small cloud of dust",
+    "image": "",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "poison",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "poison",
+        "x": 1
+      }
+    ],
+    "iconDescription": "A single drop of poison",
+    "image": "",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "hobble",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "weak",
+        "x": 1
+      }
+    ],
+    "iconDescription": "A curvy kris dagger",
+    "image": "",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "weak",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "weak",
+        "x": 1
+      },
+      {
+        "keyword": "exert"
+      }
+    ],
+    "iconDescription": "A sad face",
+    "image": "",
+    "notes": "Pips do nothing at baseline",
+    "status": "active"
+  }
+]

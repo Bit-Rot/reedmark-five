@@ -1,0 +1,180 @@
+[
+  {
+    "id": "die_sword",
+    "name": "",
+    "faces": [
+      {
+        "face": "slash",
+        "pips": 3
+      },
+      {
+        "face": "slash",
+        "pips": 2
+      },
+      {
+        "face": "slash",
+        "pips": 1
+      },
+      {
+        "face": "slash",
+        "pips": 1
+      },
+      {
+        "face": "shield",
+        "pips": 1
+      },
+      {
+        "face": "shield",
+        "pips": 1
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "id": "die_shield",
+    "name": "",
+    "faces": [
+      {
+        "face": "block",
+        "pips": 3
+      },
+      {
+        "face": "block",
+        "pips": 2
+      },
+      {
+        "face": "block",
+        "pips": 2
+      },
+      {
+        "face": "block",
+        "pips": 2
+      },
+      {
+        "face": "block",
+        "pips": 1
+      },
+      {
+        "face": "block",
+        "pips": 1
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "id": "die_hammer",
+    "name": "",
+    "faces": [
+      {
+        "face": "bash",
+        "pips": 2
+      },
+      {
+        "face": "bash",
+        "pips": 2
+      },
+      {
+        "face": "slash_bash",
+        "pips": 1
+      },
+      {
+        "face": "slash_bash",
+        "pips": 1
+      },
+      {
+        "face": "blank"
+      },
+      {
+        "face": "blank"
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "id": "die_dagger",
+    "name": "",
+    "faces": [
+      {
+        "face": "stab",
+        "pips": 1
+      },
+      {
+        "face": "stab",
+        "pips": 1
+      },
+      {
+        "face": "stab",
+        "pips": 1
+      },
+      {
+        "face": "stab",
+        "pips": 1
+      },
+      {
+        "face": "blank"
+      },
+      {
+        "face": "blank"
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "id": "die_dodge",
+    "name": "",
+    "faces": [
+      {
+        "face": "dash",
+        "pips": 1
+      },
+      {
+        "face": "dash",
+        "pips": 1
+      },
+      {
+        "face": "dash",
+        "pips": 1
+      },
+      {
+        "face": "dash",
+        "pips": 1
+      },
+      {
+        "face": "blank"
+      },
+      {
+        "face": "blank"
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "id": "die_kris",
+    "name": "",
+    "faces": [
+      {
+        "face": "hobble",
+        "pips": 2
+      },
+      {
+        "face": "hobble",
+        "pips": 2
+      },
+      {
+        "face": "slash",
+        "pips": 2
+      },
+      {
+        "face": "slash",
+        "pips": 2
+      },
+      {
+        "face": "blank"
+      },
+      {
+        "face": "blank"
+      }
+    ],
+    "notes": ""
+  }
+]

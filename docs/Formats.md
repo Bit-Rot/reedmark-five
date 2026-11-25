@@ -1,3 +1,4 @@
+<!-- Generated from data/*.json by `npm run docs`. Edit data in the editor (editor/), not this file. -->
 
 ## Barbarian
 
@@ -11,7 +12,10 @@
 
 ### Items
 
+
+
 ### Unlocks
+
 
 
 ## Thief
@@ -26,4 +30,8 @@
 
 ### Items
 
+
+
 ### Unlocks
+
+

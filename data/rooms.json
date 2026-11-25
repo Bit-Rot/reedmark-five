@@ -1,0 +1,20 @@
+[
+  {
+    "id": "upgrade_pip",
+    "name": "Upgrade Pip",
+    "kind": "upgrade",
+    "offers": [],
+    "notes": ""
+  },
+  {
+    "id": "shop",
+    "name": "Shop",
+    "kind": "shop",
+    "offers": [
+      "items",
+      "relics",
+      "potions"
+    ],
+    "notes": ""
+  }
+]

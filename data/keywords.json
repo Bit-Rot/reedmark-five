@@ -1,0 +1,767 @@
+[
+  {
+    "id": "heal",
+    "valueKind": "pips",
+    "ruleText": "heal the target for N",
+    "category": "Effect-type keywords",
+    "appliesTo": "TARG_PIPS",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "shield",
+    "valueKind": "pips",
+    "ruleText": "shield the target for N",
+    "category": "Effect-type keywords",
+    "appliesTo": "TARG_PIPS",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "damage",
+    "valueKind": "pips",
+    "ruleText": "damage the target for N",
+    "category": "Effect-type keywords",
+    "appliesTo": "TARG_PIPS",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "manaGain",
+    "valueKind": "pips",
+    "ruleText": "gain N mana",
+    "category": "Effect-type keywords",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "selfShield",
+    "valueKind": "pips",
+    "ruleText": "shield myself for N",
+    "category": "Effect-type keywords",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "selfHeal",
+    "valueKind": "pips",
+    "ruleText": "heal myself for N",
+    "category": "Effect-type keywords",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "cruel",
+    "valueKind": "none",
+    "ruleText": "x2 vs targets on half or less hp",
+    "category": "Conditional x2 (state / targeting conditions)",
+    "appliesTo": "TARG_PIPS",
+    "implemented": "planned",
+    "notes": "Cannot be used with `k<keyword>` generated items."
+  },
+  {
+    "id": "squish",
+    "valueKind": "none",
+    "ruleText": "x2 vs targets with the least hp of all",
+    "category": "Conditional x2 (state / targeting conditions)",
+    "appliesTo": "TARG_PIPS",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "uppercut",
+    "valueKind": "none",
+    "ruleText": "x2 vs targets with the most hp of all",
+    "category": "Conditional x2 (state / targeting conditions)",
+    "appliesTo": "TARG_PIPS",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "ego",
+    "valueKind": "none",
+    "ruleText": "x2 vs myself",
+    "category": "Conditional x2 (state / targeting conditions)",
+    "appliesTo": "ALLY_TARG_PIPS",
+    "implemented": "planned",
+    "notes": "Cannot be used with `k<keyword>` generated items."
+  },
+  {
+    "id": "serrated",
+    "valueKind": "none",
+    "ruleText": "x2 vs targets who have gained no shields this turn",
+    "category": "Conditional x2 (state / targeting conditions)",
+    "appliesTo": "TARG_PIPS",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "chain",
+    "valueKind": "none",
+    "ruleText": "x2 if this shares a keyword with the previous dice this turn",
+    "category": "Conditional x2 (state / targeting conditions)",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "planned",
+    "notes": "Cannot be used with `k<keyword>` generated items."
+  },
+  {
+    "id": "inspired",
+    "valueKind": "none",
+    "ruleText": "x2 if the previous dice this turn had more pips",
+    "category": "Conditional x2 (state / targeting conditions)",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "planned",
+    "notes": "Cannot be used with `k<keyword>` generated items."
+  },
+  {
+    "id": "patient",
+    "valueKind": "none",
+    "ruleText": "x2 if I was not used last turn",
+    "category": "Conditional x2 (state / targeting conditions)",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "focus",
+    "valueKind": "none",
+    "ruleText": "x2 vs the target of the previous dice this turn",
+    "category": "Conditional x2 (state / targeting conditions)",
+    "appliesTo": "TARG_PIPS",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "sloth",
+    "valueKind": "none",
+    "ruleText": "x2 vs targets with fewer blank faces",
+    "category": "Conditional x2 (state / targeting conditions)",
+    "appliesTo": "TARG_PIPS",
+    "implemented": "planned",
+    "notes": "Legacy alias: \"alliteration\"."
+  },
+  {
+    "id": "first",
+    "valueKind": "none",
+    "ruleText": "x2 if no dice have been used this turn",
+    "category": "Conditional x2 (state / targeting conditions)",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "step",
+    "valueKind": "none",
+    "ruleText": "x2 if this forms a straight of length 2+ with the dice used before it this turn",
+    "category": "Straights and of-a-kind (multipliers from previous dice)",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "planned",
+    "notes": "Extra text: \"eg 12, 65\""
+  },
+  {
+    "id": "run",
+    "valueKind": "none",
+    "ruleText": "x3 if this forms a straight of length 3+ with the dice used before it this turn",
+    "category": "Straights and of-a-kind (multipliers from previous dice)",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "planned",
+    "notes": "Extra text: \"eg 123, 654\""
+  },
+  {
+    "id": "sprint",
+    "valueKind": "none",
+    "ruleText": "x5 if this forms a straight of length 5+ with the dice used before it this turn",
+    "category": "Straights and of-a-kind (multipliers from previous dice)",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "planned",
+    "notes": "Extra text: \"eg 12345, 65432\""
+  },
+  {
+    "id": "pair",
+    "valueKind": "none",
+    "ruleText": "x2 if this has the same pips as the previous dice this turn",
+    "category": "Straights and of-a-kind (multipliers from previous dice)",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "trio",
+    "valueKind": "none",
+    "ruleText": "x3 if this has the same pips as the 2 previous dice this turn",
+    "category": "Straights and of-a-kind (multipliers from previous dice)",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "quin",
+    "valueKind": "none",
+    "ruleText": "x5 if this has the same pips as the 4 previous dice this turn",
+    "category": "Straights and of-a-kind (multipliers from previous dice)",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "rampage",
+    "valueKind": "none",
+    "ruleText": "can be reused if it was lethal",
+    "category": "Death checks",
+    "appliesTo": "DEATHCHECK",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "fizz",
+    "valueKind": "none",
+    "ruleText": "+1 pip for each ability used this turn",
+    "category": "Pip bonuses (bonus pips per thing)",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "bloodlust",
+    "valueKind": "none",
+    "ruleText": "+1 pip for each damaged enemy",
+    "category": "Pip bonuses (bonus pips per thing)",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "planned",
+    "notes": "Extra text: \"Pips on this face are increased by 1 for each damaged enemy\""
+  },
+  {
+    "id": "flesh",
+    "valueKind": "none",
+    "ruleText": "+1 pip for each hp I have",
+    "category": "Pip bonuses (bonus pips per thing)",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "plague",
+    "valueKind": "none",
+    "ruleText": "+1 pip for each poison on all characters",
+    "category": "Pip bonuses (bonus pips per thing)",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "acidic",
+    "valueKind": "none",
+    "ruleText": "+1 pip for each poison on me",
+    "category": "Pip bonuses (bonus pips per thing)",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "flurry",
+    "valueKind": "none",
+    "ruleText": "+1 pip for each time I have been used this turn",
+    "category": "Pip bonuses (bonus pips per thing)",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "era",
+    "valueKind": "none",
+    "ruleText": "+1 pip for each elapsed turn",
+    "category": "Pip bonuses (bonus pips per thing)",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "growth",
+    "valueKind": "x",
+    "ruleText": "gets +X pips this fight after use",
+    "category": "Growth and decay",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "planned",
+    "notes": "X is written on the keyword, e.g. `growth 1`. Cannot be used with `k<keyword>` generated items. Extra text: \"Every time you use this face, the pips on it increase by X for this fight only\""
+  },
+  {
+    "id": "undergrowth",
+    "valueKind": "x",
+    "ruleText": "After use, the opposite face gets +X pips this fight",
+    "category": "Growth and decay",
+    "appliesTo": "NONBLANK",
+    "implemented": "planned",
+    "notes": "X is written on the keyword. Affects the opposite face of the die."
+  },
+  {
+    "id": "groooooowth",
+    "valueKind": "none",
+    "ruleText": "After use, **all** my faces get +1 pip this fight",
+    "category": "Growth and decay",
+    "appliesTo": "NONBLANK",
+    "implemented": "planned",
+    "notes": "Affects all faces of the die."
+  },
+  {
+    "id": "decay",
+    "valueKind": "none",
+    "ruleText": "gets -1 pip this fight after use",
+    "category": "Growth and decay",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "vulnerable",
+    "valueKind": "x",
+    "ruleText": "target gains X stacks of Vulnerable (takes 50% more damage). Lose 1 stack at the end of each turn of whoever has it (player or enemy)",
+    "category": "Target effects (buffs, debuffs, status)",
+    "appliesTo": "UNKIND_TARG_PIPS",
+    "implemented": "planned",
+    "notes": "X is written on the keyword, e.g. `vulnerable 2`."
+  },
+  {
+    "id": "regen",
+    "valueKind": "pips",
+    "ruleText": "target gains N stacks of Regen: heal for the number of stacks at the end of each turn, then lose 1 stack",
+    "category": "Target effects (buffs, debuffs, status)",
+    "appliesTo": "KIND_TARG_PIPS",
+    "implemented": "planned",
+    "notes": "Base for `selfRegen`."
+  },
+  {
+    "id": "poison",
+    "valueKind": "pips",
+    "ruleText": "also inflicts N unblockable damage at the end of each turn",
+    "category": "Target effects (buffs, debuffs, status)",
+    "appliesTo": "UNKIND_TARG_PIPS",
+    "implemented": "planned",
+    "notes": "Poison part is unblockable; can only be avoided by cleanse or killing the source. Extra text: \"The amount of poison damage is equal to the pips on the face. The poison part of poison damage is unblockable. You can't prevent yourself from being poisoned except by using cleanse or killing the attacking monster.\""
+  },
+  {
+    "id": "weak",
+    "valueKind": "x",
+    "ruleText": "target gains X stacks of Weak (deals 50% less damage). Lose 1 stack at the end of each turn of whoever has it (player or enemy)",
+    "category": "Target effects (buffs, debuffs, status)",
+    "appliesTo": "UNKIND_TARG_PIPS",
+    "implemented": "planned",
+    "notes": "X is written on the keyword, e.g. `weak 2`."
+  },
+  {
+    "id": "boost",
+    "valueKind": "pips",
+    "ruleText": "target gets +N to all pips this turn",
+    "category": "Target effects (buffs, debuffs, status)",
+    "appliesTo": "KIND_TARG_PIPS",
+    "implemented": "planned",
+    "notes": "Extra text: \"The increase is equal to the pips on this face.\""
+  },
+  {
+    "id": "smith",
+    "valueKind": "pips",
+    "ruleText": "target gets +N to damage and shield faces this turn",
+    "category": "Target effects (buffs, debuffs, status)",
+    "appliesTo": "KIND_TARG_PIPS",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "permaBoost",
+    "valueKind": "pips",
+    "ruleText": "target gets +N to all pips this fight",
+    "category": "Target effects (buffs, debuffs, status)",
+    "appliesTo": "KIND_TARG_PIPS",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "petrify",
+    "valueKind": "pips",
+    "ruleText": "turns N faces to stone this fight. At the end of each turn, one randomly chosen petrified face is cleared",
+    "category": "Target effects (buffs, debuffs, status)",
+    "appliesTo": "UNKIND_TARG_PIPS",
+    "implemented": "planned",
+    "notes": "Extra text: \"Petrification order: <petrify order diagram>\""
+  },
+  {
+    "id": "hypnotise",
+    "valueKind": "none",
+    "ruleText": "set target's damage faces to 0 this turn",
+    "category": "Target effects (buffs, debuffs, status)",
+    "appliesTo": "UNKIND_TARG",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "thorns",
+    "valueKind": "pips",
+    "ruleText": "N damage to all enemies attacking the target",
+    "category": "Target effects (buffs, debuffs, status)",
+    "appliesTo": "ALLY_TARG_PIPS",
+    "implemented": "planned",
+    "notes": "Cannot be used with `k<keyword>` generated items."
+  },
+  {
+    "id": "cleanse",
+    "valueKind": "pips",
+    "ruleText": "reduce target's negative effects by N (poisoned, weakened, petrified and inflicted)",
+    "category": "Target effects (buffs, debuffs, status)",
+    "appliesTo": "TARG_PIPS",
+    "implemented": "planned",
+    "notes": "Base for `selfCleanse`. Extra text: \"Cleanse can remove poisoned, weakened, petrified and inflicted. It also affects incoming negative effects.\""
+  },
+  {
+    "id": "eliminate",
+    "valueKind": "none",
+    "ruleText": "target must have the least hp",
+    "category": "Targeting and restrictions",
+    "appliesTo": "SINGLE_TARGET",
+    "implemented": "planned",
+    "notes": "Monsters using it include incoming damage in their calculation and their targets are locked. Cannot be used with `k<keyword>` generated items. Extra text: \"if a monster has this, they include incoming damage in their calculations (and their targets are locked)\""
+  },
+  {
+    "id": "heavy",
+    "valueKind": "none",
+    "ruleText": "target must have the most hp",
+    "category": "Targeting and restrictions",
+    "appliesTo": "SINGLE_TARGET",
+    "implemented": "planned",
+    "notes": "Monsters using it include incoming damage and lock targets. Extra text: \"if a monster has this, they include incoming damage in their calculations (and their targets are locked)\""
+  },
+  {
+    "id": "ranged",
+    "valueKind": "none",
+    "ruleText": "avoids On-hit passives",
+    "category": "Targeting and restrictions",
+    "appliesTo": "ENEMY_TARG",
+    "implemented": "planned",
+    "notes": "Cannot be used with `k<keyword>` generated items. Extra text: \"Useful against certain enemy passives.\""
+  },
+  {
+    "id": "cleave",
+    "valueKind": "none",
+    "ruleText": "also hits all targets",
+    "category": "Targeting and restrictions",
+    "appliesTo": "SINGLE_TARGET",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "pain",
+    "valueKind": "x",
+    "ruleText": "I take X damage",
+    "category": "Costs, drawbacks and usage limits",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "planned",
+    "notes": "X is written on the keyword, e.g. `pain 2`. Extra text: \"Pain damage can be blocked. Damage is resolved in an order favourable to the player always (I hope)\""
+  },
+  {
+    "id": "replay",
+    "valueKind": "x",
+    "ruleText": "can be used X times in a turn",
+    "category": "Costs, drawbacks and usage limits",
+    "appliesTo": "NONBLANK_TOUCHUSABLE",
+    "implemented": "planned",
+    "notes": "X is written on the keyword, e.g. `replay 2`. Replaces `doubleUse` (replay 2), `quadUse` (replay 4) and `hyperUse`."
+  },
+  {
+    "id": "exhaust",
+    "valueKind": "none",
+    "ruleText": "after I use this face, replace it with a blank this fight",
+    "category": "Costs, drawbacks and usage limits",
+    "appliesTo": "NONBLANK",
+    "implemented": "planned",
+    "notes": "Base for `inflictExhaust`."
+  },
+  {
+    "id": "unusable",
+    "valueKind": "none",
+    "ruleText": "cannot be used (manually)",
+    "category": "Costs, drawbacks and usage limits",
+    "appliesTo": "NONBLANK",
+    "implemented": "planned",
+    "notes": "Cantrip still activates. Extra text: \"cantrip is still allowed\""
+  },
+  {
+    "id": "exert",
+    "valueKind": "none",
+    "ruleText": "replace all faces with blanks until the end of next turn",
+    "category": "Costs, drawbacks and usage limits",
+    "appliesTo": "NONBLANK",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "mandatory",
+    "valueKind": "none",
+    "ruleText": "must be used (if possible)",
+    "category": "Costs, drawbacks and usage limits",
+    "appliesTo": "NONBLANK",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "manacost",
+    "valueKind": "x",
+    "ruleText": "costs X mana",
+    "category": "Costs, drawbacks and usage limits",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "planned",
+    "notes": "X is written on the keyword."
+  },
+  {
+    "id": "cantrip",
+    "valueKind": "none",
+    "ruleText": "activates during rolling if it lands face-up",
+    "category": "Face behaviour, copying and randomness",
+    "appliesTo": "CANTRIP",
+    "implemented": "planned",
+    "notes": "Fired during rolling, targets random. Extra text: \"Targets chosen randomly. This one is a bit weird... Whilst rolling dice, if this face lands face-up, it gets used instantly without taking up that hero's turn. You can still reroll it and use it as normal.\""
+  },
+  {
+    "id": "stasis",
+    "valueKind": "none",
+    "ruleText": "this face cannot change",
+    "category": "Face behaviour, copying and randomness",
+    "appliesTo": "YES",
+    "implemented": "planned",
+    "notes": "Allowed on any effect. Cannot be used with `k<keyword>` generated items."
+  },
+  {
+    "id": "permissive",
+    "valueKind": "none",
+    "ruleText": "any keyword can be added to this",
+    "category": "Face behaviour, copying and randomness",
+    "appliesTo": "YES",
+    "implemented": "planned",
+    "notes": "Any keyword may be added to an effect that has it (bypasses the allow check, except duplicates and Event effects)."
+  },
+  {
+    "id": "sticky",
+    "valueKind": "none",
+    "ruleText": "cannot be rerolled",
+    "category": "Face behaviour, copying and randomness",
+    "appliesTo": "YES",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "enduring",
+    "valueKind": "none",
+    "ruleText": "keywords remain when the face is replaced (if possible)",
+    "category": "Face behaviour, copying and randomness",
+    "appliesTo": "YES",
+    "implemented": "planned",
+    "notes": "Keywords survive face replacement where possible. Cannot be used with `k<keyword>` generated items."
+  },
+  {
+    "id": "dogma",
+    "valueKind": "none",
+    "ruleText": "Only pips change when the face is replaced",
+    "category": "Face behaviour, copying and randomness",
+    "appliesTo": "YES",
+    "implemented": "planned",
+    "notes": "Only pips change on replacement. Cannot be used with `k<keyword>` generated items."
+  },
+  {
+    "id": "resilient",
+    "valueKind": "none",
+    "ruleText": "pips remain when the face is replaced (if possible)",
+    "category": "Face behaviour, copying and randomness",
+    "appliesTo": "YES",
+    "implemented": "planned",
+    "notes": "Pips survive face replacement where possible. Cannot be used with `k<keyword>` generated items."
+  },
+  {
+    "id": "dejavu",
+    "valueKind": "none",
+    "ruleText": "copy the keywords from the faces I used last turn",
+    "category": "Face behaviour, copying and randomness",
+    "appliesTo": "NONBLANK",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "echo",
+    "valueKind": "none",
+    "ruleText": "copy the pips of the previous dice this turn",
+    "category": "Face behaviour, copying and randomness",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "planned",
+    "notes": "Cannot be used with `k<keyword>` generated items."
+  },
+  {
+    "id": "copycat",
+    "valueKind": "none",
+    "ruleText": "copy the keywords from the previous dice this turn",
+    "category": "Face behaviour, copying and randomness",
+    "appliesTo": "NONBLANK",
+    "implemented": "planned",
+    "notes": "Cannot be used with `k<keyword>` generated items."
+  },
+  {
+    "id": "resonate",
+    "valueKind": "none",
+    "ruleText": "copy the effect of the previous dice this turn, retaining this face's pips and the resonate keyword",
+    "category": "Face behaviour, copying and randomness",
+    "appliesTo": "YES",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "annul",
+    "valueKind": "none",
+    "ruleText": "targets lose all keywords this turn",
+    "category": "Face behaviour, copying and randomness",
+    "appliesTo": "TARGET_ONLY",
+    "implemented": "planned",
+    "notes": "Removes all keywords from targets this turn."
+  },
+  {
+    "id": "shifter",
+    "valueKind": "pips",
+    "ruleText": "this face has a random extra keyword, changes each turn. If the keyword chosen takes X, X = N (this face's pips)",
+    "category": "Face behaviour, copying and randomness",
+    "appliesTo": "NONBLANK",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "lucky",
+    "valueKind": "none",
+    "ruleText": "pips are randomised to between 0 and current pips, changes each turn",
+    "category": "Face behaviour, copying and randomness",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "planned",
+    "notes": "Re-randomised each turn."
+  },
+  {
+    "id": "critical",
+    "valueKind": "none",
+    "ruleText": "50% chance for +1, rechecks each turn",
+    "category": "Face behaviour, copying and randomness",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "planned",
+    "notes": "50% chance each turn."
+  },
+  {
+    "id": "fluctuate",
+    "valueKind": "none",
+    "ruleText": "changes to a random face each turn, retaining keywords and pips",
+    "category": "Face behaviour, copying and randomness",
+    "appliesTo": "YES",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "phase",
+    "valueKind": "none",
+    "ruleText": "50% chance to be blank each turn",
+    "category": "Face behaviour, copying and randomness",
+    "appliesTo": "NONBLANK",
+    "implemented": "planned",
+    "notes": ""
+  },
+  {
+    "id": "selfRegen",
+    "valueKind": "none",
+    "ruleText": "Like regen but hits me instead of the target",
+    "category": "Derived: self-targeting versions",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "planned",
+    "notes": "Self-targeting version of `regen`."
+  },
+  {
+    "id": "selfCleanse",
+    "valueKind": "none",
+    "ruleText": "Like cleanse but hits me instead of the target",
+    "category": "Derived: self-targeting versions",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "planned",
+    "notes": "Self-targeting version of `cleanse`."
+  },
+  {
+    "id": "inflictSelfShield",
+    "valueKind": "none",
+    "ruleText": "add selfShield to target's faces for a turn",
+    "category": "Derived: inflict keywords",
+    "appliesTo": "TARGET_ONLY",
+    "implemented": "planned",
+    "notes": "Inflict version of `selfShield`."
+  },
+  {
+    "id": "inflictExert",
+    "valueKind": "none",
+    "ruleText": "add exert to target's faces for a turn",
+    "category": "Derived: inflict keywords",
+    "appliesTo": "TARGET_ONLY",
+    "implemented": "planned",
+    "notes": "Inflict version of `exert`."
+  },
+  {
+    "id": "inflictPain",
+    "valueKind": "none",
+    "ruleText": "add pain to target's faces for a turn",
+    "category": "Derived: inflict keywords",
+    "appliesTo": "TARGET_ONLY",
+    "implemented": "planned",
+    "notes": "Inflict version of `pain`."
+  },
+  {
+    "id": "inflictExhaust",
+    "valueKind": "none",
+    "ruleText": "add exhaust to target's faces for a turn",
+    "category": "Derived: inflict keywords",
+    "appliesTo": "TARGET_ONLY",
+    "implemented": "planned",
+    "notes": "Inflict version of `exhaust`."
+  },
+  {
+    "id": "singleCast",
+    "valueKind": "none",
+    "ruleText": "can only be cast once each fight",
+    "category": "Spell / ability keywords",
+    "appliesTo": "SPELL",
+    "implemented": "planned",
+    "notes": "Ability-only."
+  },
+  {
+    "id": "cooldown",
+    "valueKind": "none",
+    "ruleText": "can only be cast once each turn",
+    "category": "Spell / ability keywords",
+    "appliesTo": "SPELL",
+    "implemented": "planned",
+    "notes": "Ability-only."
+  },
+  {
+    "id": "deplete",
+    "valueKind": "none",
+    "ruleText": "costs +1 mana each time it is cast",
+    "category": "Spell / ability keywords",
+    "appliesTo": "SPELL",
+    "implemented": "planned",
+    "notes": "Spell-only."
+  },
+  {
+    "id": "channel",
+    "valueKind": "none",
+    "ruleText": "costs -1 mana each time it is cast (minimum 1)",
+    "category": "Spell / ability keywords",
+    "appliesTo": "SPELL",
+    "implemented": "planned",
+    "notes": "Spell-only."
+  },
+  {
+    "id": "future",
+    "valueKind": "none",
+    "ruleText": "effect is delayed until the start of next turn",
+    "category": "Spell / ability keywords",
+    "appliesTo": "SPELL",
+    "implemented": "planned",
+    "notes": "Ability-only."
+  }
+]
