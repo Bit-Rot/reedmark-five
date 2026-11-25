@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { CAMP_UPGRADES, ROOMS } from '../src/content.ts';
 import { addKeywordToFace, compileFace } from '../src/data/runtime.ts';
 import type { Face as DataFace } from '../src/data/types.ts';
-import { advance, canPlay, chooseOffer, commitRoll, endTurn, faceFor, mainPips, newRun, play, previewUpgrade, reroll, rollFace, upgradeTargets } from '../src/game.ts';
+import { advance, canPlay, chooseOffer, commitRoll, endTurn, faceFor, mainPips, newLinearRun as newRun, play, previewUpgrade, reroll, rollFace, upgradeTargets } from '../src/game.ts';
 import type { Face as GameFace, Offer, State } from '../src/model.ts';
 
 type UpgradeOffer = Extract<Offer, { kind: 'upgrade' }>;

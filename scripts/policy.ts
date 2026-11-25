@@ -1,6 +1,8 @@
-import { DICE } from '../src/content.ts';
-import { actionPreview, advance, canPlay, chooseOffer, commitRoll, effectiveParts, endTurn, faceFor, facesFor, incoming,
-  offerTargets, play, previewDie, previewUpgrade, reroll, rollFace, setHold, upgradeTargets } from '../src/game.ts';
+import { bossDue, distance, frontier, visibleTile } from '../src/campaign-map.ts';
+import type { VisibleTile } from '../src/campaign-map.ts';
+import { DICE, RELICS } from '../src/content.ts';
+import { actionPreview, advance, canPlay, canTakeEventOffer, chooseOffer, commitRoll, currentRoom, effectiveParts, endTurn, eventChoiceFor, explore, faceFor, facesFor, incoming,
+  offerTargets, play, previewDie, previewUpgrade, reroll, rollFace, setHold, startBoss, upgradeTargets } from '../src/game.ts';
 import type { Face, Slot, State, Target } from '../src/model.ts';
 
 function weight(face: Face): number {
@@ -12,15 +14,71 @@ const strength = (faces: Face[]) => faces.reduce((sum, face) => sum + weight(fac
 
 
 export type Command =
-  | { action: 'reroll' | 'commit' | 'end' | 'skip' }
+  | { action: 'reroll' | 'commit' | 'end' | 'skip' | 'boss' }
+  | { action: 'explore'; id: string }
   | { action: 'hold'; id: string }
   | { action: 'play'; id: string; target: Target }
   | { action: 'take'; index: number; id?: string; slot?: Slot };
 
+export const MAP_POLICIES = ['cautious', 'elite', 'treasure'] as const;
+export type MapPolicy = (typeof MAP_POLICIES)[number];
+
+export function takeMapTurn(state: State, policy: MapPolicy, commands?: Command[]): boolean {
+  const map = state.map;
+  if (state.phase !== 'map' || !map) return false;
+  if (bossDue(map)) {
+    if (!startBoss(state)) return false;
+    commands?.push({ action: 'boss' });
+    return true;
+  }
+  const reachable = frontier(map);
+  const known = map.tiles.map(tile => ({ tile, kind: visibleTile(tile, reachable) }));
+  const hp = state.hp / state.maxHp;
+  const values: Record<VisibleTile, number> = {
+    normal: hp > .6 ? 6 : 3.5,
+    camp: hp < .74 ? 10 : 4,
+    shop: state.gold >= 50 ? 6.4 : 3,
+    event: hp > .5 ? 6 : 7,
+    elite: hp > .7 ? 5.5 : 1,
+    treasure: 8, unknown: 0, cleared: 0,
+  };
+  const eventsThisCycle = map.eventVisits;
+  values.event += eventsThisCycle < 4 ? .7 : -.9;
+  if (policy === 'elite' && hp > .61) values.elite = 13;
+  if (policy === 'treasure') values.treasure = 14;
+  const position = map.tiles.find(tile => tile.id === map.last)!;
+  const options = known.filter(({ tile }) => reachable.has(tile.id)).map(({ tile, kind }) => {
+    const nearbyInterest = known.reduce((best, other) => {
+      if (other.kind === 'unknown' || other.kind === 'cleared' || reachable.has(other.tile.id)) return best;
+      const d = distance(tile, other.tile);
+      if (d > 5) return best;
+      return Math.max(best, (values[other.kind] - 4) / (1 + d * .8));
+    }, 0);
+    const tie = Math.abs((Math.imul(state.seed + map.turn + 1, 1013904223) ^ Math.imul(tile.q, 73856093) ^ Math.imul(tile.r, 19349663)) % 997) / 9970;
+    return { id: tile.id, score: values[kind] + nearbyInterest - distance(tile, position) * .03 + tie };
+  }).sort((a, b) => b.score - a.score);
+  if (!options.length || !explore(state, options[0].id)) return false;
+  commands?.push({ action: 'explore', id: options[0].id });
+  return true;
+}
+
 export function takeReward(s: State, commands?: Command[]): void {
   const choices: { score: number; index: number; id: string | undefined; slot?: Slot }[] = [];
+  const room = currentRoom(s);
+  const shopping = room.type === 'shop';
   for (const [index, offer] of s.offers.entries()) {
-    if (offer.kind === 'heal') {
+    const event = eventChoiceFor(s, index);
+    const before = choices.length;
+    if (event && !canTakeEventOffer(s, index)) continue;
+    if (shopping && 'price' in offer && (offer.price ?? Infinity) > s.gold) continue;
+    if (offer.kind === 'relic') {
+      const rarity = RELICS[offer.id].rarity;
+      choices.push({ score: rarity === 'rare' ? 1.25 : rarity === 'uncommon' ? .9 : .55, index, id: undefined });
+    } else if (offer.kind === 'gold') {
+      choices.push({ score: offer.amount * .07, index, id: undefined });
+    } else if (offer.kind === 'restore') {
+      choices.push({ score: Math.min(offer.amount, s.maxHp - s.hp) * .25, index, id: undefined });
+    } else if (offer.kind === 'heal') {
       choices.push({ score: Math.min(10, s.maxHp - s.hp) * .24, index, id: undefined });
     } else if (offer.kind === 'upgrade') {
       const bonus: Record<string, number> = { cleave: 1.2, cantrip: 1, inspired: .4, growth: .6 };
@@ -34,12 +92,16 @@ export function takeReward(s: State, commands?: Command[]): void {
     } else for (const die of offerTargets(s, offer)) {
       const before = strength(Object.values(facesFor(die)));
       const after = previewDie(s, offer, die);
-      choices.push({ score: after ? strength(Object.values(facesFor(after))) - before : 4.9 - before, index, id: die.id });
+      const bonus = room.type === 'battle' && room.rank === 'boss' ? .8 : 0;
+      choices.push({ score: (after ? strength(Object.values(facesFor(after))) - before : 4.9 - before) + bonus, index, id: die.id });
+    }
+    if (event) {
+      const cost = (event.gold ?? 0) * .045 + (event.hp ?? 0) * (s.hp < 16 ? .23 : .11);
+      for (const option of choices.slice(before)) option.score -= cost;
     }
   }
   const best = choices.sort((a, b) => b.score - a.score)[0];
-  if (best?.score > .12) {
-    chooseOffer(s, best.index, best.id, best.slot);
+  if (best?.score > .12 && chooseOffer(s, best.index, best.id, best.slot)) {
     commands?.push({ action: 'take', index: best.index, id: best.id, slot: best.slot });
   } else {
     advance(s);
@@ -49,7 +111,8 @@ export function takeReward(s: State, commands?: Command[]): void {
 
 export function act(s: State, commands?: Command[]): void {
   const c = s.combat!;
-  for (let attempt = 0; attempt < 2; attempt++) {
+  const attempts = c.rerolls;
+  for (let attempt = 0; attempt < attempts; attempt++) {
     const target = incoming(c);
     let guardKept = c.guard;
     const options = c.rolls.map(roll => {
@@ -62,11 +125,11 @@ export function act(s: State, commands?: Command[]): void {
       const direct = face.parts.find(part => part.kind === 'hit');
       const damage = direct ? direct.value * (direct.count ?? 1) : 0;
       const keep = (guard > 0 && guardKept < target && !salvage)
-        || damage >= 4 || weight(face) >= 4.5 && !salvage || attempt === 1 && damage >= 3;
+        || damage >= 4 || weight(face) >= 4.5 && !salvage || attempt === attempts - 1 && damage >= 3;
       if (keep) guardKept += guard;
       return { roll, keep };
     });
-    // Release dice before holding others: the game commits on its own once every die is held.
+    // Release changed holds before the next reroll.
     for (const { roll, keep } of decisions.filter(d => !d.keep)) {
       if (setHold(s, roll.dieId, false)) commands?.push({ action: 'hold', id: roll.dieId });
     }

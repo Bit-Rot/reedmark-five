@@ -5,6 +5,9 @@ import { EFFECTS, effectImage, faceImage, showsEffectAmount } from './effects.ts
 import type { EffectKey } from './effects.ts';
 import type { Die, Enemy, Face, Intent, Kind, Slot } from './model.ts';
 
+const largeSprites = new Set(['bellroot', 'floodgate-keeper', 'stormwing-matriarch']);
+const eliteSprites = new Set(['kilnback', 'ford-matron', 'tidehook', 'husk-herald', 'furnace-stag']);
+
 const urls = import.meta.glob('./art/*.webp', { eager: true, import: 'default', query: '?url' }) as Record<string, string>;
 export const art = (name: string): string => urls[`./art/${name}.webp`] ?? '';
 const colors: Record<string, string> = { rust: '#ad624c', blue: '#4e788a', olive: '#818954', jade: '#487b6f', sand: '#a48b65', slate: '#696e82' };
@@ -156,7 +159,7 @@ export class Battlefield {
     }
     for (const enemy of enemies) {
       if (enemy.hp <= 0 || this.actors.has(enemy.id)) continue;
-      const height = enemy.sprite === 'bellroot' ? 3.88 : enemy.sprite === 'gnat' ? 2.12 : enemy.sprite === 'kilnback' ? 3.35 : 2.82;
+      const height = largeSprites.has(enemy.sprite) ? 3.88 : enemy.sprite === 'gnat' ? 2.12 : eliteSprites.has(enemy.sprite) ? 3.35 : 2.82;
       this.createActor(enemy.id, enemy.sprite, new THREE.Vector3(), height);
     }
     this.positionEnemyActors();
@@ -169,7 +172,7 @@ export class Battlefield {
       const [id, actor] = enemies[index];
       const x = enemies.length === 1 ? (this.compact ? 2.65 : 3.7)
         : (this.compact ? 1.37 + index * 2.2 : 2.02 + index * 2.52);
-      actor.position.set(x, id.includes('gnat') ? .36 : 0, id === 'bellroot' ? .18 : index === 0 ? -.57 : -.86);
+      actor.position.set(x, id.includes('gnat') ? .36 : 0, largeSprites.has(id) ? .18 : index === 0 ? -.57 : -.86);
     }
   }
 

@@ -1,18 +1,24 @@
 import './style.css';
 import './face-ui.css';
-import { CHARACTERS, DICE, FACE_IMAGE_PATHS, ITEMS, ROOMS } from './content.ts';
-import { actionPreview, advance, canPlay, chooseOffer, commitRoll, endTurn, incoming, intentValues, isSave,
-  faceFor, facesFor, newRun, offerTargets, play, previewDie, previewUpgrade, reroll, rollFace, setHold, starterRelicFor } from './game.ts';
+import './campaign.css';
+import { EVENTS } from './campaign-content.ts';
+import { campaignScreen } from './campaign-ui.ts';
+import { cycleAt } from './campaign-map.ts';
+import { CHARACTERS, DICE, FACE_IMAGE_PATHS, ITEMS, RELICS, ROOMS } from './content.ts';
+import { BASE_REROLLS, actionPreview, advance, canPlay, canTakeEventOffer, chooseOffer, commitRoll, currentRoom, endTurn, eventChoiceFor, explore, incoming, intentValues, restoreSave,
+  faceFor, facesFor, newLinearRun, newRun, offerTargets, play, previewDie, previewUpgrade, reroll, rollFace, setHold, startBoss, starterRelicFor } from './game.ts';
 import { SLOTS } from './model.ts';
-import type { Die, Face, Offer, Roll, Slot, State, Target, Variant } from './model.ts';
+import type { Die, Face, Offer, Relic, Roll, Slot, State, Target, Variant } from './model.ts';
 import { EFFECTS, faceImageUrl, loadEffectImages, loadFaceImages } from './effects.ts';
 import { art, Battlefield } from './scene.ts';
-import { UPGRADE_INFO, button, caption, chips, effectChip, effectIcon, element, faceEmblem, FaceTooltips, faceNet, faceText, helpOn, itemNet, positionFloater, upgradeLabel } from './ui.ts';
+import { UPGRADE_INFO, button, caption, chips, effectChip, effectIcon, element, faceEmblem, FaceTooltips, faceNet, faceText, helpOn, itemNet, positionFloater, readableFace, upgradeLabel } from './ui.ts';
 
 declare const __VARIANT__: Variant;
 
 const requested = new URLSearchParams(location.search);
 const variant = import.meta.env.DEV && requested.get('mode') === 'pool' ? 'pool' : __VARIANT__;
+const linearFixture = import.meta.env.DEV && requested.get('route') === 'linear';
+const makeRun = linearFixture ? newLinearRun : newRun;
 const seedParam = requested.get('seed');
 const seeded = seedParam !== null && /^\d{1,10}$/.test(seedParam);
 const characterParam = CHARACTERS.find(c => c.id === requested.get('character'))?.id;
@@ -30,23 +36,29 @@ document.querySelector('main')!.setAttribute('aria-label', `Reedmark ${label}`);
 let choosing = false;
 
 function load(): State {
-  if (seeded) return newRun(variant, Number(seedParam), characterParam);
+  if (seeded) return makeRun(variant, Number(seedParam), characterParam);
   try {
-    const data: unknown = JSON.parse(localStorage.getItem(saveKey) ?? 'null');
-    if (isSave(data, variant)) return data;
+    const raw = localStorage.getItem(saveKey);
+    if (raw !== null) {
+      let parsed: unknown;
+      try { parsed = JSON.parse(raw); } catch { parsed = null; }
+      const data = restoreSave(parsed, variant, linearFixture);
+      if (data) return data;
+      if (variant === 'fixed' && !linearFixture) localStorage.removeItem(saveKey);
+    }
   } catch {
     // The game can run even when browser storage is unavailable.
   }
-  if (characterParam) return newRun(variant, randomSeed(), characterParam);
+  if (characterParam) return makeRun(variant, randomSeed(), characterParam);
   choosing = true;
-  return newRun(variant, randomSeed());
+  return makeRun(variant, randomSeed());
 }
 
 let state = load();
 let selected: string | null = null;
 let offerIndex: number | null = null;
 let rewardDie: string | null = null;
-let ledger = false;
+let ledger: 'dice' | 'relics' | null = null;
 /** The gear menu is open; `confirmingAbandon` is the second step of abandoning the run. */
 let menu = false;
 let confirmingAbandon = false;
@@ -66,6 +78,7 @@ interface Drag {
 }
 let drag: Drag | null = null;
 let inspection: { node: HTMLElement; anchor: HTMLElement } | null = null;
+let inspectionPress: { anchor: HTMLElement; pointer: number; x: number; y: number; timer: number; opened: boolean } | null = null;
 const tooltips = new FaceTooltips(root, () => rolling || !!drag?.started);
 const moveNames = { hit: EFFECTS.hit.name, guard: EFFECTS.guard.name, power: 'Power', wait: 'Wait' };
 const moveIcons = { hit: 'hit', guard: 'guard', power: 'boost' } as const;
@@ -96,17 +109,21 @@ function hud(): HTMLElement {
   const rune = element('span', 'rune', '✧');
   const identity = element('div', 'identity', rune,
     element('div', '', element('span', 'wordmark', 'Reedmark'), caption(label)));
-  const room = ROOMS[state.room];
+  const room = currentRoom(state);
   const path = element('div', 'map-track', caption(room.name));
-  const pips = element('div', 'path-pips');
-  pips.setAttribute('aria-label', `Room ${state.room + 1} of ${ROOMS.length}`);
-  ROOMS.forEach((entry, index) => {
-    const type = entry.type === 'battle' ? entry.rank : entry.type;
-    const dot = element('span', `path-pip path-pip--${type}${index === state.room ? ' is-current' : index < state.room ? ' is-past' : ''}`);
-    dot.title = entry.name;
-    pips.append(dot);
-  });
-  path.append(pips);
+  if (state.map) {
+    if (!choosing) path.append(caption(`Cycle ${cycleAt(state.map.turn + Number(state.phase === 'map')) + 1} · ${state.map.turn}/48`));
+  } else {
+    const pips = element('div', 'path-pips');
+    pips.setAttribute('aria-label', `Room ${state.room + 1} of ${ROOMS.length}`);
+    ROOMS.forEach((entry, index) => {
+      const type = entry.type === 'battle' ? entry.rank : entry.type;
+      const dot = element('span', `path-pip path-pip--${type}${index === state.room ? ' is-current' : index < state.room ? ' is-past' : ''}`);
+      dot.title = entry.name;
+      pips.append(dot);
+    });
+    path.append(pips);
+  }
   const health = element('div', 'health-hud', element('span', 'heart', '♥'), element('span', 'hero-hp', `${state.hp}`, element('small', '', ` / ${state.maxHp}`)));
   health.append(meter(state.hp, state.maxHp));
   const coin = element('img', 'gold-coin');
@@ -124,9 +141,13 @@ function hud(): HTMLElement {
     relicHud.setAttribute('role', 'img');
     relicHud.setAttribute('aria-label', `${relic.name}${frenzy === undefined ? '' : `, ${frenzy} Frenzy`}. ${relic.description}`);
   }
+  const ownedRelics = state.relics?.length ?? 0;
+  const relicsButton = ownedRelics && room.type !== 'shop'
+    ? button('relic-hud relic-inventory-button', 'relic-ledger', 'View owned relics', effectIcon('frenzy'), String(ownedRelics))
+    : null;
   const kit = button('icon-button', 'ledger', variant === 'pool' ? 'View dice bag' : 'View dice kit', '◫');
   const gear = button('icon-button', 'menu', 'Game menu', '⚙');
-  return element('header', 'hud', identity, path, element('div', 'hud-right', element('div', 'hud-stats', health, gold, relicHud), kit, gear));
+  return element('header', 'hud', identity, path, element('div', 'hud-right', element('div', 'hud-stats', health, element('div', 'gold-and-relics', gold, relicsButton), relicHud), kit, gear));
 }
 
 function targetFor(node: HTMLElement): Target {
@@ -191,7 +212,9 @@ function worldLayer(): HTMLElement {
     const die = owned(roll.dieId);
     const identity = DICE[die.template];
     const face = rollFace(state, roll);
-    const dieButton = button(`stage-cube tone-${identity.tone}`, 'die', faceText(face), element('span', 'world-face', faceEmblem(face)));
+    const position = state.relics?.length ? shopSlotLabel[roll.slot] : '';
+    const dieButton = button(`stage-cube tone-${identity.tone}`, 'die', position ? `${faceText(face)}, ${position}` : faceText(face),
+      element('span', 'world-face', faceEmblem(face)), position ? element('span', 'cube-tag', position) : null);
     dieButton.dataset.worldDie = roll.dieId;
     dieButton.dataset.die = roll.dieId;
     dieButton.dataset.inspectDie = roll.dieId;
@@ -219,7 +242,10 @@ function tray(): HTMLElement | null {
       const die = owned(roll.dieId);
       const identity = DICE[die.template];
       const face = rollFace(state, roll);
-      const seated = button(`seated tone-${identity.tone}`, 'die', faceText(face, roll.boost), chips(face, roll.boost));
+      const position = state.relics?.length ? shopSlotLabel[roll.slot] : '';
+      const label = faceText(face, roll.boost);
+      const seated = button(`seated tone-${identity.tone}`, 'die', position ? `${label}, ${position}` : label,
+        chips(face, roll.boost), position ? element('small', 'slot-tag', position) : null);
       seated.dataset.die = roll.dieId;
       seated.dataset.inspectDie = roll.dieId;
       helpOn(seated, face, roll.boost);
@@ -264,14 +290,27 @@ function tray(): HTMLElement | null {
 
 function describeOffer(offer: Offer): string {
   if (offer.kind === 'item') return ITEMS[offer.id].name;
+  if (offer.kind === 'relic') return RELICS[offer.id].name;
+  if (offer.kind === 'faceCopy') return `${shopSlotLabel[offer.from]} → ${shopSlotLabel[offer.to]}`;
+  if (offer.kind === 'gold') return `${offer.amount} gold`;
+  if (offer.kind === 'restore') return `Heal ${offer.amount} HP`;
   if (offer.kind === 'add') return 'New die';
   if (offer.kind === 'transform') return 'Transform a die';
   if (offer.kind === 'upgrade') return `Upgrade: ${upgradeLabel(offer)}`;
   return offer.kind === 'heal' ? 'Rest' : 'Remove';
 }
 
+function shopRelicIcon(relic: Relic): HTMLElement {
+  return effectIcon('frenzy', relic.image);
+}
+
 function offerBody(offer: Offer): HTMLElement {
   if (offer.kind === 'item') return itemNet(offer.id);
+  if (offer.kind === 'relic') {
+    const relic = RELICS[offer.id];
+    return element('span', 'shop-relic-effect', shopRelicIcon(relic), element('span', '', relic.description));
+  }
+  if (offer.kind === 'faceCopy') return element('span', 'shop-copy-rule', 'Duplicate the source face onto the destination on one die.');
   if (offer.kind === 'upgrade') {
     const info = UPGRADE_INFO[offer.keyword];
     return element('span', 'upgrade-body', info ? effectIcon(info.effect) : null, element('span', '', info?.text ?? 'Add a keyword to a face.'));
@@ -294,8 +333,12 @@ function offerGrid(direct = false): HTMLElement {
       caption(kind), element('strong', '', describeOffer(entry)), offerBody(entry));
     card.dataset.index = '' + index;
     card.dataset.focus = `offer-${index}`;
-    card.disabled = ['item', 'remove', 'transform', 'upgrade'].includes(entry.kind) && !offerTargets(state, entry).length;
-    if (direct && entry.kind === 'item') {
+    const unavailable = ['item', 'remove', 'transform', 'upgrade'].includes(entry.kind) && !offerTargets(state, entry).length;
+    if (entry.kind === 'item') {
+      card.dataset.inspectItem = entry.id;
+      if (unavailable) card.setAttribute('aria-disabled', 'true');
+    } else card.disabled = unavailable;
+    if (direct && entry.kind === 'item' && !unavailable) {
       card.dataset.dragItem = '' + index;
       card.setAttribute('aria-pressed', '' + (offerIndex === index));
     }
@@ -313,11 +356,68 @@ function selectedUpgrade(): UpgradeOffer | null {
 
 const slotLabel: Record<Slot, string> = { left: 'Left', center: 'Center', right: 'Right', far: 'Far right', top: 'Top', bottom: 'Bottom' };
 
+const shopSlotLabel = { ...slotLabel, center: 'Middle', far: 'Rightmost' };
+
+function shopPrice(value: number): HTMLElement {
+  const icon = element('img', 'gold-coin');
+  icon.src = faceImageUrl('face-art/library/coin.webp');
+  icon.alt = '';
+  return element('span', 'shop-price', icon, String(value));
+}
+
+function renderShop(): HTMLElement {
+  const leave = button('subtle', 'skip', 'Leave shop', 'Leave');
+  const pane = sheet('Shop', leave);
+  pane.classList.add('shop-sheet');
+  const wallet = shopPrice(state.gold);
+  wallet.setAttribute('aria-label', `${state.gold} gold available`);
+  const owned = state.relics?.length
+    ? button('subtle', 'relic-ledger', 'View owned relics', 'Owned relics')
+    : null;
+  const actions = element('div', 'shop-heading-actions', wallet, owned);
+  leave.replaceWith(actions);
+  actions.append(leave);
+  const groups = [
+    { kind: 'relic', title: 'Relics' },
+    { kind: 'item', title: 'Items' },
+    { kind: 'faceCopy', title: 'Face copy' },
+  ] as const;
+  for (const { kind, title } of groups) {
+    const grid = element('div', 'shop-grid');
+    for (const [index, offer] of state.offers.entries()) {
+      if (offer.kind !== kind) continue;
+      const price = offer.price ?? 0;
+      const rarity = offer.kind === 'relic' ? RELICS[offer.id].rarity : offer.kind === 'item' ? ITEMS[offer.id].rarity : '';
+      const name = describeOffer(offer);
+      const label = offer.kind === 'faceCopy' ? `Face copy ${name}` : name;
+      const card = button(`offer-card shop-offer shop-offer--${kind}`, 'offer', `${label}, ${price} gold`,
+        element('span', 'shop-card-top', rarity ? caption(rarity) : null, shopPrice(price)),
+        element('strong', '', name), offerBody(offer));
+      if (offer.kind === 'relic') card.setAttribute('aria-description', RELICS[offer.id].description);
+      card.dataset.index = '' + index;
+      card.dataset.focus = `offer-${index}`;
+      card.dataset.shopKind = kind;
+      const unavailable = price > state.gold || (kind !== 'relic' && !offerTargets(state, offer).length);
+      if (offer.kind === 'item') {
+        card.dataset.inspectItem = offer.id;
+        if (unavailable) card.setAttribute('aria-disabled', 'true');
+      } else card.disabled = unavailable;
+      grid.append(card);
+    }
+    const section = element('section', 'shop-section', element('h2', '', title));
+    section.append(grid.childElementCount ? grid : element('p', 'menu-note', 'Sold out'));
+    pane.append(section);
+  }
+  return element('div', 'overlay', pane);
+}
+
 /** Every die's faces; the ones the upgrade can go on are lit and clickable, and show the result. */
 function renderUpgradePicker(offer: UpgradeOffer): HTMLElement {
-  const pane = sheet(describeOffer(offer), button('subtle', 'back', 'Back to rewards', 'Back'));
+  const event = currentRoom(state).type === 'event';
+  const choice = event && offerIndex !== null ? eventChoiceFor(state, offerIndex) : undefined;
+  const pane = sheet(describeOffer(offer), button('subtle', 'back', event ? 'Back to event' : 'Back to rewards', 'Back'));
   pane.classList.add('upgrade-sheet');
-  pane.append(element('p', 'menu-note', `${UPGRADE_INFO[offer.keyword]?.text ?? ''} Choose a face to upgrade.`));
+  pane.append(element('p', 'menu-note', [choice?.label, UPGRADE_INFO[offer.keyword]?.text, 'Choose a face to upgrade.'].filter(Boolean).join(' · ')));
   const kit = element('div', 'imprint-kit upgrade-kit');
   for (const die of state.dice) {
     const net = element('div', 'face-net');
@@ -334,7 +434,9 @@ function renderUpgradePicker(offer: UpgradeOffer): HTMLElement {
       if (after) helpOn(tile, after, 0, before);
       net.append(tile);
     }
-    kit.append(element('div', 'upgrade-die', net));
+    const card = element('div', 'upgrade-die', net);
+    card.dataset.inspectDie = die.id;
+    kit.append(card);
   }
   pane.append(kit);
   return element('div', 'overlay', pane);
@@ -353,11 +455,20 @@ function goldBanner(): HTMLElement | null {
 function fixedOfferSheet(): HTMLElement {
   const chosen = selectedUpgrade();
   if (chosen) return renderUpgradePicker(chosen);
-  const room = ROOMS[state.room];
-  const pane = sheet(room.type === 'battle' ? 'Spoils' : room.name, button('subtle', 'skip', 'Skip reward', 'Skip'));
+  const room = currentRoom(state);
+  const bossReward = !!state.map && room.type === 'battle' && room.rank === 'boss';
+  const pane = sheet(bossReward ? 'Boss spoils' : room.type === 'battle' ? 'Spoils' : room.name,
+    button('subtle', 'skip', bossReward ? 'Return to map' : 'Skip reward', bossReward ? 'Continue' : 'Skip'));
   pane.classList.add('fixed-spoils');
   const earned = goldBanner();
   if (earned) pane.append(earned);
+  const relicId = bossReward ? state.bossSpoils?.relic : undefined;
+  if (relicId) {
+    const relic = RELICS[relicId];
+    pane.append(element('div', 'campaign-spoils', element('strong', '', relic.name),
+      element('span', 'shop-relic-effect', shopRelicIcon(relic), element('span', '', relic.description)),
+      element('p', 'menu-note', 'Your HP is fully restored.')));
+  }
   if (!state.offers.length) {
     pane.append(element('p', 'menu-note', 'No items available.'));
     return element('div', 'overlay', pane);
@@ -372,22 +483,73 @@ function fixedOfferSheet(): HTMLElement {
     card.setAttribute('aria-label', offerIndex === null ? name : `Imprint on ${name}`);
     kit.append(card);
   }
-  pane.append(offerGrid(true), element('div', 'imprint-heading', caption('Imprint onto a die')), kit);
+  pane.append(element('p', 'reward-inspection-hint', 'Press and hold an item or die to inspect it.'),
+    offerGrid(true), element('div', 'imprint-heading', caption('Imprint onto a die')), kit);
+  return element('div', 'overlay', pane);
+}
+
+function renderEvent(): HTMLElement {
+  const active = state.map?.active;
+  if (active?.kind !== 'event') throw new Error('Missing active event');
+  const event = EVENTS[active.id];
+  const pane = sheet(event.name, button('subtle', 'skip', 'Leave event', 'Leave'));
+  const grid = element('div', 'event-offers');
+  for (const [index, offer] of state.offers.entries()) {
+    const choice = eventChoiceFor(state, index);
+    if (!choice) continue;
+    const details = ['gold', 'restore'].includes(offer.kind) ? null
+      : element('span', 'event-preview', describeOffer(offer));
+    const card = button('offer-card', 'offer', choice.label, element('strong', '', choice.label), details);
+    card.dataset.index = String(index);
+    card.dataset.focus = 'event-' + index;
+    if (offer.kind === 'item') {
+      card.dataset.inspectItem = offer.id;
+      if (!canTakeEventOffer(state, index)) card.setAttribute('aria-disabled', 'true');
+    } else card.disabled = !canTakeEventOffer(state, index);
+    grid.append(card);
+  }
+  pane.append(element('p', 'event-copy', event.description), grid);
+  return element('div', 'overlay', pane);
+}
+
+function renderTreasure(): HTMLElement {
+  const active = state.map?.active;
+  if (active?.kind !== 'treasure') throw new Error('Missing treasure');
+  const pane = sheet('Treasure', button('subtle', 'skip', 'Return to map', 'Continue'));
+  pane.append(element('p', 'gold-banner', `+${active.gold} gold`));
+  if (active.relic) {
+    const relic = RELICS[active.relic];
+    pane.append(element('div', 'campaign-spoils', element('strong', '', relic.name),
+      element('span', 'shop-relic-effect', shopRelicIcon(relic), element('span', '', relic.description))));
+  }
   return element('div', 'overlay', pane);
 }
 
 function renderOffers(): HTMLElement {
-  if (variant === 'fixed') return fixedOfferSheet();
+  const room = currentRoom(state);
+  const shopping = room.type === 'shop';
+  const offer = offerIndex === null ? undefined : state.offers[offerIndex];
+  if (shopping && !offer) return renderShop();
+  if (room.type === 'treasure') return renderTreasure();
+  if (room.type === 'event' && !offer) return renderEvent();
+  if (!shopping && room.type !== 'event' && variant === 'fixed') return fixedOfferSheet();
   const chosen = selectedUpgrade();
   if (chosen) return renderUpgradePicker(chosen);
-  const room = ROOMS[state.room];
-  const offer = offerIndex === null ? undefined : state.offers[offerIndex];
   const title = offer ? describeOffer(offer) : room.type === 'battle' ? 'Spoils' : room.name;
-  const pane = sheet(title, offer ? button('subtle', 'back', 'Back to rewards', 'Back') : button('subtle', 'skip', 'Skip reward', 'Skip'));
+  const pane = sheet(title, offer
+    ? button('subtle', 'back', shopping ? 'Back to shop' : room.type === 'event' ? 'Back to event' : 'Back to rewards', 'Back')
+    : button('subtle', 'skip', 'Skip reward', 'Skip'));
   const earned = offer ? null : goldBanner();
   if (earned) pane.append(earned);
   if (!offer) {
-    pane.append(offerGrid());
+    const dice = element('div', 'die-picker reward-owned-dice');
+    for (const die of state.dice) {
+      const pick = button(`picker tone-${DICE[die.template].tone}`, 'inspect-reward', `Inspect ${dieLabel(die.id)}`, dieNumber(die.id));
+      pick.dataset.inspectDie = die.id;
+      dice.append(pick);
+    }
+    pane.append(element('p', 'reward-inspection-hint', 'Press and hold an item or die to inspect it.'),
+      offerGrid(), element('div', 'imprint-heading', caption('Owned dice')), dice);
   } else {
     const candidates = offerTargets(state, offer);
     const options = element('div', 'die-picker');
@@ -401,16 +563,34 @@ function renderOffers(): HTMLElement {
       options.append(picker);
     }
     const chosen = candidates.find(die => die.id === rewardDie);
-    const verb = offer.kind === 'item' ? 'Imprint' : offer.kind === 'transform' ? 'Transform' : 'Remove';
-    const confirm = button('control control--primary', 'take', verb, verb);
-    confirm.disabled = !chosen;
+    const verb = offer.kind === 'faceCopy' ? 'Copy face' : offer.kind === 'item' ? 'Imprint' : offer.kind === 'transform' ? 'Transform' : 'Remove';
+    const price = shopping && 'price' in offer ? offer.price : undefined;
+    const label = price === undefined ? verb : `${verb} for ${price} gold`;
+    const confirm = button('control control--primary', 'take', label, verb, price === undefined ? null : shopPrice(price));
+    confirm.disabled = !chosen || (price !== undefined && price > state.gold);
     const detail = element('div', 'placement-detail');
     if (chosen) {
       const result = previewDie(state, offer, chosen);
-      detail.append(faceNet(chosen, result ?? undefined));
+      detail.append(faceNet(chosen, result ?? undefined, shopping));
     } else if (offer.kind !== 'remove') detail.append(offerBody(offer));
+    const event = offerIndex === null ? undefined : eventChoiceFor(state, offerIndex);
+    if (event) pane.append(element('p', 'menu-note', event.label));
+    if (shopping || event) pane.append(element('p', 'menu-note', 'Choose a die to preview the change.'));
     pane.append(options, detail, element('div', 'sheet-footer', confirm));
   }
+  return element('div', 'overlay', pane);
+}
+
+function renderRelics(): HTMLElement {
+  const pane = sheet('Relics', button('subtle', 'relic-ledger', 'Close relics', 'Close'));
+  const starter = starterRelicFor(state);
+  const relics = [...(starter ? [starter] : []), ...(state.relics ?? []).map(id => RELICS[id])];
+  const list = element('ul', 'owned-relics');
+  for (const relic of relics) {
+    list.append(element('li', '', shopRelicIcon(relic),
+      element('div', '', element('strong', '', relic.name), caption(relic.rarity), element('p', '', relic.description))));
+  }
+  pane.append(list);
   return element('div', 'overlay', pane);
 }
 
@@ -468,11 +648,21 @@ function renderMenu(): HTMLElement {
 
 function renderEnding(): HTMLElement {
   const won = state.phase === 'victory';
-  const score = won ? `${state.hp} HP left` : ROOMS[state.room].name;
+  const score = won ? `${state.hp} HP left` : currentRoom(state).name;
+  const spoils = won ? state.bossSpoils : undefined;
+  const item = spoils?.item ? ITEMS[spoils.item] : undefined;
+  const relic = spoils?.relic ? RELICS[spoils.relic] : undefined;
+  const itemCard = item ? button('offer-card boss-item', 'inspect-reward', `Inspect ${item.name}`,
+    caption('Rare item'), element('strong', '', item.name)) : null;
+  if (itemCard && spoils?.item) itemCard.dataset.inspectItem = spoils.item;
+  const relicCard = relic ? element('div', 'offer-card boss-relic', caption('Rare relic'), element('strong', '', relic.name),
+    element('span', 'shop-relic-effect', shopRelicIcon(relic), element('span', '', relic.description))) : null;
+  const loot = itemCard || relicCard ? element('section', 'boss-spoils', element('h2', '', 'Boss spoils'),
+    element('div', 'boss-loot', itemCard, relicCard)) : null;
   return element('div', 'overlay', element('section', 'sheet ending',
     element('div', 'end-mark', won ? '✧' : '◇'),
     element('h1', '', won ? 'Passage clear' : 'Run ended'),
-    caption(score), state.gold ? caption(`${state.gold} gold`) : null, button('control control--primary', 'new', 'New run', 'New run')));
+    caption(score), state.gold ? caption(`${state.gold} gold`) : null, loot, button('control control--primary', 'new', 'New run', 'New run')));
 }
 
 function positionWorld(): void {
@@ -517,7 +707,8 @@ function render(animate: ReadonlySet<string> = new Set(), lead = 0): void {
   const shelf = tray();
   if (shelf) view.append(shelf);
   if (menu) view.append(renderMenu());
-  else if (ledger) view.append(renderLedger());
+  else if (ledger) view.append(ledger === 'relics' ? renderRelics() : renderLedger());
+  else if (state.phase === 'map' && state.map) view.append(campaignScreen(state.map));
   else if (state.phase === 'reward') view.append(renderOffers());
   else if (state.phase === 'victory' || state.phase === 'defeat') view.append(renderEnding());
   if (art('courier')) stage.dataset.illustrated = 'true';
@@ -676,7 +867,72 @@ function closeInspection(returnFocus = false): void {
   if (returnFocus && anchor.isConnected) anchor.focus({ preventScroll: true });
 }
 
+const INSPECT_TARGET = '[data-inspect-item], [data-inspect-die]';
+
+function inspectAnchor(target: EventTarget | null): HTMLElement | null {
+  return target instanceof Element ? target.closest<HTMLElement>(INSPECT_TARGET) : null;
+}
+
+function openRewardInspection(anchor: HTMLElement): void {
+  const item = anchor.dataset.inspectItem ? ITEMS[anchor.dataset.inspectItem] : undefined;
+  const initialDie = state.dice.find(die => die.id === anchor.dataset.inspectDie);
+  if (!item && !initialDie) return;
+  closeInspection();
+  tooltips.hide();
+
+  const heading = element('h2');
+  heading.id = 'reward-inspection-title';
+  const close = button('subtle', 'close-inspection', 'Close inspection', 'Close');
+  const faces = element('ul', 'inspection-face-list');
+  const dice = element('div', 'inspection-dice', item ? button('subtle', 'view-inspected-item', 'Back to item', 'Item') : null);
+  const panel = element('dialog', 'die-inspection reward-inspection', element('div', 'reward-inspection-content',
+    element('header', 'inspect-heading', heading, close), faces,
+    element('div', 'inspection-kit', element('h3', '', 'Owned dice'), dice)));
+  panel.setAttribute('aria-labelledby', heading.id);
+  panel.addEventListener('cancel', event => {
+    event.preventDefault();
+    closeInspection(true);
+  });
+  panel.addEventListener('click', event => {
+    if (event.target === panel && !wasSuppressedClick(event)) closeInspection(true);
+  });
+  close.addEventListener('click', () => closeInspection(true));
+
+  function showContent(die?: Die): void {
+    if (die) {
+      heading.textContent = `${dieLabel(die.id)} faces`;
+      faces.replaceChildren(...SLOTS.map(slot => readableFace(slot, faceFor(die, slot))));
+    } else if (item) {
+      heading.textContent = item.name;
+      faces.replaceChildren(...SLOTS.flatMap(slot => item.edits[slot] ? [readableFace(slot, item.edits[slot]!)] : []));
+    }
+    for (const pick of dice.querySelectorAll('button')) {
+      pick.setAttribute('aria-pressed', String(pick.dataset.id === die?.id));
+    }
+    panel.scrollTop = 0;
+  }
+
+  dice.firstElementChild?.addEventListener('click', () => showContent());
+  for (const die of state.dice) {
+    const label = dieLabel(die.id);
+    const pick = button('subtle', 'inspect-owned-die', `Inspect ${label}`, label);
+    pick.dataset.id = die.id;
+    pick.addEventListener('click', () => showContent(die));
+    dice.append(pick);
+  }
+  showContent(initialDie);
+  root.append(panel);
+  inspection = { node: panel, anchor };
+  anchor.setAttribute('aria-expanded', 'true');
+  panel.showModal();
+  close.focus({ preventScroll: true });
+}
+
 function openInspection(anchor: HTMLElement, keyboard = false): void {
+  if (state.phase !== 'battle' || anchor.dataset.inspectItem) {
+    openRewardInspection(anchor);
+    return;
+  }
   const id = anchor.dataset.inspectDie;
   if (!id) return;
   const die = state.dice.find(die => die.id === id);
@@ -698,17 +954,58 @@ function openInspection(anchor: HTMLElement, keyboard = false): void {
   if (keyboard) panel.querySelector<HTMLElement>('[data-face-help]')?.focus({ preventScroll: true });
 }
 
+function cancelInspectionPress(): void {
+  if (inspectionPress) window.clearTimeout(inspectionPress.timer);
+  inspectionPress = null;
+}
+
+root.addEventListener('pointerdown', event => {
+  if ((state.phase !== 'reward' && state.phase !== 'victory')
+    || !event.isPrimary || event.button !== 0 || (event.pointerType !== 'touch' && event.pointerType !== 'pen')) return;
+  const anchor = inspectAnchor(event.target);
+  if (!anchor) return;
+  cancelInspectionPress();
+  const press = { anchor, pointer: event.pointerId, x: event.clientX, y: event.clientY, timer: 0, opened: false };
+  press.timer = window.setTimeout(() => {
+    if (!anchor.isConnected || drag?.started) return;
+    press.opened = true;
+    clearDrag();
+    openInspection(anchor);
+  }, 460);
+  inspectionPress = press;
+});
+
+document.addEventListener('pointermove', event => {
+  const press = inspectionPress;
+  if (press?.pointer === event.pointerId && !press.opened && Math.hypot(event.clientX - press.x, event.clientY - press.y) > 6) {
+    cancelInspectionPress();
+  }
+}, true);
+
+function endInspectionPress(event: PointerEvent): void {
+  const press = inspectionPress;
+  if (press?.pointer !== event.pointerId) return;
+  cancelInspectionPress();
+  if (press.opened) suppressedClick = { x: event.clientX, y: event.clientY, until: performance.now() + 400 };
+}
+document.addEventListener('pointerup', endInspectionPress, true);
+document.addEventListener('pointercancel', endInspectionPress, true);
+
 root.addEventListener('contextmenu', event => {
-  const anchor = (event.target as HTMLElement).closest<HTMLElement>('[data-inspect-die]');
+  const anchor = inspectAnchor(event.target);
   if (!anchor) return;
   event.preventDefault();
-  if (!rolling && !drag?.started) openInspection(anchor);
+  if (state.phase !== 'battle' && event.pointerType === 'touch') return;
+  if (!rolling && !drag?.started && inspection?.anchor !== anchor) openInspection(anchor);
 });
 
 document.addEventListener('pointerdown', event => {
   if (event.button === 0 && inspection && !inspection.node.contains(event.target as Node)) closeInspection();
 });
-window.addEventListener('resize', () => closeInspection());
+window.addEventListener('resize', () => {
+  cancelInspectionPress();
+  if (!(inspection?.node instanceof HTMLDialogElement)) closeInspection();
+});
 
 /** The target of a face that has nothing to aim, or null when the player must choose one. */
 function automaticTarget(face: Face): Target | null {
@@ -717,11 +1014,11 @@ function automaticTarget(face: Face): Target | null {
   return null;
 }
 
-/** Commits the roll once nothing more can change: the last reroll is spent, or every die is held. */
+/** Commits only when the last available reroll is spent. */
 function autoCommit(): boolean {
   const combat = state.combat;
   if (rolling || state.phase !== 'battle' || !combat || combat.phase !== 'roll') return false;
-  if (combat.rerolls > 0 && !combat.rolls.every(roll => roll.held)) return false;
+  if (combat.rerolls > 0) return false;
   const turn = combat.turn;
   if (!commitRoll(state)) return false;
   tell('Dice committed.');
@@ -736,7 +1033,7 @@ function toggleDie(id: string): void {
   if (combat.phase === 'roll') {
     if (setHold(state, id, !roll.held)) {
       save();
-      if (!autoCommit()) render();
+      render();
     }
   } else if (selected && selected !== id && canPlay(state, selected, { kind: 'die', id })) {
     apply(selected, { kind: 'die', id });
@@ -768,14 +1065,14 @@ function restart(): void {
   offerIndex = null;
   rewardDie = null;
   selected = null;
-  ledger = false;
+  ledger = null;
   clearSave();
   if (seeded) {
-    state = newRun(variant, Number(seedParam), state.character);
+    state = makeRun(variant, Number(seedParam), state.character);
     transition('victory', 0);
   } else {
     choosing = true;
-    state = newRun(variant, randomSeed(), state.character);
+    state = makeRun(variant, randomSeed(), state.character);
     render();
   }
 }
@@ -787,11 +1084,15 @@ function abandonRun(): void {
   restart();
 }
 
+function wasSuppressedClick(event: MouseEvent): boolean {
+  return !!suppressedClick && performance.now() < suppressedClick.until && event.detail > 0
+    && Math.hypot(event.clientX - suppressedClick.x, event.clientY - suppressedClick.y) < 3;
+}
+
 view.addEventListener('click', event => {
-  if (suppressedClick && performance.now() < suppressedClick.until && event.detail > 0
-    && Math.hypot(event.clientX - suppressedClick.x, event.clientY - suppressedClick.y) < 3) return;
+  if (wasSuppressedClick(event)) return;
   const node = (event.target as HTMLElement).closest<HTMLButtonElement>('button[data-action]');
-  if (!node || node.disabled) return;
+  if (!node || node.disabled || node.getAttribute('aria-disabled') === 'true') return;
   const action = node.dataset.action;
   const turn = state.combat?.turn ?? 0;
 
@@ -812,11 +1113,16 @@ view.addEventListener('click', event => {
     return;
   }
   if (menu) return;
-  if (action === 'ledger') {
-    ledger = !ledger;
+  if (action === 'ledger' || action === 'relic-ledger') {
+    const panel = action === 'relic-ledger' ? 'relics' : 'dice';
+    ledger = ledger === panel ? null : panel;
     ledgerDie = state.dice[0].id;
     selected = null;
     render();
+    return;
+  }
+  if (action === 'inspect-reward') {
+    openInspection(node, event.detail === 0);
     return;
   }
   if (action === 'inspect') {
@@ -827,7 +1133,7 @@ view.addEventListener('click', event => {
   if (action === 'character') {
     clearTimeout(animTimer);
     rolling = false;
-    state = newRun(variant, randomSeed(), node.dataset.id);
+    state = makeRun(variant, randomSeed(), node.dataset.id);
     choosing = false;
     offerIndex = null;
     rewardDie = null;
@@ -836,7 +1142,11 @@ view.addEventListener('click', event => {
   }
   if (rolling || ledger) return;
 
-  if (action === 'die') toggleDie(node.dataset.die!);
+  if (action === 'explore-tile' && explore(state, node.dataset.tile!)) {
+    transition('map', 0);
+  } else if (action === 'start-boss' && startBoss(state)) {
+    transition('map', 0);
+  } else if (action === 'die') toggleDie(node.dataset.die!);
   else if (action === 'target' && selected) apply(selected, targetFor(node));
   else if (action === 'reroll') {
     const active = state.combat?.rolls.filter(roll => !roll.held).map(roll => roll.dieId) ?? [];
@@ -853,7 +1163,14 @@ view.addEventListener('click', event => {
   } else if (action === 'offer') {
     const index = Number(node.dataset.index);
     const offer = state.offers[index];
-    if (offer.kind === 'add' || offer.kind === 'heal') {
+    if (!offer) return;
+    if (offer.kind === 'relic') {
+      if (chooseOffer(state, index)) {
+        offerIndex = null;
+        tell(`${currentRoom(state).type === 'shop' ? 'Bought' : 'Gained'} ${describeOffer(offer)}.`);
+        transition('reward', 0);
+      }
+    } else if (offer.kind === 'add' || offer.kind === 'heal' || offer.kind === 'gold' || offer.kind === 'restore') {
       if (chooseOffer(state, index)) {
         offerIndex = null;
         transition('reward', 0);
@@ -863,7 +1180,7 @@ view.addEventListener('click', event => {
       rewardDie = null;
       render();
       view.querySelector<HTMLElement>('.net-tile.is-upgradable')?.focus();
-    } else if (variant === 'fixed' && offer.kind === 'item') {
+    } else if (variant === 'fixed' && offer.kind === 'item' && !['shop', 'event'].includes(currentRoom(state).type)) {
       offerIndex = offerIndex === index ? null : index;
       render();
       if (offerIndex !== null && event.detail === 0) view.querySelector<HTMLElement>('[data-imprint-target]')?.focus();
@@ -978,7 +1295,7 @@ document.addEventListener('pointerup', event => {
     const inRack = drop.some(node => node.closest('[data-hold]'));
     const inStage = drop.includes(stage) && event.clientY < (view.querySelector('.combat-tray')?.getBoundingClientRect().top ?? innerHeight);
     if ((inRack || inStage) && setHold(state, id, inRack)) save();
-    if (!autoCommit()) render();
+    render();
   } else {
     const target = pointTarget(event.clientX, event.clientY, id);
     if (target) apply(id, targetFor(target));
@@ -988,7 +1305,7 @@ document.addEventListener('pointerup', event => {
 
 document.addEventListener('pointercancel', () => { clearDrag(); paintTargets(selected); });
 view.addEventListener('pointerleave', () => { if (!drag) paintedClear(); });
-window.addEventListener('blur', () => { clearDrag(); paintTargets(selected); });
+window.addEventListener('blur', () => { cancelInspectionPress(); clearDrag(); paintTargets(selected); });
 view.addEventListener('focusin', event => {
   if (!(event.target instanceof HTMLElement)) return;
   const imprintTarget = event.target.closest<HTMLElement>('[data-imprint-target]');
@@ -998,7 +1315,7 @@ view.addEventListener('focusin', event => {
 });
 document.addEventListener('keydown', event => {
   if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) {
-    const anchor = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-inspect-die]') : null;
+    const anchor = inspectAnchor(event.target);
     if (anchor && !rolling) {
       event.preventDefault();
       openInspection(anchor, true);
@@ -1007,9 +1324,9 @@ document.addEventListener('keydown', event => {
   }
   if (event.key !== 'Escape') return;
   tooltips.hide();
-  if (inspection) { closeInspection(true); return; }
+  if (inspection) { event.preventDefault(); closeInspection(true); return; }
   if (menu) { menu = false; confirmingAbandon = false; render(); }
-  else if (ledger) { ledger = false; render(); }
+  else if (ledger) { ledger = null; render(); }
   else if (offerIndex !== null) { offerIndex = null; rewardDie = null; render(); }
   else { selected = null; clearDrag(); paintTargets(null); }
 });
@@ -1017,7 +1334,7 @@ document.addEventListener('keydown', event => {
 await Promise.all([loadEffectImages(), loadFaceImages(FACE_IMAGE_PATHS)]);
 board = new Battlefield(stage, positionWorld);
 save();
-if (!choosing && state.phase === 'battle' && state.combat?.phase === 'roll' && state.combat.turn === 1 && state.combat.rerolls === 2) {
+if (!choosing && state.phase === 'battle' && state.combat?.phase === 'roll' && state.combat.turn === 1 && state.combat.rerolls === BASE_REROLLS) {
   animateRoll(state.combat.rolls.filter(roll => !roll.held).map(roll => roll.dieId), true);
 } else {
   render();

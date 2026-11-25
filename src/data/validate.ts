@@ -68,9 +68,9 @@ export function validate(db: Collections): Issue[] {
   }
 
   // Things that keep a die, item or character out of the game.
-  const kinds: Record<string, CollectionName> = { die: 'dice', item: 'items', character: 'characters' };
+  const kinds: Record<string, CollectionName> = { die: 'dice', item: 'items', character: 'characters', relic: 'relics' };
   for (const issue of compileDb(db).issues) {
-    const m = /^(die|item|character) (\S+)/.exec(issue.where);
+    const m = /^(die|item|character|relic) (\S+)/.exec(issue.where);
     if (m) add('warning', kinds[m[1]], m[2], `not usable in the game: ${issue.where.slice(m[0].length).trim() ? issue.where.slice(m[0].length).trim() + ': ' : ''}${issue.message}`);
   }
 

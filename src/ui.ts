@@ -3,7 +3,7 @@ import { EFFECTS, effectDescription, effectUrl, faceEffects, faceImageUrl, shows
 import type { EffectKey } from './effects.ts';
 import { combatFaceFor, effectiveParts, faceFor } from './game.ts';
 import { SLOTS } from './model.ts';
-import type { Die, Face, Part, State } from './model.ts';
+import type { Die, Face, Part, Slot, State } from './model.ts';
 
 type Child = HTMLElement | string | null | undefined;
 
@@ -144,6 +144,14 @@ export function itemNet(itemId: string): HTMLElement {
     grid.append(tile);
   }
   return grid;
+}
+
+export function readableFace(slot: Slot, face: Face): HTMLElement {
+  const rules = faceEffects(face).filter(kind => !['hit', 'guard', 'blank', 'cleave'].includes(kind));
+  return element('li', 'inspection-face',
+    element('span', 'inspection-face-icon', faceEmblem(face)),
+    element('div', '', caption(slotNames[slot]), element('strong', '', faceText(face)),
+      ...rules.map(kind => element('p', '', effectDescription(kind, face.parts.find(part => part.kind === kind))))));
 }
 
 function hintAt(target: EventTarget | null): HTMLElement | null {

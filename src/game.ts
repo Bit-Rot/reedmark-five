@@ -1,11 +1,18 @@
-import { BLANK_IMAGE, CAMP_UPGRADES, CHARACTERS, DICE, ITEMS, ROOMS } from './content.ts';
+import { BLANK_IMAGE, CAMP_UPGRADES, CHARACTERS, DICE, ITEMS, RELICS, ROOMS } from './content.ts';
+import { BOSS_IDS, CAMPAIGN_FIGHTS, EVENTS, nextEncounter, nextEvent } from './campaign-content.ts';
+import { BOSS_TURNS, CENTER, RADIUS, TILE_TYPES, bossDue, createCampaign, cycleAt, distance, frontier, revealTreasureWave } from './campaign-map.ts';
+import type { EventChoice } from './campaign-content.ts';
 import { addKeywordToFace } from './data/runtime.ts';
 import { SLOTS } from './model.ts';
-import type { Combat, Die, Encounter, Enemy, Face, Intent, Offer, Part, Roll, Slot, State, Target, Variant } from './model.ts';
+import { afterRelicFace, claimTurnRelic, commitRelics, compassTarget, endRelicTurn, relicPips, relicsOnHpDamage, startRelicTurn } from './relics.ts';
+import type { Combat, CopiedFace, Die, Encounter, Enemy, Face, FaceCopyOffer, Intent, Offer, Part, Rarity, Roll, Room, Slot, State, Target, Variant } from './model.ts';
 
 /** What an exerted die or exhausted slot shows. */
 export const BLANK_FACE: Face = { target: 'none', parts: [{ kind: 'blank', value: 0 }], ...(BLANK_IMAGE ? { image: BLANK_IMAGE } : {}) };
 const BLANK = BLANK_FACE;
+export const BASE_REROLLS = 3;
+const SHOP_ROOM = ROOMS.findIndex(room => room.type === 'shop');
+const encounterIndex = (room: number) => room > SHOP_ROOM ? room - 1 : room;
 const DISCOVERIES = Object.keys(DICE).filter(id =>
   !CHARACTERS.some(hero => hero.starterRelic && hero.starterDice.includes(id))
   || CHARACTERS.some(hero => !hero.starterRelic && hero.starterDice.includes(id)));
@@ -33,31 +40,115 @@ function shuffled<T>(values: T[], state: State): T[] {
 
 const newDie = (template: string, index: number): Die => ({ id: `d${index}`, template, imprints: {} });
 
-export function newRun(variant: Variant, seed: number, character = CHARACTERS[0].id): State {
+function initialState(variant: Variant, seed: number, character: string): State {
   const hero = CHARACTERS.find(c => c.id === character) ?? CHARACTERS[0];
   // Dice Pool starts with ten dice: the character's five, twice.
   const ids = variant === 'fixed' ? hero.starterDice : [...hero.starterDice, ...hero.starterDice];
   const state: State = {
-    version: 4, character: hero.id, variant, seed: seed >>> 0, rng: (seed ^ 0x6bdc) >>> 0, combatRng: 0,
+    version: 5, character: hero.id, variant, seed: seed >>> 0, rng: (seed ^ 0x6bdc) >>> 0, combatRng: 0,
     room: 0, hp: 44, maxHp: 44, gold: 0, lastGold: 0, nextDie: ids.length, dice: ids.map(newDie), phase: 'battle',
     combat: null, offers: [],
   };
+  return state;
+}
+
+export function newLinearRun(variant: Variant, seed: number, character = CHARACTERS[0].id): State {
+  const state = initialState(variant, seed, character);
   enterRoom(state);
   return state;
+}
+
+export function newRun(variant: Variant, seed: number, character = CHARACTERS[0].id): State {
+  if (variant === 'pool') return newLinearRun(variant, seed, character);
+  const state = initialState(variant, seed, character);
+  state.version = 6;
+  state.map = createCampaign(state.seed);
+  state.phase = 'map';
+  return state;
+}
+
+export function currentRoom(state: State): Room {
+  if (!state.map) return ROOMS[state.room];
+  const active = state.map.active;
+  if (!active) return { type: 'map', name: 'Reedmark' };
+  if (active.kind === 'encounter') return CAMPAIGN_FIGHTS[active.id];
+  if (active.kind === 'event') return { type: 'event', name: EVENTS[active.id].name };
+  if (active.kind === 'shop') return { type: 'shop', name: 'Shop' };
+  if (active.kind === 'camp') return { type: 'camp', name: 'Campfire' };
+  return { type: 'treasure', name: 'Treasure' };
+}
+
+export function explore(state: State, id: string): boolean {
+  const map = state.map;
+  if (state.phase !== 'map' || !map || map.turn >= 48 || bossDue(map) || !frontier(map).has(id)) return false;
+  const tile = map.tiles.find(tile => tile.id === id)!;
+  tile.visited = true;
+  map.last = id;
+  map.turn++;
+  if (tile.chest !== undefined) {
+    const wave = tile.chest;
+    delete tile.chest;
+    const gold = 10 + pick(state, 6);
+    const rarity = pick(state, 100) < [80, 70, 60][wave] ? 'common' : 'uncommon';
+    const relic = randomRelic(state, rarity) ?? randomRelic(state, rarity === 'common' ? 'uncommon' : 'common');
+    state.gold += gold;
+    if (relic) (state.relics ??= []).push(relic);
+    map.active = { kind: 'treasure', gold, ...(relic ? { relic } : {}) };
+  } else if (tile.kind === 'normal' || tile.kind === 'elite') {
+    map.active = { kind: 'encounter', id: nextEncounter(map, cycleAt(map.turn), tile.kind) };
+  } else if (tile.kind === 'event') {
+    map.eventVisits++;
+    map.active = { kind: 'event', id: nextEvent(map), choiceIndexes: [] };
+  } else {
+    map.active = { kind: tile.kind };
+  }
+  enterRoom(state);
+  return true;
+}
+
+export function startBoss(state: State): boolean {
+  const map = state.map;
+  if (state.phase !== 'map' || !map || !bossDue(map)) return false;
+  map.turn++;
+  map.eventVisits = 0;
+  for (const tile of map.tiles) delete tile.chest;
+  map.active = { kind: 'encounter', id: BOSS_IDS[cycleAt(map.turn)] };
+  enterRoom(state);
+  return true;
+}
+
+export function restoreSave(data: unknown, variant: Variant, allowLinearFixed = false): State | null {
+  if (variant === 'fixed' && !allowLinearFixed && (!data || typeof data !== 'object' || !('version' in data) || data.version !== 6)) return null;
+  if (data && typeof data === 'object' && 'version' in data && data.version === 4
+    && 'room' in data && typeof data.room === 'number' && Number.isInteger(data.room)) {
+    data = { ...data, version: 5, room: data.room >= SHOP_ROOM ? data.room + 1 : data.room };
+  }
+  if (!isSave(data, variant)) return null;
+  const room = currentRoom(data);
+  const bossReward = !!data.map && room.type === 'battle' && room.rank === 'boss';
+  return !bossReward && data.phase === 'reward' && data.offers.some(isRareOffer) ? replaceRareOffers(data) : data;
 }
 
 export function isSave(data: unknown, variant: Variant): data is State {
   if (!data || typeof data !== 'object') return false;
   const save = data as State;
   try {
-    return save.version === 4 && Number.isInteger(save.gold) && save.gold >= 0 && Number.isInteger(save.lastGold) && save.variant === variant && CHARACTERS.some(c => c.id === save.character) && Number.isInteger(save.seed)
-      && Number.isInteger(save.room) && !!ROOMS[save.room] && Number.isFinite(save.hp)
-      && ['battle', 'reward', 'victory', 'defeat'].includes(save.phase)
+    const validRoute = save.version === 5
+      ? !save.map && Number.isInteger(save.room) && !!ROOMS[save.room] && save.phase !== 'map'
+      : save.version === 6 && save.variant === 'fixed' && validCampaignSave(save);
+    return validRoute && Number.isInteger(save.gold) && save.gold >= 0 && Number.isInteger(save.lastGold) && save.variant === variant && CHARACTERS.some(c => c.id === save.character) && Number.isInteger(save.seed)
+      && Number.isFinite(save.hp)
+      && ['map', 'battle', 'reward', 'victory', 'defeat'].includes(save.phase)
+      && (save.relics === undefined || (Array.isArray(save.relics) && new Set(save.relics).size === save.relics.length
+        && save.relics.every(id => RELICS[id] && RELICS[id].rarity !== 'starter')))
       && Array.isArray(save.dice) && save.dice.length >= 5
       && new Set(save.dice.map(die => die.id)).size === save.dice.length
       && save.dice.every(die => DICE[die.template] && die.imprints
         && (!die.upgrades || Object.entries(die.upgrades).every(([slot, list]) => SLOTS.includes(slot as Slot) && Array.isArray(list)))
-        && Object.entries(die.imprints).every(([slot, item]) => ITEMS[item]?.edits[slot as Slot]))
+        && Object.entries(die.imprints).every(([slot, item]) => ITEMS[item]?.edits[slot as Slot])
+        && Object.entries(die.copies ?? {}).every(([slot, face]) => SLOTS.includes(slot as Slot) && DICE[face.template]
+          && SLOTS.includes(face.slot) && (!face.item || ITEMS[face.item]?.edits[face.slot])
+          && (face.upgrades === undefined || Array.isArray(face.upgrades))))
       && Array.isArray(save.offers)
       && (save.phase !== 'battle' || (save.combat?.rolls.length === 5 && save.combat.intents.length === 5
         && save.combat.rolls.every(roll => save.dice.some(die => die.id === roll.dieId) && SLOTS.includes(roll.slot))));
@@ -66,27 +157,65 @@ export function isSave(data: unknown, variant: Variant): data is State {
   }
 }
 
+function validCampaignSave(state: State): boolean {
+  const map = state.map;
+  if (!map || !Array.isArray(map.tiles) || map.tiles.length !== 127 || !Number.isInteger(map.turn) || map.turn < 0 || map.turn > 48
+    || !map.tiles.some(tile => tile.id === map.last && tile.visited)
+    || !map.tiles.some(tile => tile.id === CENTER && tile.visited)
+    || new Set(map.tiles.map(tile => tile.id)).size !== 127
+    || !map.tiles.every(tile => Number.isInteger(tile.q) && Number.isInteger(tile.r) && tile.id === tile.q + ',' + tile.r
+      && distance(tile) <= RADIUS && TILE_TYPES.includes(tile.kind) && typeof tile.visited === 'boolean'
+      && (tile.chest === undefined || (Number.isInteger(tile.chest) && tile.chest >= 0 && tile.chest < 3
+        && !tile.visited && (tile.kind === 'normal' || tile.kind === 'event'))))
+    || ![map.dropRng, map.encounterRng, map.eventRng, map.eventVisits, map.wave].every(Number.isInteger)
+    || map.eventVisits < 0 || map.wave < 0 || map.wave > 3
+    || !map.encounterBags || !Array.isArray(map.eventBag) || !Array.isArray(map.sectorDrops) || map.sectorDrops.length !== 6) return false;
+  const explored = map.turn - BOSS_TURNS.filter(turn => turn <= map.turn).length + 1;
+  if (map.tiles.filter(tile => tile.visited).length !== explored) return false;
+  if (state.phase === 'map') return map.active === null && map.turn < 48;
+  const active = map.active;
+  if (!active) return false;
+  if (state.phase !== 'reward' && active.kind !== 'encounter') return false;
+  if (active.kind === 'encounter') return !!CAMPAIGN_FIGHTS[active.id];
+  if (active.kind === 'event') return !!EVENTS[active.id] && Array.isArray(active.choiceIndexes);
+  return active.kind === 'shop' || active.kind === 'camp' || active.kind === 'treasure';
+}
+
+function battleNumber(state: State): number {
+  return state.map?.turn ?? encounterIndex(state.room) + 1;
+}
+
 function enterRoom(state: State): void {
-  const room = ROOMS[state.room];
+  const room = currentRoom(state);
   state.offers = [];
   state.combat = null;
   if (room.type === 'battle') {
     const enemies: Enemy[] = room.enemies.map(enemy => ({ ...enemy, maxHp: enemy.hp, guard: 0, seep: 0, power: 0, vulnerable: 0, weak: 0 }));
     state.phase = 'battle';
-    state.combatRng = step((state.seed ^ Math.imul(state.room + 1, 0x90ad)) >>> 0);
+    state.combatRng = step((state.seed ^ Math.imul(battleNumber(state), 0x90ad)) >>> 0);
     state.combat = {
-      turn: 0, phase: 'roll', rerolls: 2, enemies, intents: [], rolls: [], bag: [], guard: 0, ward: 0, exerted: {}, grown: {}, previous: null, events: [],
+      turn: 0, phase: 'roll', rerolls: BASE_REROLLS, enemies, intents: [], rolls: [], bag: [], guard: 0, ward: 0, exerted: {}, grown: {}, previous: null, events: [],
     };
     if (starterRelicFor(state)?.effect === 'frenzyOnDamage') state.combat.frenzy = 0;
     startTurn(state, room, state.combat);
     if (state.combat.enemies.every(enemy => enemy.hp <= 0)) finishFight(state);
   } else {
     state.phase = 'reward';
-    if (room.type === 'workshop' && state.variant === 'pool') {
+    if (room.type === 'shop') {
+      state.offers = shopStock(state);
+    } else if (room.type === 'workshop' && state.variant === 'pool') {
       state.offers = [{ kind: 'transform', id: discovery(state) }, { kind: 'remove' }];
+    } else if (room.type === 'event' && state.map?.active?.kind === 'event') {
+      const active = state.map.active;
+      for (const [index, choice] of EVENTS[active.id].choices.entries()) {
+        const offer = prepareEventOffer(state, choice);
+        if (!offer) continue;
+        state.offers.push(offer);
+        active.choiceIndexes.push(index);
+      }
     } else if (room.type === 'camp') {
       state.offers = [{ kind: 'heal' }, { kind: 'upgrade', ...CAMP_UPGRADES[pick(state, CAMP_UPGRADES.length)] }];
-    } else {
+    } else if (room.type === 'workshop') {
       state.offers = itemOffers(state, 3);
     }
   }
@@ -108,12 +237,13 @@ function startTurn(state: State, room: Encounter, combat: Combat): void {
   combat.turn++;
   combat.previous = null;
   combat.phase = 'roll';
-  combat.rerolls = 2;
+  combat.rerolls = BASE_REROLLS;
   combat.guard = combat.ward;
   combat.ward = 0;
+  startRelicTurn(state, combat);
   const boss = combat.enemies[0];
   const dice = room.phaseTwo && boss.hp <= boss.maxHp / 2 ? room.phaseTwo : room.dice;
-  let enemySeed = step((state.seed ^ Math.imul(state.room + 1, 0x5bd1e995) ^ Math.imul(combat.turn, 0x3a005a03)) >>> 0);
+  let enemySeed = step((state.seed ^ Math.imul(battleNumber(state), 0x5bd1e995) ^ Math.imul(combat.turn, 0x3a005a03)) >>> 0);
   const survivor = combat.enemies.find(enemy => enemy.hp > 0)!;
   combat.intents = dice.map(die => {
     enemySeed = step(enemySeed);
@@ -160,9 +290,17 @@ export function facesFor(die: Die, state?: State): Record<Slot, Face> {
   return Object.fromEntries(SLOTS.map(slot => [slot, state ? combatFaceFor(state, die, slot) : faceFor(die, slot)])) as Record<Slot, Face>;
 }
 
+function snapshotFace(die: Die, slot: Slot): CopiedFace {
+  const source = die.copies?.[slot] ?? { template: die.template, slot, item: die.imprints[slot] };
+  return { ...source, upgrades: [...(source.upgrades ?? []), ...(die.upgrades?.[slot] ?? [])] };
+}
+
 export function faceFor(die: Die, slot: Slot): Face {
-  const item = die.imprints[slot];
-  let face = (item && ITEMS[item].edits[slot]) || DICE[die.template].faces[slot];
+  const copy = die.copies?.[slot];
+  const sourceSlot = copy?.slot ?? slot;
+  const item = copy ? copy.item : die.imprints[slot];
+  let face = (item && ITEMS[item].edits[sourceSlot]) || DICE[copy?.template ?? die.template].faces[sourceSlot];
+  for (const upgrade of copy?.upgrades ?? []) face = addKeywordToFace(face, upgrade.keyword, upgrade.x) ?? face;
   for (const upgrade of die.upgrades?.[slot] ?? []) face = addKeywordToFace(face, upgrade.keyword, upgrade.x) ?? face;
   return face;
 }
@@ -212,8 +350,11 @@ export function combatFaceFor(state: State, die: Die, slot: Slot): Face {
   const combat = state.combat;
   if (!combat) return faceFor(die, slot);
   const key = slotKey(die.id, slot);
-  if (isExerted(state, die.id) || combat.exhausted?.[key] !== undefined) return BLANK;
-  let face = faceFor(die, slot);
+  const blank = isExerted(state, die.id) || combat.exhausted?.[key] !== undefined;
+  let face = blank ? BLANK : faceFor(die, slot);
+  if (face.target === 'none' && combat.relicTurn?.blankGuard === key) {
+    face = { target: 'self', parts: [{ kind: 'guard', value: 3 }], image: 'face-art/library/buckler.webp' };
+  }
   const grown = combat.grown[key] ?? 0;
   if (grown) face = withPips(face, value => value + grown);
   // Inspired: doubled when the die played just before had more pips.
@@ -222,7 +363,7 @@ export function combatFaceFor(state: State, die: Die, slot: Slot): Face {
   }
   const main = face.parts.find(part => PIPS.includes(part.kind));
   if (!main) return face;
-  const value = synergyPips(state, combat, die, face, main.value);
+  const value = synergyPips(state, combat, die, face, main.value) + relicPips(state, slot);
   return value === main.value ? face : { ...face, parts: face.parts.map(part => part === main ? { ...part, value } : part) };
 }
 
@@ -257,14 +398,20 @@ export function reroll(state: State): boolean {
   const combat = state.combat;
   if (state.phase !== 'battle' || combat?.phase !== 'roll' || !combat.rerolls || combat.rolls.every(roll => roll.held)) return false;
   combat.rerolls--;
+  if (combat.relicTurn) combat.relicTurn.rerollsUsed++;
   for (const roll of combat.rolls) {
     if (roll.held) continue;
-    const bonus = rollFace(state, roll).salvage;
+    const previous = rollFace(state, roll);
+    if (previous.target === 'none' && claimTurnRelic(state, 'mudWedge')) combat.guard += 2;
+    const bonus = previous.salvage;
     if (bonus && !roll.salvaged) {
       roll.salvaged = true;
       combat.guard += bonus;
     }
     roll.slot = SLOTS[pick(state, 6, 'combatRng')];
+    if (rollFace(state, roll).target === 'none' && claimTurnRelic(state, 'hingePin')) {
+      roll.slot = SLOTS[pick(state, 6, 'combatRng')];
+    }
   }
   fireCantrips(state, combat, combat.rolls.filter(roll => !roll.held));
   if (combat.enemies.every(enemy => enemy.hp <= 0)) finishFight(state);
@@ -274,6 +421,7 @@ export function reroll(state: State): boolean {
 export function commitRoll(state: State): boolean {
   const combat = state.combat;
   if (state.phase !== 'battle' || combat?.phase !== 'roll') return false;
+  if (combat.relicTurn) commitRelics(state, combat.rolls.map(roll => ({ roll, face: rollFace(state, roll) })));
   combat.phase = 'play';
   for (const roll of combat.rolls) roll.held = true;
   return true;
@@ -301,6 +449,7 @@ function applyFace(state: State, roll: Roll, target: Target): void {
   const face = rollFace(state, roll);
   roll.used = true;
   const parts = effectiveParts(face, roll.boost);
+  const guarded = combat.relicTurn ? combat.enemies.filter(enemy => enemy.guard > 0) : [];
   if (target.kind === 'all') applyToAll(state, roll, parts);
   else applyParts(state, roll, parts, enemy, die);
   const frenzy = combat.frenzy;
@@ -311,7 +460,9 @@ function applyFace(state: State, roll: Roll, target: Target): void {
   if (parts.some(part => part.kind === 'exhaust')) {
     (combat.exhausted ??= {})[slotKey(roll.dieId, roll.slot)] = combat.turn;
   }
-  combat.previous = mainPips({ parts });
+  const pips = mainPips({ parts });
+  afterRelicFace(state, roll.slot, pips, parts, guarded);
+  combat.previous = pips;
   const growth = face.parts.find(part => part.kind === 'growth');
   if (growth) {
     const key = slotKey(roll.dieId, roll.slot);
@@ -387,7 +538,8 @@ export function play(state: State, dieId: string, target: Target): boolean {
 
 export function intentValues(combat: Combat): (Intent & { active: boolean })[] {
   const power = new Map(combat.enemies.map(enemy => [enemy.id, enemy.power]));
-  const weak = new Map(combat.enemies.map(enemy => [enemy.id, enemy.weak > 0]));
+  const compass = compassTarget(combat);
+  const weak = new Map(combat.enemies.map(enemy => [enemy.id, enemy.weak > 0 || enemy === compass]));
   return combat.intents.map(intent => {
     const active = combat.enemies.some(enemy => enemy.id === intent.owner && enemy.hp > 0);
     const livePower = power.get(intent.owner) ?? 0;
@@ -404,7 +556,9 @@ export function incoming(combat: Combat): number {
 
 function damagePlayer(state: State, combat: Combat, damage: number, firstHit: boolean): boolean {
   if (firstHit && damage > 0 && combat.frenzy !== undefined) combat.frenzy++;
-  state.hp = Math.max(0, state.hp - damageAfterBlock(combat, damage));
+  const hpDamage = damageAfterBlock(combat, damage);
+  state.hp = Math.max(0, state.hp - hpDamage);
+  relicsOnHpDamage(state, hpDamage);
   if (state.hp > 0) return false;
   state.phase = 'defeat';
   return true;
@@ -412,8 +566,9 @@ function damagePlayer(state: State, combat: Combat, damage: number, firstHit: bo
 
 export function endTurn(state: State): boolean {
   const combat = state.combat;
-  const room = ROOMS[state.room];
+  const room = currentRoom(state);
   if (state.phase !== 'battle' || combat?.phase !== 'play' || room.type !== 'battle') return false;
+  endRelicTurn(state, combat);
   const burn = combat.burn ?? 0;
   if (burn > 0) {
     const lethal = damagePlayer(state, combat, burn, true);
@@ -452,12 +607,21 @@ export function endTurn(state: State): boolean {
   return true;
 }
 
+const heroItemIds = (state: State) => Object.keys(ITEMS).filter(id => ITEMS[id].rewardCharacter === state.character);
+const ordinaryItems = (state: State) => heroItemIds(state).filter(id => ITEMS[id].rarity !== 'rare');
+const ordinaryRelics = (state: State) => Object.keys(RELICS).filter(id => isMarketRarity(RELICS[id].rarity) && !state.relics?.includes(id));
+
+function isRareOffer(offer: Offer): boolean {
+  return (offer.kind === 'item' && ITEMS[offer.id]?.rarity === 'rare')
+    || (offer.kind === 'relic' && RELICS[offer.id]?.rarity === 'rare');
+}
+
 function itemOffers(state: State, count: number, rich = false): Offer[] {
-  const remaining = Object.keys(ITEMS).filter(id => ITEMS[id].rewardCharacter === state.character);
+  const remaining = ordinaryItems(state);
   const offers: Offer[] = [];
   while (offers.length < count && remaining.length) {
     const chance = pick(state, 100);
-    const rarity = chance < (rich ? 30 : 8) ? 'rare' : chance < (rich ? 100 : 35) ? 'uncommon' : 'common';
+    const rarity = chance < (rich ? 100 : 35) ? 'uncommon' : 'common';
     const matching = remaining.filter(id => ITEMS[id].rarity === rarity);
     const available = matching.length ? matching : remaining;
     const id = available[pick(state, available.length)];
@@ -465,6 +629,91 @@ function itemOffers(state: State, count: number, rich = false): Offer[] {
     remaining.splice(remaining.indexOf(id), 1);
   }
   return offers;
+}
+
+const SHOP_PRICES = {
+  common: { relic: 36, item: 21 },
+  uncommon: { relic: 51, item: 30 },
+};
+
+function isMarketRarity(rarity: Rarity | 'starter'): rarity is keyof typeof SHOP_PRICES {
+  return rarity === 'common' || rarity === 'uncommon';
+}
+
+function priceFor(kind: 'item' | 'relic', id: string): number {
+  const rarity = (kind === 'item' ? ITEMS[id] : RELICS[id]).rarity;
+  return isMarketRarity(rarity) ? SHOP_PRICES[rarity][kind] : 0;
+}
+
+function drawStock(state: State, pool: string[], catalogue: Record<string, { rarity: string }>, rarity: string): string | undefined {
+  const matching = pool.filter(id => catalogue[id].rarity === rarity);
+  const available = matching.length ? matching : pool;
+  if (!available.length) return undefined;
+  const id = available[pick(state, available.length)];
+  pool.splice(pool.indexOf(id), 1);
+  return id;
+}
+
+/** Preserve a saved visit and replace only rare offers the player had not taken yet. */
+function replaceRareOffers(saved: State): State {
+  const state = { ...saved };
+  const shopping = currentRoom(state).type === 'shop';
+  const unlisted = (ids: string[], kind: 'item' | 'relic') =>
+    ids.filter(id => !saved.offers.some(offer => offer.kind === kind && offer.id === id));
+  const items = unlisted(ordinaryItems(state), 'item');
+  const relics = unlisted(ordinaryRelics(state), 'relic');
+  state.offers = saved.offers.flatMap(offer => {
+    if (offer.kind === 'item' && isRareOffer(offer)) {
+      const id = drawStock(state, items, ITEMS, shopping ? 'common' : 'uncommon');
+      return id ? [{ kind: 'item', id, ...(shopping ? { price: priceFor('item', id) } : {}) }] : [];
+    }
+    if (offer.kind === 'relic' && isRareOffer(offer)) {
+      const id = drawStock(state, relics, RELICS, 'common');
+      return id ? [{ kind: 'relic', id, price: priceFor('relic', id) }] : [];
+    }
+    return [offer];
+  });
+  return state;
+}
+const COPY_TIERS: readonly (readonly Slot[])[] = [['left'], ['center'], ['top', 'bottom'], ['right', 'far']];
+
+function canCopy(die: Die, from: Slot, to: Slot): boolean {
+  if (from === to) return false;
+  const source = faceFor(die, from);
+  const target = faceFor(die, to);
+  return source.target !== 'none'
+    && (source.target !== target.target || source.salvage !== target.salvage
+      || JSON.stringify(source.parts) !== JSON.stringify(target.parts));
+}
+
+function faceCopyStock(state: State): FaceCopyOffer | undefined {
+  const pairs = COPY_TIERS.flatMap((sources, index) => [-2, -1, 1, 2].flatMap(jumps =>
+    sources.flatMap(from => (COPY_TIERS[index + jumps] ?? []).map(to => ({ from, to, jumps })))),
+  ).filter(({ from, to }) => state.dice.some(die => canCopy(die, from, to)));
+  if (!pairs.length) return undefined;
+  const direction = pick(state, 10) < 9 ? 1 : -1;
+  const jumps = pick(state, 4) < 3 ? 1 : 2;
+  const preferred = pairs.filter(pair => Math.sign(pair.jumps) === direction);
+  const matching = preferred.filter(pair => Math.abs(pair.jumps) === jumps);
+  const available = matching.length ? matching : preferred.length ? preferred : pairs;
+  const { from, to } = available[pick(state, available.length)];
+  return { kind: 'faceCopy', from, to, price: 23 };
+}
+
+function shopStock(state: State): Offer[] {
+  const rarities = ['common', 'uncommon', 'common'];
+  const relicPool = ordinaryRelics(state);
+  const itemPool = ordinaryItems(state);
+  const relics = rarities.flatMap(rarity => {
+    const id = drawStock(state, relicPool, RELICS, rarity);
+    return id ? [{ kind: 'relic' as const, id, price: priceFor('relic', id) }] : [];
+  });
+  const items = rarities.flatMap(rarity => {
+    const id = drawStock(state, itemPool, ITEMS, rarity);
+    return id ? [{ kind: 'item' as const, id, price: priceFor('item', id) }] : [];
+  });
+  const copy = faceCopyStock(state);
+  return [...relics, ...items, ...(copy ? [copy] : [])];
 }
 
 function discovery(state: State, exclude = ''): string {
@@ -484,11 +733,20 @@ function awardGold(state: State, rank: Encounter['rank']): void {
 }
 
 function finishFight(state: State): void {
-  const room = ROOMS[state.room];
+  const room = currentRoom(state);
   if (room.type !== 'battle') return;
   awardGold(state, room.rank);
   if (room.rank === 'boss') {
-    state.phase = 'victory';
+    const rareItems = heroItemIds(state).filter(id => ITEMS[id].rarity === 'rare');
+    const item = rareItems.length ? rareItems[pick(state, rareItems.length)] : undefined;
+    const relic = randomRelic(state, 'rare');
+    state.bossSpoils = { ...(item ? { item } : {}), ...(relic ? { relic } : {}) };
+    if (state.map && state.map.turn < BOSS_TURNS[2]) {
+      state.hp = state.maxHp;
+      if (relic) (state.relics ??= []).push(relic);
+      state.phase = 'reward';
+      state.offers = item ? [{ kind: 'item', id: item }] : [];
+    } else state.phase = 'victory';
     return;
   }
   state.phase = 'reward';
@@ -507,6 +765,7 @@ function finishFight(state: State): void {
 
 export function offerTargets(state: State, offer: Offer): Die[] {
   if (offer.kind === 'item') return state.dice.filter(die => state.variant === 'fixed' || !die.item);
+  if (offer.kind === 'faceCopy') return state.dice.filter(die => canCopy(die, offer.from, offer.to));
   if (offer.kind === 'remove') return state.dice.length > 5 ? state.dice : [];
   if (offer.kind === 'transform') return state.dice.filter(die => die.template !== offer.id);
   if (offer.kind === 'upgrade') return state.dice.filter(die => SLOTS.some(slot => previewUpgrade(die, slot, offer)));
@@ -528,22 +787,90 @@ export function upgradeTargets(state: State, offer: Offer): UpgradeTarget[] {
 export function previewDie(state: State, offer: Offer, die: Die): Die | null {
   if (!offerTargets(state, offer).includes(die)) return null;
   if (offer.kind === 'transform') return { ...die, template: offer.id };
-  if (offer.kind !== 'item') return null;
+  if (offer.kind !== 'item' && offer.kind !== 'faceCopy') return null;
   const imprints = { ...die.imprints };
   const upgrades: NonNullable<Die['upgrades']> = { ...die.upgrades };
+  const copies = { ...die.copies };
+  if (offer.kind === 'faceCopy') {
+    copies[offer.to] = snapshotFace(die, offer.from);
+    delete imprints[offer.to];
+    delete upgrades[offer.to];
+    return { ...die, imprints, upgrades, copies };
+  }
   for (const slot of SLOTS) {
     if (!ITEMS[offer.id].edits[slot]) continue;
     imprints[slot] = offer.id;
     delete upgrades[slot]; // a replaced face loses the upgrades it had
+    delete copies[slot];
   }
-  return { ...die, imprints, upgrades, item: state.variant === 'pool' ? offer.id : undefined };
+  return { ...die, imprints, upgrades, ...(die.copies ? { copies } : {}), item: state.variant === 'pool' ? offer.id : undefined };
+}
+
+function randomRelic(state: State, rarity: Rarity): string | undefined {
+  const ids = Object.keys(RELICS).filter(id => RELICS[id].rarity === rarity && !state.relics?.includes(id));
+  return ids.length ? ids[pick(state, ids.length)] : undefined;
+}
+
+function prepareEventOffer(state: State, choice: EventChoice): Offer | undefined {
+  const effect = choice.effect;
+  switch (effect.kind) {
+    case 'heal': return { kind: 'restore', amount: effect.amount };
+    case 'gold': return { kind: 'gold', amount: effect.amount };
+    case 'upgrade': return { kind: 'upgrade', ...CAMP_UPGRADES[pick(state, CAMP_UPGRADES.length)] };
+    case 'copy': {
+      const copy = faceCopyStock(state);
+      return copy && { ...copy, price: 0 };
+    }
+    case 'item': {
+      const ids = heroItemIds(state).filter(id => ITEMS[id].rarity === effect.rarity);
+      return ids.length ? { kind: 'item', id: ids[pick(state, ids.length)] } : undefined;
+    }
+    case 'relic': {
+      const id = randomRelic(state, effect.rarity);
+      return id ? { kind: 'relic', id, price: 0 } : undefined;
+    }
+  }
+}
+
+export function eventChoiceFor(state: State, index: number): EventChoice | undefined {
+  const active = state.map?.active;
+  return active?.kind === 'event' ? EVENTS[active.id].choices[active.choiceIndexes[index]] : undefined;
+}
+
+export function canTakeEventOffer(state: State, index: number): boolean {
+  const choice = eventChoiceFor(state, index);
+  const offer = state.offers[index];
+  if (!choice || !offer || (choice.gold ?? 0) > state.gold || (choice.hp ?? 0) >= state.hp) return false;
+  if (offer.kind === 'item' || offer.kind === 'faceCopy' || offer.kind === 'upgrade') return offerTargets(state, offer).length > 0;
+  return offer.kind !== 'relic' || !state.relics?.includes(offer.id);
 }
 
 export function chooseOffer(state: State, index: number, dieId?: string, slot?: Slot): boolean {
   if (state.phase !== 'reward') return false;
   const offer = state.offers[index];
-  if (!offer) return false;
-  if (offer.kind === 'heal') {
+  const room = currentRoom(state);
+  const bossReward = !!state.map && room.type === 'battle' && room.rank === 'boss';
+  if (!offer || (isRareOffer(offer) && !bossReward)) return false;
+  if (room.type === 'shop') return buyOffer(state, index, offer, dieId);
+  const event = eventChoiceFor(state, index);
+  if (event && !canTakeEventOffer(state, index)) return false;
+  if (!event && (offer.kind === 'gold' || offer.kind === 'restore' || offer.kind === 'relic' || offer.kind === 'faceCopy')) return false;
+  if (!applyReward(state, offer, dieId, slot)) return false;
+  if (event) {
+    state.hp -= event.hp ?? 0;
+    state.gold -= event.gold ?? 0;
+  }
+  return advance(state);
+}
+
+function applyReward(state: State, offer: Offer, dieId?: string, slot?: Slot): boolean {
+  if (offer.kind === 'gold') {
+    state.gold += offer.amount;
+  } else if (offer.kind === 'restore') {
+    state.hp = Math.min(state.maxHp, state.hp + offer.amount);
+  } else if (offer.kind === 'relic') {
+    (state.relics ??= []).push(offer.id);
+  } else if (offer.kind === 'heal') {
     state.hp = Math.min(state.maxHp, state.hp + 10);
   } else if (offer.kind === 'add') {
     state.dice.push(newDie(offer.id, state.nextDie++));
@@ -559,11 +886,41 @@ export function chooseOffer(state: State, index: number, dieId?: string, slot?: 
     if (offer.kind === 'remove') state.dice.splice(replace, 1);
     else state.dice[replace] = previewDie(state, offer, die)!;
   }
-  return advance(state);
+  return true;
+}
+
+function buyOffer(state: State, index: number, offer: Offer, dieId?: string): boolean {
+  if (!('price' in offer) || offer.price === undefined || !Number.isInteger(offer.price)
+    || offer.price <= 0 || offer.price > state.gold) return false;
+  if (offer.kind === 'relic') {
+    if (!RELICS[offer.id] || RELICS[offer.id].rarity === 'starter' || state.relics?.includes(offer.id)) return false;
+    (state.relics ??= []).push(offer.id);
+  } else {
+    if (offer.kind === 'item' && ITEMS[offer.id]?.rewardCharacter !== state.character) return false;
+    const dieIndex = state.dice.findIndex(die => die.id === dieId);
+    if (dieIndex < 0) return false;
+    const result = previewDie(state, offer, state.dice[dieIndex]);
+    if (!result) return false;
+    state.dice[dieIndex] = result;
+  }
+  state.gold -= offer.price;
+  state.offers.splice(index, 1);
+  return true;
 }
 
 export function advance(state: State): boolean {
-  if (state.phase !== 'reward' || state.room + 1 >= ROOMS.length) return false;
+  if (state.phase !== 'reward') return false;
+  if (state.map) {
+    state.phase = 'map';
+    state.map.active = null;
+    state.combat = null;
+    state.lastGold = 0;
+    state.offers = [];
+    delete state.bossSpoils;
+    revealTreasureWave(state.map);
+    return true;
+  }
+  if (state.room + 1 >= ROOMS.length) return false;
   state.room++;
   state.lastGold = 0;
   enterRoom(state);

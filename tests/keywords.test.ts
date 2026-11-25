@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs';
 import { CHARACTERS, DATA, DATA_ISSUES, DICE, FACE_IMAGE_PATHS, ITEMS } from '../src/content.ts';
 import { IMPLEMENTED_KEYWORDS, compileDb, compileFace } from '../src/data/runtime.ts';
 import { validate } from '../src/data/validate.ts';
-import { canPlay, commitRoll, endTurn, incoming, isExerted, newRun, play, rollFace } from '../src/game.ts';
+import { canPlay, commitRoll, endTurn, incoming, isExerted, newLinearRun as newRun, play, rollFace } from '../src/game.ts';
 import type { Face as DataFace } from '../src/data/types.ts';
 
 const enemyTarget = (s: ReturnType<typeof newRun>, i = 0) => ({ kind: 'enemy', id: s.combat!.enemies[i].id }) as const;

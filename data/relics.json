@@ -5,6 +5,308 @@
     "description": "Gain 1 Frenzy the first time you would take damage on your turn and again on the enemies’ turn, even if Block absorbs it. Direct life loss gives zero Frenzy. Frenzy resets each fight.",
     "trigger": "First positive damage on each side’s turn",
     "effect": "frenzyOnDamage",
+    "implemented": "implemented",
+    "rarity": "starter",
+    "image": "face-art/library/lightning.webp"
+  },
+  {
+    "id": "flint-shim",
+    "name": "Flint Shim",
+    "rarity": "common",
+    "description": "The first left face you play each turn gets +1 Damage or Block.",
+    "trigger": "First left face played",
+    "effect": "flintShim",
+    "image": "face-art/library/anvil.webp",
+    "implemented": "implemented"
+  },
+  {
+    "id": "reed-shuttle",
+    "name": "Reed Shuttle",
+    "rarity": "common",
+    "description": "Gain 2 Block when you play your third face each turn.",
+    "trigger": "Third face played",
+    "effect": "reedShuttle",
+    "image": "face-art/library/arrow.webp",
+    "implemented": "implemented"
+  },
+  {
+    "id": "clay-weir",
+    "name": "Clay Weir",
+    "rarity": "common",
+    "description": "Gain 2 Block when you commit dice with a blank showing.",
+    "trigger": "Commit with a blank",
+    "effect": "clayWeir",
+    "image": "face-art/library/brick_wall.webp",
+    "implemented": "implemented"
+  },
+  {
+    "id": "mud-wedge",
+    "name": "Mud Wedge",
+    "rarity": "common",
+    "description": "Gain 2 Block the first time you reroll a blank each turn.",
+    "trigger": "First blank rerolled",
+    "effect": "mudWedge",
+    "image": "face-art/library/rock.webp",
+    "implemented": "implemented"
+  },
+  {
+    "id": "thread-spool",
+    "name": "Thread Spool",
+    "rarity": "common",
+    "description": "Gain 1 Block the first time you play a right or rightmost face each turn.",
+    "trigger": "First right-side face played",
+    "effect": "threadSpool",
+    "image": "face-art/library/spiral.webp",
+    "implemented": "implemented"
+  },
+  {
+    "id": "wax-balance",
+    "name": "Wax Balance",
+    "rarity": "common",
+    "description": "Gain 3 Block after playing both a top and a bottom face in the same turn. Once per turn.",
+    "trigger": "Top and bottom played",
+    "effect": "waxBalance",
+    "image": "face-art/library/drop.webp",
+    "implemented": "implemented"
+  },
+  {
+    "id": "knotted-cord",
+    "name": "Knotted Cord",
+    "rarity": "common",
+    "description": "Gain 2 Block the first time you play a face with at least 5 Damage or Block pips each turn.",
+    "trigger": "First face with 5+ pips",
+    "effect": "knottedCord",
+    "image": "face-art/library/chain.webp",
+    "implemented": "implemented"
+  },
+  {
+    "id": "silt-quill",
+    "name": "Silt Quill",
+    "rarity": "common",
+    "description": "The first time you play a face with exactly 1 Damage or Block pip each turn, your next Damage or Block face gets +1 pip.",
+    "trigger": "First 1-pip face played",
+    "effect": "siltQuill",
+    "image": "face-art/library/feather.webp",
+    "implemented": "implemented"
+  },
+  {
+    "id": "keepers-bead",
+    "name": "Keeper’s Bead",
+    "rarity": "common",
+    "description": "At the end of your turn, gain 1 Ward per unused reroll.",
+    "trigger": "End of your turn",
+    "effect": "keepersBead",
+    "image": "face-art/library/gem.webp",
+    "implemented": "implemented"
+  },
+  {
+    "id": "pocket-spring",
+    "name": "Pocket Spring",
+    "rarity": "common",
+    "description": "Gain one extra reroll on turns 3, 6, 9, and so on.",
+    "trigger": "Every third turn",
+    "effect": "pocketSpring",
+    "image": "face-art/library/reroll.webp",
+    "implemented": "implemented"
+  },
+  {
+    "id": "cold-pebble",
+    "name": "Cold Pebble",
+    "rarity": "common",
+    "description": "Apply 1 Weak to every enemy at the start of combat.",
+    "trigger": "Start of combat",
+    "effect": "coldPebble",
+    "image": "face-art/library/snowflake.webp",
+    "implemented": "implemented"
+  },
+  {
+    "id": "twin-rivets",
+    "name": "Twin Rivets",
+    "rarity": "common",
+    "description": "Gain 2 Block when you commit two playable faces from the same position.",
+    "trigger": "Commit a matching pair",
+    "effect": "twinRivets",
+    "image": "face-art/library/crossed_swords.webp",
+    "implemented": "implemented"
+  },
+  {
+    "id": "sedge-laces",
+    "name": "Sedge Laces",
+    "rarity": "common",
+    "description": "Gain 1 Ward when you play your first top face each turn.",
+    "trigger": "First top face played",
+    "effect": "sedgeLaces",
+    "image": "face-art/library/boot_dash.webp",
+    "implemented": "implemented"
+  },
+  {
+    "id": "fen-tongs",
+    "name": "Fen Tongs",
+    "rarity": "common",
+    "description": "Gain 2 Block the first time you remove all of an enemy’s Block with a face each turn.",
+    "trigger": "First enemy Block broken",
+    "effect": "fenTongs",
+    "image": "face-art/library/cracked_shield.webp",
+    "implemented": "implemented"
+  },
+  {
+    "id": "silt-salt",
+    "name": "Silt Salt",
+    "rarity": "common",
+    "description": "Gain 2 Block the first time you play a face with enemy Burn, Poison, Weak, or Vulnerable each turn.",
+    "trigger": "First enemy status face played",
+    "effect": "siltSalt",
+    "image": "face-art/library/mushroom.webp",
+    "implemented": "implemented"
+  },
+  {
+    "id": "hinge-pin",
+    "name": "Hinge Pin",
+    "rarity": "uncommon",
+    "description": "The first time a reroll lands on a blank each turn, reroll that die one more time for free.",
+    "trigger": "First blank landed on a reroll",
+    "effect": "hingePin",
+    "image": "face-art/library/gear.webp",
+    "implemented": "implemented"
+  },
+  {
+    "id": "reed-loom",
+    "name": "Reed Loom",
+    "rarity": "uncommon",
+    "description": "The first time you play a Damage or Block face from a position you already played this turn, add 2 pips to it.",
+    "trigger": "Repeat a position",
+    "effect": "reedLoom",
+    "image": "face-art/library/tune.webp",
+    "implemented": "implemented"
+  },
+  {
+    "id": "loop-weight",
+    "name": "Loop Weight",
+    "rarity": "uncommon",
+    "description": "If you committed without rerolling, your first face played this turn gets +2 Damage or Block.",
+    "trigger": "First face with no rerolls used",
+    "effect": "loopWeight",
+    "image": "face-art/library/chain.webp",
+    "implemented": "implemented"
+  },
+  {
+    "id": "drowned-compass",
+    "name": "Drowned Compass",
+    "rarity": "uncommon",
+    "description": "On even turns, if you played no middle face, apply 1 Weak to the healthiest enemy before enemies act.",
+    "trigger": "End of even turns",
+    "effect": "drownedCompass",
+    "image": "face-art/library/target.webp",
+    "implemented": "implemented"
+  },
+  {
+    "id": "tide-knot",
+    "name": "Tide Knot",
+    "rarity": "uncommon",
+    "description": "Gain 4 Ward after playing both a left and a rightmost face in the same turn. Once per turn.",
+    "trigger": "Left and rightmost played",
+    "effect": "tideKnot",
+    "image": "face-art/library/spiral.webp",
+    "implemented": "implemented"
+  },
+  {
+    "id": "blank-ferrule",
+    "name": "Blank Ferrule",
+    "rarity": "uncommon",
+    "description": "At commit, the first blank showing becomes a 3 Block face for that turn.",
+    "trigger": "Commit with a blank",
+    "effect": "blankFerrule",
+    "image": "face-art/library/buckler.webp",
+    "implemented": "implemented"
+  },
+  {
+    "id": "clay-flask",
+    "name": "Clay Flask",
+    "rarity": "uncommon",
+    "description": "Gain 4 Ward the first time damage lowers your HP in each fight.",
+    "trigger": "First HP damage each fight",
+    "effect": "clayFlask",
+    "image": "face-art/library/potion.webp",
+    "implemented": "implemented"
+  },
+  {
+    "id": "iron-thread",
+    "name": "Iron Thread",
+    "rarity": "uncommon",
+    "description": "The fourth face you play each turn gets +2 Damage or Block.",
+    "trigger": "Fourth face played",
+    "effect": "ironThread",
+    "image": "face-art/library/gauntlet.webp",
+    "implemented": "implemented"
+  },
+  {
+    "id": "mire-glass",
+    "name": "Mire Glass",
+    "rarity": "uncommon",
+    "description": "If your first face played each turn has at least 3 Damage or Block pips, deal 2 damage to the healthiest surviving enemy.",
+    "trigger": "First face with 3+ pips",
+    "effect": "mireGlass",
+    "image": "face-art/library/eye.webp",
+    "implemented": "implemented"
+  },
+  {
+    "id": "tide-slate",
+    "name": "Tide Slate",
+    "rarity": "uncommon",
+    "description": "The first time you remove all of a surviving enemy’s Block with a face each turn, apply 1 Burn and 1 Vulnerable to it.",
+    "trigger": "First surviving enemy Block broken",
+    "effect": "tideSlate",
+    "image": "face-art/library/shield_flame.webp",
+    "implemented": "implemented"
+  },
+  {
+    "id": "counterweight-crown",
+    "name": "Counterweight Crown",
+    "rarity": "rare",
+    "description": "Your first face played from each of the right and rightmost positions gets +3 Damage or Block each turn.",
+    "trigger": "First face at each right-side position",
+    "effect": "counterweightCrown",
+    "image": "face-art/library/crown.webp",
+    "implemented": "implemented"
+  },
+  {
+    "id": "sixfold-bell",
+    "name": "Sixfold Bell",
+    "rarity": "rare",
+    "description": "When you play faces from four different positions in a turn, gain 6 Block and deal 6 damage to the healthiest surviving enemy. Once per turn.",
+    "trigger": "Four positions played",
+    "effect": "sixfoldBell",
+    "image": "face-art/library/bell.webp",
+    "implemented": "implemented"
+  },
+  {
+    "id": "floodgate-key",
+    "name": "Floodgate Key",
+    "rarity": "rare",
+    "description": "On turns 3, 6, 9, and so on, your first three faces played get +3 Damage or Block each.",
+    "trigger": "First three faces on every third turn",
+    "effect": "floodgateKey",
+    "image": "face-art/library/key.webp",
+    "implemented": "implemented"
+  },
+  {
+    "id": "hollow-prism",
+    "name": "Hollow Prism",
+    "rarity": "rare",
+    "description": "If you commit with a blank showing, your first two Damage or Block faces played this turn each get +2 pips.",
+    "trigger": "Commit with a blank",
+    "effect": "hollowPrism",
+    "image": "face-art/library/gem.webp",
+    "implemented": "implemented"
+  },
+  {
+    "id": "twinwake-dial",
+    "name": "Twinwake Dial",
+    "rarity": "rare",
+    "description": "Play two faces in a row with the same positive Damage or Block pips to give all other unused dice +1 pip this turn. Once per turn.",
+    "trigger": "First consecutive matching pip values",
+    "effect": "twinwakeDial",
+    "image": "face-art/library/sun.webp",
     "implemented": "implemented"
   }
 ]

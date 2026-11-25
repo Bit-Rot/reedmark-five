@@ -2,7 +2,8 @@
  * Compiles the design data (data/*.json) into the game's own content types.
  * Pure functions over a `Collections`, so they run in the editor, tests and the game alike.
  */
-import type { DieDefinition, Face as GameFace, Item as GameItem, Part, Slot, StarterRelic, TargetKind } from '../model.ts';
+import { RELIC_EFFECTS } from '../relic-data.ts';
+import type { DieDefinition, Face as GameFace, Item as GameItem, Part, Relic, Slot, TargetKind } from '../model.ts';
 import { SLOTS } from '../model.ts';
 import type { Collections, Die, Face, Item, Keyword, SlotName, Targeting } from './types.ts';
 import { SLOT_NAMES } from './types.ts';
@@ -193,7 +194,8 @@ export function compileItem(db: Collections, item: Item, issues: Diagnostic[] = 
 export interface CompiledContent {
   dice: Record<string, DieDefinition>;
   items: Record<string, GameItem>;
-  characters: { id: string; name: string; starterDice: string[]; starterRelic?: StarterRelic }[];
+  characters: { id: string; name: string; starterDice: string[]; starterRelic?: Relic }[];
+  relics: Record<string, Relic>;
   /** Everything that stopped something from being usable. */
   issues: Diagnostic[];
 }
@@ -215,13 +217,22 @@ export function compileDb(db: Collections): CompiledContent {
     issues.push(...local);
     if (compiled && !local.length) items[it.id] = compiled;
   }
+  const relics: Record<string, Relic> = {};
+  for (const relic of db.relics) {
+    if (relic.implemented !== 'implemented') continue;
+    if (!relic.effect || !RELIC_EFFECTS.includes(relic.effect) || (!relic.rarity && relic.effect !== 'frenzyOnDamage')) {
+      issues.push({ where: 'relic ' + relic.id, message: 'needs a supported effect and rarity' });
+      continue;
+    }
+    const rarity = relic.rarity ?? 'starter';
+    relics[relic.id] = { name: relic.name, description: relic.description, effect: relic.effect, rarity, image: relic.image };
+  }
   const characters: CompiledContent['characters'] = [];
   for (const c of db.characters) {
     const missing = c.starterDice.filter(id => !dice[id]);
     for (const id of missing) issues.push({ where: `character ${c.id}`, message: `starter die "${id}" is missing or has problems` });
-    const relic = db.relics.find(r => r.id === c.starterRelic);
-    const starterRelic = relic?.implemented === 'implemented' && relic.effect === 'frenzyOnDamage'
-      ? { name: relic.name, description: relic.description, effect: relic.effect } : undefined;
+    const relic = c.starterRelic ? relics[c.starterRelic] : undefined;
+    const starterRelic = relic?.rarity === 'starter' ? relic : undefined;
     if (c.starterRelic && !starterRelic) {
       issues.push({ where: `character ${c.id}`, message: `starter relic "${c.starterRelic}" is missing or has no supported effect` });
       continue;
@@ -230,7 +241,7 @@ export function compileDb(db: Collections): CompiledContent {
       characters.push({ id: c.id, name: c.name, starterDice: c.starterDice, ...(starterRelic ? { starterRelic } : {}) });
     }
   }
-  return { dice, items, characters, issues };
+  return { dice, items, characters, relics, issues };
 }
 
 export function keywordIsImplemented(k: Keyword): boolean {

@@ -1,8 +1,10 @@
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
-import { advance, newRun, rollFace } from '../../src/game.ts';
+import { distance, explorationDistance, frontier } from '../../src/campaign-map.ts';
+import { ROOMS } from '../../src/content.ts';
+import { advance, commitRoll, currentRoom, endTurn, explore, newLinearRun as newRun, newRun as newCampaignRun, rollFace } from '../../src/game.ts';
 import type { State, Variant } from '../../src/model.ts';
-import { act, takeReward } from '../../scripts/policy.ts';
+import { act, takeMapTurn, takeReward } from '../../scripts/policy.ts';
 import type { Command } from '../../scripts/policy.ts';
 
 async function center(locator: Locator) {
@@ -60,7 +62,7 @@ test('narrow touch layout exposes ten pool dice and supports tap targeting', asy
   const page = await context.newPage();
   const pool = newRun('pool', 231);
   const attacker = pool.combat!.rolls.find(roll => rollFace(pool, roll).target === 'enemy')!.dieId;
-  await page.goto('/?mode=pool&seed=231');
+  await page.goto('/?route=linear&mode=pool&seed=231');
   await page.getByRole('button', { name: 'View dice bag' }).tap();
   await expect(page.locator('[data-action="inspect"]')).toHaveCount(10);
   await expect(page.getByText('5 remaining')).toBeVisible();
@@ -78,7 +80,7 @@ async function saveFixture(page: Page, state: State): Promise<void> {
   await page.addInitScript(save => {
     localStorage.setItem(`reedmark:${save.variant}:v1`, JSON.stringify(save));
   }, state);
-  await page.goto('/');
+  await page.goto('/?route=linear');
 }
 
 test('hover and right click show illustrated faces and their in-game definitions', async ({ page }) => {
@@ -156,7 +158,11 @@ test('Fixed Five accepts a tap on an item and a tap on its destination', async (
 });
 
 async function perform(page: Page, command: Command): Promise<void> {
-  if (command.action === 'hold') {
+  if (command.action === 'explore') {
+    await page.locator('button[data-tile="' + command.id + '"]').click();
+  } else if (command.action === 'boss') {
+    await action(page, 'start-boss').click();
+  } else if (command.action === 'hold') {
     await die(page, command.id).click();
   } else if (command.action === 'play') {
     await die(page, command.id).click();
@@ -177,7 +183,7 @@ async function perform(page: Page, command: Command): Promise<void> {
       }
     }
   } else if (command.action === 'commit') {
-    // The page commits by itself after the last reroll or once every die is held.
+    // The page commits by itself after the last available reroll.
     if (await action(page, 'commit').count()) await action(page, 'commit').click();
   } else {
     await action(page, command.action).click();
@@ -188,7 +194,7 @@ for (const variant of ['fixed', 'pool'] as Variant[]) {
   test(`mirrors a complete ${variant} run through the browser UI`, async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', error => errors.push(error.message));
-    await page.goto(`/?mode=${variant}&seed=1`);
+    await page.goto(`/?route=linear&mode=${variant}&seed=1`);
     const s: State = newRun(variant, 1);
     await expect(page.locator('#interface')).toHaveAttribute('data-variant', variant);
     for (let n = 0; n < 140 && (s.phase === 'battle' || s.phase === 'reward'); n++) {
@@ -209,7 +215,7 @@ for (const variant of ['fixed', 'pool'] as Variant[]) {
 test('a fresh run asks for a hero and starts with that hero\'s dice', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/');
+  await page.goto('/?route=linear');
   await expect(page.getByRole('heading', { name: 'Choose your hero' })).toBeVisible();
   await expect(page.locator('.character-choice')).toHaveCount(3);
   await page.getByRole('button', { name: 'Play Thief' }).click();
@@ -240,7 +246,7 @@ test('vulnerable stacks show on the enemy and exert blanks the die next turn', a
 test('picking a hero works right away even with animations enabled', async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: 'no-preference' });
   const page = await context.newPage();
-  await page.goto('/');
+  await page.goto('/?route=linear');
   await page.getByRole('button', { name: 'Play Barbarian' }).click();
   await expect(page.locator('#interface')).toHaveAttribute('data-phase', 'battle');
   await expect(page.locator('.stage-cube')).toHaveCount(5);
@@ -301,7 +307,7 @@ test('the HUD shows gold, and a won fight pays gold on the spoils screen', async
 test('the gear opens a menu where a run can be abandoned after confirming', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/?character=thief');
+  await page.goto('/?route=linear&character=thief');
   await expect(page.locator('#interface')).toHaveAttribute('data-phase', 'battle');
   await expect(page.locator('.hud-right [data-action="ledger"]')).toBeVisible();
   const gear = page.locator('.hud-right [data-action="menu"]');
@@ -325,13 +331,13 @@ test('the gear opens a menu where a run can be abandoned after confirming', asyn
   await expect(page.getByRole('heading', { name: 'Choose your hero' })).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem('reedmark:fixed:v1'))).toBeNull();
   // Reloading does not bring the abandoned run back.
-  await page.goto('/');
+  await page.goto('/?route=linear');
   await expect(page.getByRole('heading', { name: 'Choose your hero' })).toBeVisible();
   expect(errors).toEqual([]);
 });
 
 test('abandoning a seeded run restarts the same seed', async ({ page }) => {
-  await page.goto('/?seed=231');
+  await page.goto('/?route=linear&seed=231');
   await expect(page.locator('#interface')).toHaveAttribute('data-phase', 'battle');
   await action(page, 'commit').click();
   await page.locator('[data-action="menu"]').click();
@@ -343,7 +349,7 @@ test('abandoning a seeded run restarts the same seed', async ({ page }) => {
 
 
 test('dice names are never shown or announced; they are code names only', async ({ page }) => {
-  await page.goto('/?character=thief&seed=11');
+  await page.goto('/?route=linear&character=thief&seed=11');
   await expect(page.locator('#interface')).toHaveAttribute('data-phase', 'battle');
   const names = /Dagger|Dodge|Kris|Sword|Hammer/;
   expect(await page.locator('#interface').innerText()).not.toMatch(names);
@@ -355,23 +361,33 @@ test('dice names are never shown or announced; they are code names only', async 
   expect(await page.locator('#interface').innerText()).not.toMatch(names);
 });
 
-test('the roll commits by itself after the last reroll', async ({ page }) => {
-  await page.goto('/?seed=231');
-  await expect(action(page, 'commit')).toBeVisible();
-  await action(page, 'reroll').click();
-  await expect(action(page, 'commit')).toBeVisible();
+test('the roll commits by itself after the third reroll', async ({ page }) => {
+  await page.goto('/?route=linear&seed=231');
+  await expect(action(page, 'reroll')).toHaveAccessibleName('Reroll, 3 left');
+  for (const left of [2, 1]) {
+    await action(page, 'reroll').click();
+    await expect(action(page, 'commit')).toBeVisible();
+    await expect(action(page, 'reroll')).toHaveAccessibleName(`Reroll, ${left} left`);
+  }
   await action(page, 'reroll').click();
   await expect(action(page, 'end')).toBeVisible();
   await expect(action(page, 'commit')).toHaveCount(0);
 });
 
-test('the roll commits by itself when the last die is put in a slot', async ({ page }) => {
-  await page.goto('/?seed=231');
+test('all dice can be held and released before manually committing', async ({ page }) => {
+  await page.goto('/?route=linear&seed=231');
   for (const id of ['d0', 'd1', 'd2', 'd3']) await die(page, id).click();
-  await expect(action(page, 'commit')).toBeVisible();
+  await drag(page, die(page, 'd4'), page.locator('[data-socket="4"]'));
+  await expect(page.locator('.seated')).toHaveCount(5);
+  await expect(action(page, 'commit')).toBeEnabled();
+  await expect(action(page, 'reroll')).toBeDisabled();
+  await expect(action(page, 'end')).toHaveCount(0);
+  await page.waitForTimeout(120); // The drag release must not become a tap on the seated die.
   await die(page, 'd4').click();
+  await expect(page.locator('.seated')).toHaveCount(4);
+  await expect(action(page, 'reroll')).toBeEnabled();
+  await action(page, 'commit').click();
   await expect(action(page, 'end')).toBeVisible();
-  await expect(action(page, 'commit')).toHaveCount(0);
 });
 
 test('clicking a self-target die uses it at once, with no target to pick', async ({ page }) => {
@@ -428,9 +444,9 @@ test('the camp offers a face upgrade; picking it, then a face, adds the keyword 
   const dieId = await first.getAttribute('data-upgrade-die');
   const slot = await first.getAttribute('data-slot');
   await first.click();
-  await expect(page.locator('#interface')).toHaveAttribute('data-phase', 'battle');
+  await expect(page.getByRole('heading', { name: 'Shop', exact: true })).toBeVisible();
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('reedmark:fixed:v1')!)) as State;
-  expect(saved.room).toBe(5 + 1);
+  expect(ROOMS[saved.room].type).toBe('shop');
   const die = saved.dice.find(d => d.id === dieId)!;
   expect(die.upgrades?.[slot as 'left']).toEqual([{ keyword: 'cleave' }]);
   expect(saved.dice.reduce((n, d) => n + Object.values(d.upgrades ?? {}).flat().length, 0)).toBe(1);
@@ -485,4 +501,196 @@ test('Moth shows Lampheart, changes live face values, and shows exhausted slots 
   await die(page, 'd0').click({ button: 'right' });
   const layout = page.getByRole('dialog', { name: 'Die 1 layout' });
   await expect(layout.locator('[data-slot="top"]')).toHaveAttribute('aria-label', 'Top, Blank');
+});
+
+test('the shop sells relics and previews a face copy without ending the visit', async ({ page }) => {
+  const state = newRun('fixed', 231, 'moth');
+  state.phase = 'reward';
+  state.room = ROOMS.findIndex(room => room.type === 'shop') - 1;
+  state.gold = 75;
+  expect(advance(state)).toBe(true);
+  await saveFixture(page, state);
+  const relics = page.locator('[data-shop-kind="relic"]');
+  const items = page.locator('[data-shop-kind="item"]');
+  const copy = page.locator('[data-shop-kind="faceCopy"]');
+  await expect(page.getByRole('heading', { name: 'Shop', exact: true })).toBeVisible();
+  await expect(relics).toHaveCount(3);
+  await expect(items).toHaveCount(3);
+  await expect(copy).toHaveCount(1);
+  const boughtName = await relics.first().locator('strong').innerText();
+  await relics.first().click();
+  await expect(page.locator('.gold-amount')).toHaveText('39');
+  await expect(relics).toHaveCount(2);
+  await expect(relics.first()).toBeDisabled();
+  await page.getByRole('button', { name: 'View owned relics' }).click();
+  await expect(page.locator('.owned-relics')).toContainText(boughtName);
+  await expect(page.locator('.owned-relics')).toContainText('Lampheart');
+  await page.getByRole('button', { name: 'Close relics' }).click();
+  await copy.click();
+  await expect(page.getByRole('button', { name: 'Copy face for 23 gold' })).toBeDisabled();
+  await action(page, 'reward-die').first().click();
+  await expect(page.locator('.placement-detail .is-changed')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Copy face for 23 gold' }).click();
+  await expect(page.locator('.gold-amount')).toHaveText('16');
+  await expect(copy).toHaveCount(0);
+  await expect(items.first()).toBeDisabled();
+  await page.getByRole('button', { name: 'Leave shop' }).click();
+  await expect(page.locator('#interface')).toHaveAttribute('data-phase', 'battle');
+  await expect(page.getByRole('button', { name: 'View owned relics' })).toBeVisible();
+  await expect(page.locator('.stage-cube .cube-tag')).toHaveCount(5);
+});
+
+test('mobile long press explains reward faces and owned dice without taking the item', async ({ browser }) => {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce',
+  });
+  await using cleanup = { [Symbol.asyncDispose]: () => context.close() };
+  const page = await context.newPage();
+  const touch = await context.newCDPSession(page);
+  const state = newRun('fixed', 231, 'moth');
+  state.phase = 'reward';
+  state.offers = [{ kind: 'item', id: 'wick-wrap' }, { kind: 'item', id: 'molt-plate' }, { kind: 'item', id: 'cinder-needle' }];
+  await saveFixture(page, state);
+  const item = page.getByRole('button', { name: 'Molt Plate' });
+  const target = page.locator('[data-imprint-target="d4"]');
+  const dialog = page.getByRole('dialog');
+  async function longPress(locator: Locator) {
+    const point = await center(locator);
+    await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point] });
+    await expect(dialog).toBeVisible();
+    await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await expect(dialog).toBeVisible();
+  }
+
+  await longPress(item);
+  await expect(dialog).toHaveAccessibleName('Molt Plate');
+  await expect(dialog).toContainText('Add 1 damage or Block for each blank on this die');
+  await expect(dialog).toContainText('if you have already exhausted a face this turn');
+  await dialog.getByRole('button', { name: 'Inspect Die 5' }).tap();
+  await expect(dialog).toHaveAccessibleName('Die 5 faces');
+  await expect(dialog.locator('.inspection-face')).toHaveCount(6);
+  await dialog.getByRole('button', { name: 'Back to item' }).tap();
+  await expect(dialog).toHaveAccessibleName('Molt Plate');
+  await dialog.getByRole('button', { name: 'Close inspection' }).tap();
+  await expect(item).toHaveAttribute('aria-pressed', 'false');
+
+  await item.tap();
+  await expect(item).toHaveAttribute('aria-pressed', 'true');
+  await longPress(target);
+  await expect(dialog).toHaveAccessibleName('Die 5 faces');
+  await dialog.getByRole('button', { name: 'Close inspection' }).tap();
+  await expect(item).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#interface')).toHaveAttribute('data-phase', 'reward');
+  await target.tap();
+  await expect(page.locator('#interface')).toHaveAttribute('data-phase', 'battle');
+});
+
+test('rare boss spoils are inspectable on the immediate victory screen', async ({ page }) => {
+  const state = newRun('fixed', 231);
+  state.phase = 'reward';
+  state.room = ROOMS.length - 2;
+  expect(advance(state)).toBe(true);
+  state.combat!.enemies[0].hp = 1;
+  state.combat!.rolls[0].slot = 'left';
+  await saveFixture(page, state);
+  await action(page, 'commit').click();
+  await die(page, 'd0').click();
+  await actor(page, 'bellroot').click();
+  await expect(page.getByRole('heading', { name: 'Passage clear' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Boss spoils' })).toBeVisible();
+  await expect(page.locator('.boss-relic')).toContainText('Rare relic');
+  await page.locator('.boss-item').click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+});
+
+test('the campaign map supports keyboard exploration and discards an old Fixed Five save', async ({ page }) => {
+  const obsolete = newRun('fixed', 231);
+  await page.addInitScript(save => localStorage.setItem('reedmark:fixed:v1', JSON.stringify(save)), obsolete);
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Choose your hero' })).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('reedmark:fixed:v1'))).toBeNull();
+  await page.getByRole('button', { name: 'Play Moth' }).click();
+  await expect(page.getByRole('heading', { name: 'Explore Reedmark' })).toBeVisible();
+  await expect(page.locator('.campaign-hex')).toHaveCount(127);
+  await expect(page.locator('[data-action="explore-tile"]')).toHaveCount(6);
+  await expect(page.locator('.campaign-timer')).toHaveText('Boss in 16 turns');
+  await expect(page.locator('.campaign-hex[data-kind="unknown"]').first()).toHaveAccessibleName(/Unrevealed/);
+  const normal = page.locator('button[data-kind="normal"]').first();
+  await normal.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#interface')).toHaveAttribute('data-phase', 'battle');
+  await expect(page.locator('.map-track')).toContainText('1/48');
+});
+
+test('touching a chest detour preserves the revealed map and payout across reload', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' });
+  try {
+    const page = await context.newPage();
+    const state = newCampaignRun('fixed', 231, 'moth');
+    const map = state.map!;
+    function resolveFixtureRoom() {
+      if (state.phase === 'battle') {
+        state.combat!.intents = [];
+        for (const enemy of state.combat!.enemies) enemy.seep = enemy.hp;
+        expect(commitRoll(state) && endTurn(state)).toBe(true);
+      }
+      expect(advance(state)).toBe(true);
+    }
+    while (map.turn < 4) {
+      expect(explore(state, [...frontier(map)][0])).toBe(true);
+      resolveFixtureRoom();
+    }
+    while (!map.tiles.some(tile => frontier(map).has(tile.id) && tile.chest !== undefined)) {
+      const reachable = frontier(map);
+      const costs = explorationDistance(map);
+      const chest = map.tiles.filter(tile => tile.chest !== undefined).sort((a, b) => costs.get(a.id)! - costs.get(b.id)!)[0];
+      const step = map.tiles.find(tile => reachable.has(tile.id) && distance(tile, chest) === costs.get(chest.id)! - 1)!;
+      expect(explore(state, step.id)).toBe(true);
+      resolveFixtureRoom();
+    }
+    await page.addInitScript(save => {
+      if (!localStorage.getItem('reedmark:fixed:v1')) localStorage.setItem('reedmark:fixed:v1', JSON.stringify(save));
+    }, state);
+    await page.goto('/');
+    await expect(page.locator('[data-kind="treasure"]')).toHaveCount(3);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+    await page.getByRole('button', { name: 'Zoom out' }).tap();
+    await page.getByRole('button', { name: 'Center on your position' }).tap();
+    const chest = page.locator('button[data-kind="treasure"]').first();
+    expect((await chest.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    await chest.tap();
+    await expect(page.getByRole('heading', { name: 'Treasure', exact: true })).toBeVisible();
+    const gold = await page.locator('.gold-amount').innerText();
+    await page.reload();
+    await expect(page.getByRole('heading', { name: 'Treasure', exact: true })).toBeVisible();
+    await expect(page.locator('.gold-amount')).toHaveText(gold);
+    await page.getByRole('button', { name: 'Return to map' }).tap();
+    await expect(page.locator('[data-kind="treasure"]')).toHaveCount(2);
+  } finally {
+    await context.close();
+  }
+});
+
+test('plays a complete Fixed Five campaign through the browser and all three bosses', async ({ page }) => {
+  test.setTimeout(360_000);
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  const state = newCampaignRun('fixed', 1, 'thief');
+  await page.goto('/?seed=1&character=thief');
+  const bosses: string[] = [];
+  for (let step = 0; step < 600 && !['victory', 'defeat'].includes(state.phase); step++) {
+    const commands: Command[] = [];
+    if (state.phase === 'map') {
+      expect(takeMapTurn(state, 'treasure', commands)).toBe(true);
+      if (commands[0]?.action === 'boss') bosses.push(currentRoom(state).name);
+    } else if (state.phase === 'battle') act(state, commands);
+    else takeReward(state, commands);
+    for (const command of commands) await perform(page, command);
+    await expect(page.locator('#interface')).toHaveAttribute('data-phase', state.phase);
+  }
+  expect(bosses).toEqual(['Bellroot', 'Floodgate Keeper', 'Stormwing Matriarch']);
+  expect(state.phase).toBe('victory');
+  await expect(page.getByRole('heading', { name: 'Passage clear' })).toBeVisible();
+  await expect(page.locator('.boss-relic')).toBeVisible();
+  expect(errors).toEqual([]);
 });

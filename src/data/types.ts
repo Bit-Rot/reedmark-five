@@ -1,3 +1,5 @@
+import type { RelicEffect } from '../relic-data.ts';
+
 /** Slot names for a die's "t" diagram. Index 0..5 = Face 1..6 in the design docs. */
 export const SLOT_NAMES = ['left', 'middle', 'top', 'bottom', 'right', 'rightmost'] as const;
 export type SlotName = (typeof SLOT_NAMES)[number];
@@ -26,7 +28,7 @@ export type RoomKind = (typeof ROOM_KINDS)[number];
 export const TONES = ['rust', 'blue', 'olive', 'jade', 'sand'] as const;
 export type Tone = (typeof TONES)[number];
 
-export const SHOP_OFFERS = ['items', 'relics', 'potions'] as const;
+export const SHOP_OFFERS = ['items', 'relics', 'faceCopy', 'potions'] as const;
 export type ShopOffer = (typeof SHOP_OFFERS)[number];
 
 export interface Keyword {
@@ -109,7 +111,9 @@ export interface Relic {
   name: string;
   description: string;
   trigger: string;
-  effect?: '' | 'frenzyOnDamage';
+  effect?: '' | RelicEffect;
+  rarity?: Rarity | 'starter';
+  image?: string;
   implemented: Implemented;
 }
 

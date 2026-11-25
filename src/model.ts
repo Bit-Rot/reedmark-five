@@ -1,3 +1,6 @@
+import type { CampaignMap } from './campaign-map.ts';
+import type { RelicEffect } from './relic-data.ts';
+
 export const SLOTS = ['left', 'center', 'right', 'far', 'top', 'bottom'] as const;
 export type Slot = typeof SLOTS[number];
 export type Variant = 'fixed' | 'pool';
@@ -24,10 +27,13 @@ export interface Face {
   /** Library image path (e.g. `face-art/library/sword.webp`) that the face is drawn with; effect icons are the fallback. */
   image?: string;
 }
-export interface StarterRelic {
+export type Rarity = 'common' | 'uncommon' | 'rare';
+export interface Relic {
   name: string;
   description: string;
-  effect: 'frenzyOnDamage';
+  effect: RelicEffect;
+  rarity: Rarity | 'starter';
+  image?: string;
 }
 export interface DieDefinition {
   name: string;
@@ -37,13 +43,19 @@ export interface DieDefinition {
 export interface Item {
   name: string;
   rewardCharacter?: string;
-  rarity: 'common' | 'uncommon' | 'rare';
+  rarity: Rarity;
   edits: Partial<Record<Slot, Face>>;
 }
 /** A keyword added to one face of a die (a camp upgrade). */
 export interface Upgrade {
   keyword: string;
   x?: number;
+}
+export interface CopiedFace {
+  template: string;
+  slot: Slot;
+  item?: string;
+  upgrades?: Upgrade[];
 }
 export interface Die {
   id: string;
@@ -52,6 +64,7 @@ export interface Die {
   /** Keywords added to individual faces; an imprint replaces the face and clears that face's upgrades. */
   upgrades?: Partial<Record<Slot, Upgrade[]>>;
   item?: string;
+  copies?: Partial<Record<Slot, CopiedFace>>;
 }
 export interface Roll {
   dieId: string;
@@ -97,7 +110,17 @@ export interface Encounter {
   phaseTwo?: readonly IntentDie[];
   rank: 'normal' | 'elite' | 'boss';
 }
-export type Room = Encounter | { type: 'workshop' | 'camp'; name: string };
+export type Room = Encounter | { type: 'workshop' | 'camp' | 'shop' | 'map' | 'event' | 'treasure'; name: string };
+export interface RelicTurn {
+  slots: Slot[];
+  fired: RelicEffect[];
+  rerollsUsed: number;
+  pipped: number;
+  nextPip?: boolean;
+  blankGuard?: string;
+  committedBlank?: boolean;
+  drownedCompass?: boolean;
+}
 export interface Combat {
   turn: number;
   phase: 'roll' | 'play';
@@ -121,13 +144,21 @@ export interface Combat {
   previous: number | null;
   /** What happened on the last roll that the player did not click (cantrips). */
   events: string[];
+  relicTurn?: RelicTurn;
+  relicWardOnDamage?: boolean;
 }
+export type FaceCopyOffer = { kind: 'faceCopy'; from: Slot; to: Slot; price: number };
 export type Offer =
-  | { kind: 'item' | 'add' | 'transform'; id: string }
+  | { kind: 'item'; id: string; price?: number }
+  | { kind: 'relic'; id: string; price: number }
+  | FaceCopyOffer
+  | { kind: 'add' | 'transform'; id: string }
   | { kind: 'upgrade'; keyword: string; x?: number }
+  | { kind: 'restore' | 'gold'; amount: number }
   | { kind: 'remove' | 'heal' };
 export interface State {
-  version: 4;
+  version: 5 | 6;
+  map?: CampaignMap;
   variant: Variant;
   character: string;
   seed: number;
@@ -142,7 +173,9 @@ export interface State {
   lastGold: number;
   nextDie: number;
   dice: Die[];
-  phase: 'battle' | 'reward' | 'victory' | 'defeat';
+  phase: 'map' | 'battle' | 'reward' | 'victory' | 'defeat';
   combat: Combat | null;
   offers: Offer[];
+  relics?: string[];
+  bossSpoils?: { item?: string; relic?: string };
 }

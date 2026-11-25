@@ -1,8 +1,8 @@
 # Reedmark
 
-Two solo dice-battler prototypes using the same battlefield and nine-room route.
+Two solo dice-battler prototypes using the same battlefield.
 
-- [Fixed Five](https://bit-rot.github.io/reedmark-five/) keeps five dice throughout a run. Items permanently imprint specific faces, replacing older imprints only where they overlap.
+- [Fixed Five](https://bit-rot.github.io/reedmark-five/) keeps five dice throughout a run. Items permanently imprint specific faces, replacing older imprints only where they overlap. New runs use a seeded radius-six hex map.
 - [Dice Pool](https://bit-rot.github.io/reedmark-pool/) starts with ten dice, cycles five at a time, and supports adding, removing, and transforming dice. Each die has one permanent imprint.
 
 ## Development
@@ -19,7 +19,7 @@ npx playwright install --with-deps chromium
 npm run test:browser
 ```
 
-Development defaults to Fixed Five. Use `?mode=pool` for Dice Pool. Add `seed=231` to either mode to replay deterministic outcomes in an isolated run. Unseeded runs save locally under separate mode keys. The policy runner compares the same enemy rolls, shared encounter lineup, and route with both progression systems.
+Development defaults to Fixed Five. Use `?mode=pool` for Dice Pool. Add `seed=231` to either mode to replay deterministic outcomes in an isolated run. Unseeded runs save locally under separate mode keys. Run the Fixed Five balance report with `npm run balance -- 96 fixed`. Pass `cautious`, `elite`, or `treasure` as the final argument to run one map policy.
 
 The stage uses Three.js. The rules and authored content have no rendering dependencies. The original marsh background and sprite atlas were made with the built-in ImageGen tool and prepared as optimized WebP assets under `src/art/`.
 
@@ -31,9 +31,15 @@ The editor is a static page at `/editor/` on the published site (also installabl
 
 To save from the published page, open the settings (gear) and paste a GitHub fine-grained personal access token limited to this repository with **Contents: Read and write**. The token stays in that browser only. **Save** makes one commit on `main` containing the data, regenerated docs and any images; if `main` moved since you loaded, the changes are merged per entity and any clashes are offered for you to resolve.
 
-The game itself reads this data: dice, items and characters come from `data/*.json` (compiled in `src/data/runtime.ts`), while enemies and rooms are still authored in `src/content.ts`. Winning a fight pays gold (normal 10-20, elite 25-35, boss 95-105, as in Slay the Spire); it is shown in the HUD but nothing spends it yet. The gear button in the HUD opens a menu with Abandon run. At the camp, instead of an item you are offered a face upgrade: a random keyword from `CAMP_UPGRADES` in `src/content.ts` (cantrip, selfShield, inspired, growth 1, weak 1, vulnerable 1, cleave) that you add to any face it fits. Upgrades are stored per die face, and imprinting an item over a face removes that face's upgrades. The roll commits by itself after the last reroll or once every die is held, and faces that need no aim (self or all enemies) are used the moment you click them. Dice have no player-facing name; the `name` in the data is only a label for the editor. Early fights are tuned so the starter dice usually win them untouched (`npm run balance -- 60 fixed` reports how often). A run starts with a hero chosen on a select screen (or `?character=moth`). Each hero starts with five dice in Fixed Five. Moth also starts with Lampheart, a relic that grants Frenzy on the first damage event on each side’s turn, even through Block. The editor and generated keyword table show which keywords the engine supports. The editor’s validation panel explains when authored data cannot be used in game.
+The game itself reads this data: dice, items and characters come from `data/*.json` (compiled in `src/data/runtime.ts`), while encounter pools and events are authored in `src/campaign-content.ts`. Winning a fight pays gold (normal 10-20, elite 25-35, boss 95-105, as in Slay the Spire); it is shown in the HUD and spent at shops. The gear button in the HUD opens a menu with Abandon run. At the camp, instead of an item you are offered a face upgrade: a random keyword from `CAMP_UPGRADES` in `src/content.ts` (cantrip, selfShield, inspired, growth 1, weak 1, vulnerable 1, cleave) that you add to any face it fits. Upgrades are stored per die face, and imprinting an item over a face removes that face's upgrades. The roll commits by itself after the last available reroll. You can also commit manually while holding any number of dice. Faces that need no aim (self or all enemies) are used the moment you click them. Dice have no player-facing name; the `name` in the data is only a label for the editor. Early fights are tuned so the starter dice usually win them untouched (`npm run balance -- 60 fixed` reports how often). A run starts with a hero chosen on a select screen (or `?character=moth`). Each hero starts with five dice in Fixed Five. Moth also starts with Lampheart, a relic that grants Frenzy on the first damage event on each side’s turn, even through Block. The shop stocks three common or uncommon relics, three hero items, and one directional face copy. Rare items and relics come from bosses. A copy duplicates the source slot’s current face and upgrades into the listed destination on the same die. The editor and generated keyword table show which keywords the engine supports. The editor’s validation panel explains when authored data cannot be used in game.
 
 Unsaved edits are kept in the browser, so closing the tab does not lose them. Locally, `npm run dev` serves the editor at `http://localhost:4177/editor/`; `npm run migrate` re-imports the legacy md tables (one-off, it overwrites `data/`).
+
+## Fixed Five campaign
+
+Explore any hex adjacent to cleared territory. Ordinary rooms reveal at the frontier, while elites, campfires, shops, and active treasure are visible across the map. Exploring spends one turn. Bosses replace turns 16, 32, and 48. Three treasure chests appear before turns 5, 21, and 37 and expire at the next boss. Each chest grants gold and an unowned common or uncommon relic.
+
+The first two boss victories restore full HP, grant a rare relic, and offer a rare imprint before exploration resumes with harder encounters. The last boss ends the run. Fixed Five saves from the linear route are incompatible with the campaign.
 
 ## Deployment
 

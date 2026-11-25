@@ -107,8 +107,8 @@ export function exportItems(db: Collections): string {
 
 export function exportRelics(db: Collections): string {
   return `${GENERATED_NOTE}\n\n# Relics\n\n${table(
-    ['ID', 'Name', 'Description', 'Trigger', 'Implemented'],
-    db.relics.map(r => [code(r.id), r.name, r.description, r.trigger, r.implemented]),
+    ['ID', 'Name', 'Rarity', 'Description', 'Trigger', 'Implemented'],
+    db.relics.map(r => [code(r.id), r.name, r.rarity ?? '', r.description, r.trigger, r.implemented]),
   )}\n`;
 }
 

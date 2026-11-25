@@ -1,3 +1,4 @@
+import { RELIC_EFFECTS } from '../relic-data.ts';
 import type { CollectionName } from './types.ts';
 import {
   EFFECT_OPS, FACE_STATUS, IMPLEMENTED, RARITIES, ROOM_KINDS, SHOP_OFFERS, TARGETING, TONES, VALUE_KINDS,
@@ -86,7 +87,9 @@ export const SCHEMA: Record<CollectionName, CollectionSchema> = {
       { key: 'name', label: 'Name', kind: 'text' },
       { key: 'description', label: 'Description', kind: 'longtext' },
       { key: 'trigger', label: 'Trigger', kind: 'text' },
-      { key: 'effect', label: 'Effect', kind: 'enum', options: ['', 'frenzyOnDamage'] },
+      { key: 'effect', label: 'Effect', kind: 'enum', options: ['', ...RELIC_EFFECTS] },
+      { key: 'rarity', label: 'Rarity', kind: 'enum', options: ['starter', ...RARITIES] },
+      { key: 'image', label: 'Icon', kind: 'image' },
       { key: 'implemented', label: 'Implemented', kind: 'enum', options: IMPLEMENTED },
     ],
   },

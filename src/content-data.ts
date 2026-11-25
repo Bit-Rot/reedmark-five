@@ -26,8 +26,10 @@ export const BLANK_IMAGE = DATA.faces.find(f => f.id === 'blank')?.image || unde
 export const FACE_IMAGE_PATHS: string[] = [...new Set([
   ...Object.values(compiled.dice).flatMap(d => Object.values(d.faces).map(f => f.image)),
   ...Object.values(compiled.items).flatMap(i => Object.values(i.edits).map(f => f?.image)),
+  ...Object.values(compiled.relics).map(relic => relic.image),
   BLANK_IMAGE,
 ].filter((p): p is string => !!p))];
 export const ITEMS = compiled.items;
+export const RELICS = compiled.relics;
 export const CHARACTERS = compiled.characters;
 export const DATA_ISSUES = compiled.issues;

@@ -18,7 +18,7 @@ export const CAMP_UPGRADES: readonly { keyword: string; x?: number }[] = [
   { keyword: 'cleave' },
 ];
 
-export { BLANK_IMAGE, CHARACTERS, DATA, DATA_ISSUES, DICE, FACE_IMAGE_PATHS, ITEMS } from './content-data.ts';
+export { BLANK_IMAGE, CHARACTERS, DATA, DATA_ISSUES, DICE, FACE_IMAGE_PATHS, ITEMS, RELICS } from './content-data.ts';
 
 const H = (n: number): IntentFace => ['hit', n];
 const G = (n: number): IntentFace => ['guard', n];
@@ -69,6 +69,7 @@ export const ROOMS: readonly Room[] = [
     ],
   },
   { type: 'camp', name: 'Camp' },
+  { type: 'shop', name: 'Shop' },
   normal('Mire Brood', [
     { id: 'brood', name: 'Mire Brood', sprite: 'brood', hp: 16 },
     gnat('brood-gnat', 7),

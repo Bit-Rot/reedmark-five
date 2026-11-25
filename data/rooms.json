@@ -11,10 +11,10 @@
     "name": "Shop",
     "kind": "shop",
     "offers": [
-      "items",
       "relics",
-      "potions"
+      "items",
+      "faceCopy"
     ],
-    "notes": ""
+    "notes": "After Camp, spend gold on one-use stock. Three relics, three hero items, and one face copy."
   }
 ]

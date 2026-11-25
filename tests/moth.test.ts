@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ITEMS } from '../src/content.ts';
-import { actionPreview, advance, combatFaceFor, commitRoll, endTurn, isSave, mainPips, newRun, play, rollFace, starterRelicFor } from '../src/game.ts';
+import { actionPreview, advance, combatFaceFor, commitRoll, endTurn, isSave, mainPips, newLinearRun as newRun, play, rollFace, starterRelicFor } from '../src/game.ts';
 import type { Slot } from '../src/model.ts';
 
 const self = { kind: 'self' } as const;

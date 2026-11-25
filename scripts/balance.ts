@@ -1,50 +1,76 @@
-import { CHARACTERS, ROOMS } from '../src/content.ts';
-import { newRun } from '../src/game.ts';
+import { CHARACTERS } from '../src/content.ts';
+import { bossDue, explorationDistance } from '../src/campaign-map.ts';
+import { currentRoom, newRun } from '../src/game.ts';
 import type { Variant } from '../src/model.ts';
-import { act, takeReward } from './policy.ts';
+import { act, MAP_POLICIES, takeMapTurn, takeReward } from './policy.ts';
+import type { MapPolicy } from './policy.ts';
 
-/** Simulates runs with the scripted policy and reports how each room plays. Usage: node scripts/balance.ts [runs] [fixed|pool] */
-const runs = Number(process.argv[2] ?? 64);
-const only = process.argv[3];
-for (const variant of (['fixed', 'pool'] as Variant[]).filter(v => !only || v === only)) {
-  for (const hero of CHARACTERS) {
-    const records = ROOMS.map(() => ({ seen: 0, turns: 0, damage: 0, untouched: 0, defeatedHere: 0, gold: 0 }));
-    const victories: { seed: number; hp: number }[] = [];
-    let gold = 0;
-    for (let seed = 1; seed <= runs; seed++) {
-      const s = newRun(variant, seed, hero.id);
-      let lastRoom = -1;
-      let roomStartHp = s.hp;
-      for (let turns = 0; turns < 140 && (s.phase === 'reward' || s.phase === 'battle'); turns++) {
-        if (s.phase === 'reward') {
-          takeReward(s);
-        } else {
-          const record = records[s.room];
-          if (s.room !== lastRoom) {
-            record.seen++;
-            roomStartHp = s.hp;
-          }
-          lastRoom = s.room;
-          record.turns++;
-          const hp = s.hp;
-          const room = s.room;
-          act(s);
-          record.damage += hp - s.hp;
-          // A fight is "untouched" when it ends (reward or victory) with the same HP it began with.
-          if (s.phase !== 'battle' && s.phase !== 'defeat' && s.hp === roomStartHp) records[room].untouched++;
+const runs = Number(process.argv[2] ?? 96);
+const variant: Variant = process.argv[3] === 'pool' ? 'pool' : 'fixed';
+const selectedPolicy = process.argv[4] as MapPolicy | undefined;
+const policies = variant === 'pool' ? ['cautious' as const] : MAP_POLICIES.filter(policy => !selectedPolicy || selectedPolicy === policy);
+
+for (const hero of CHARACTERS) for (const policy of policies) {
+  const reached = [0, 0, 0];
+  const bossHp = [0, 0, 0];
+  const bossGold = [0, 0, 0];
+  const roomMix = new Map<string, number>();
+  let wins = 0;
+  let rounds = 0;
+  let fights = 0;
+  let repeats = 0;
+  let waves = 0;
+  let near = 0;
+  let chestVisits = 0;
+
+  for (let seed = 1; seed <= runs; seed++) {
+    const state = newRun(variant, seed, hero.id);
+    let lastEncounter = '';
+    let seenCombat: typeof state.combat = null;
+    let observedWave = 0;
+    let steps = 0;
+    while (!['victory', 'defeat'].includes(state.phase) && steps++ < 2500) {
+      if (state.phase === 'map') {
+        const map = state.map!;
+        if (map.wave > observedWave) {
+          observedWave = map.wave;
+          waves++;
+          const paths = explorationDistance(map);
+          if (map.tiles.some(tile => tile.chest === map.wave - 1 && (paths.get(tile.id) ?? Infinity) <= 5)) near++;
         }
+        if (bossDue(map)) {
+          const index = Math.floor(map.turn / 16);
+          reached[index]++;
+          bossHp[index] += state.hp;
+          bossGold[index] += state.gold;
+        }
+        if (!takeMapTurn(state, policy)) throw new Error('No legal exploration move at turn ' + map.turn);
+        const room = currentRoom(state);
+        const kind = room.type === 'battle' ? room.rank : room.type;
+        roomMix.set(kind, (roomMix.get(kind) ?? 0) + 1);
+        if (kind === 'treasure') chestVisits++;
+        if (map.active?.kind === 'encounter') {
+          if (map.active.id === lastEncounter) repeats++;
+          lastEncounter = map.active.id;
+        }
+      } else if (state.phase === 'reward') takeReward(state);
+      else {
+        if (state.combat !== seenCombat) {
+          fights++;
+          seenCombat = state.combat;
+        }
+        rounds++;
+        act(state);
       }
-      if (s.phase === 'victory') victories.push({ seed, hp: s.hp });
-      if (s.phase === 'defeat') records[s.room].defeatedHere++;
-      gold += s.gold;
     }
-    const mean = victories.reduce((sum, r) => sum + r.hp, 0) / Math.max(1, victories.length);
-    console.log(`${variant} ${hero.id}: ${victories.length}/${runs} wins, mean remaining HP ${mean.toFixed(1)}, mean gold ${(gold / runs).toFixed(0)}`);
-    ROOMS.forEach((room, index) => {
-      const r = records[index];
-      if (!r.seen) return;
-      const flawless = Math.round(100 * r.untouched / r.seen);
-      console.log(`  ${room.name.padEnd(14)} ${(r.turns / r.seen).toFixed(1)} turns  ${(r.damage / r.seen).toFixed(1)} HP lost  ${String(flawless).padStart(3)}% flawless  ${r.defeatedHere} defeats`);
-    });
+    if (state.phase === 'victory') wins++;
+    if (steps >= 2500) throw new Error('Run exceeded the action limit at seed ' + seed);
+  }
+  const avg = (sum: number, count: number) => (sum / Math.max(1, count)).toFixed(1);
+  const mix = [...roomMix].sort(([left], [right]) => left.localeCompare(right)).map(([kind, count]) => kind + ' ' + avg(count, runs)).join(', ');
+  console.log(variant + ' ' + hero.id + ' ' + policy + ' — ' + wins + '/' + runs + ' wins, ' + avg(rounds, fights) + ' rounds/fight, ' + repeats + ' consecutive repeats');
+  if (variant === 'fixed') {
+    console.log('  Rooms per run — ' + mix + ' · ' + near + '/' + waves + ' waves with reachable chest, ' + avg(chestVisits, waves) + ' chests taken/wave');
+    console.log('  Boss entries — ' + reached.map((n, i) => (i + 1) + ' [' + n + ' reached, ' + avg(bossHp[i], n) + ' HP, ' + avg(bossGold[i], n) + ' gold]').join(' · '));
   }
 }

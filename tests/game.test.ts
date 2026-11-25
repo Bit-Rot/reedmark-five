@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { DATA, ITEMS, ROOMS } from '../src/content.ts';
-import { actionPreview, advance, canPlay, chooseOffer, commitRoll, endTurn, faceFor, incoming, newRun, offerTargets, play, reroll, setHold } from '../src/game.ts';
+import { DATA, ITEMS, RELICS, ROOMS } from '../src/content.ts';
+import { actionPreview, advance, canPlay, chooseOffer, commitRoll, endTurn, faceFor, incoming, newLinearRun as newRun, offerTargets, play, reroll, setHold } from '../src/game.ts';
 
-test('fixed rolls five, holds through two rerolls, and commits once', () => {
+test('fixed rolls five, holds through three rerolls, and commits once', () => {
   const s = newRun('fixed', 231);
   const c = s.combat!;
   assert.equal(s.dice.length, 5);
@@ -11,6 +11,7 @@ test('fixed rolls five, holds through two rerolls, and commits once', () => {
   const first = c.rolls[0];
   const slot = first.slot;
   assert(setHold(s, first.dieId, true));
+  assert(reroll(s));
   assert(reroll(s));
   assert(reroll(s));
   assert.equal(first.slot, slot);
@@ -103,7 +104,7 @@ test('matched seeds share enemy dice across variants and valid saves round-trip'
   assert.deepEqual(JSON.parse(JSON.stringify(b)), b);
 });
 
-test('battle and Workshop item rewards draw only from the selected character’s pool', () => {
+test('battle, Workshop and Shop items draw only from the selected character’s pool', () => {
   for (const character of ['barbarian', 'thief', 'moth']) {
     const pool = DATA.items.filter(item => item.rewardCharacter === character);
     assert(pool.length >= 3);
@@ -125,11 +126,32 @@ test('battle and Workshop item rewards draw only from the selected character’s
           }
           assert.equal(state.phase, 'reward');
           const ids = state.offers.flatMap(offer => offer.kind === 'item' ? [offer.id] : []);
-          assert.equal(ids.length, variant === 'fixed' ? 3 : room.type === 'workshop' ? 0 : 1);
+          assert.equal(ids.length, variant === 'fixed' || room.type === 'shop' ? 3 : room.type === 'workshop' ? 0 : 1);
           assert.equal(new Set(ids).size, ids.length);
           assert(ids.every(id => eligible.has(id)), `${character} received ${ids.join(', ')}`);
+          assert(ids.every(id => ITEMS[id].rarity !== 'rare'));
         }
       }
     }
+  }
+});
+
+test('Bellroot awards a rare hero item and a rare relic without delaying victory', () => {
+  for (const variant of ['fixed', 'pool'] as const) {
+    const state = newRun(variant, 231, 'moth');
+    state.phase = 'reward';
+    state.room = ROOMS.length - 2;
+    assert(advance(state));
+    const combat = state.combat!;
+    combat.intents = [];
+    combat.enemies[0].seep = combat.enemies[0].hp;
+    assert(commitRoll(state) && endTurn(state));
+    assert.equal(state.phase, 'victory');
+    assert.deepEqual(state.offers, []);
+    const { item, relic } = state.bossSpoils!;
+    assert(item && relic);
+    assert.equal(ITEMS[item].rewardCharacter, 'moth');
+    assert.equal(ITEMS[item].rarity, 'rare');
+    assert.equal(RELICS[relic].rarity, 'rare');
   }
 });
