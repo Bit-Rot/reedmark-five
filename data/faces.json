@@ -3,8 +3,7 @@
     "id": "blank",
     "targeting": "none",
     "keywords": [],
-    "iconDescription": "",
-    "image": "",
+    "image": "face-art/library/blank.webp",
     "notes": "Does nothing, cannot be used",
     "status": "active"
   },
@@ -16,8 +15,7 @@
         "keyword": "damage"
       }
     ],
-    "iconDescription": "A plain sword",
-    "image": "",
+    "image": "face-art/library/sword.webp",
     "notes": "",
     "status": "active"
   },
@@ -29,8 +27,7 @@
         "keyword": "block"
       }
     ],
-    "iconDescription": "A plain shield",
-    "image": "",
+    "image": "face-art/library/shield.webp",
     "notes": "",
     "status": "active"
   },
@@ -45,8 +42,7 @@
         "keyword": "cantrip"
       }
     ],
-    "iconDescription": "A plain dagger",
-    "image": "",
+    "image": "face-art/library/dagger.webp",
     "notes": "",
     "status": "active"
   },
@@ -65,8 +61,7 @@
         "x": 1
       }
     ],
-    "iconDescription": "A plain hammer",
-    "image": "",
+    "image": "face-art/library/hammer.webp",
     "notes": "",
     "status": "active"
   },
@@ -81,8 +76,7 @@
         "keyword": "selfShield"
       }
     ],
-    "iconDescription": "A plain sword and shield",
-    "image": "",
+    "image": "face-art/library/sword_shield.webp",
     "notes": "",
     "status": "active"
   },
@@ -97,8 +91,7 @@
         "keyword": "cantrip"
       }
     ],
-    "iconDescription": "A foot stepping with speed lines and a small cloud of dust",
-    "image": "",
+    "image": "face-art/library/boot_dash.webp",
     "notes": "",
     "status": "active"
   },
@@ -114,8 +107,7 @@
         "x": 1
       }
     ],
-    "iconDescription": "A single drop of poison",
-    "image": "",
+    "image": "face-art/library/drop.webp",
     "notes": "",
     "status": "active"
   },
@@ -131,8 +123,7 @@
         "x": 1
       }
     ],
-    "iconDescription": "A curvy kris dagger",
-    "image": "",
+    "image": "face-art/library/kris.webp",
     "notes": "",
     "status": "active"
   },
@@ -148,8 +139,7 @@
         "keyword": "exert"
       }
     ],
-    "iconDescription": "A sad face",
-    "image": "",
+    "image": "face-art/library/sad_face.webp",
     "notes": "Pips do nothing at baseline",
     "status": "active"
   },
@@ -164,8 +154,7 @@
         "keyword": "damage"
       }
     ],
-    "iconDescription": "A simple bomb",
-    "image": "",
+    "image": "face-art/library/bomb.webp",
     "notes": "",
     "status": "active"
   }

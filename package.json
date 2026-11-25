@@ -12,6 +12,7 @@
     "test": "node --disable-warning=ExperimentalWarning --test tests/*.test.ts",
     "balance": "node --disable-warning=ExperimentalWarning scripts/balance.ts",
     "test:browser": "playwright test",
+    "face-art": "node --disable-warning=ExperimentalWarning scripts/make-face-art.ts",
     "docs": "node --disable-warning=ExperimentalWarning scripts/export-docs.ts",
     "docs:check": "node --disable-warning=ExperimentalWarning scripts/export-docs.ts --check",
     "migrate": "node --disable-warning=ExperimentalWarning scripts/migrate-md.ts"

@@ -45,11 +45,16 @@ export function exportKeywords(db: Collections): string {
   return out;
 }
 
+/** Renders the face's library image in GitHub markdown (docs/ is one level below the repo root). */
+function imageCell(f: Face): string {
+  return f.image ? `<img src="../public/${f.image}" width="48" alt="${f.id}">` : '';
+}
+
 export function exportFaces(db: Collections): string {
   const row = (f: Face) => [
-    code(f.id), targetingLabel(f.targeting), f.keywords.map(useLabel).join('<br>'), f.iconDescription, f.image, f.notes,
+    code(f.id), targetingLabel(f.targeting), f.keywords.map(useLabel).join('<br>'), imageCell(f), f.notes,
   ];
-  const headers = ['Template', 'Targeting', 'Keywords', 'Icon Description', 'Image', 'Notes'];
+  const headers = ['Template', 'Targeting', 'Keywords', 'Image', 'Notes'];
   const active = db.faces.filter(f => f.status === 'active');
   const inactive = db.faces.filter(f => f.status === 'inactive');
   let out = `${GENERATED_NOTE}\n\n## Active Dice Faces\n\nThese dice faces are active and intended to be enabled and implemented in-game.\n\n${table(headers, active.map(row))}\n`;

@@ -27,7 +27,7 @@ The stage uses Three.js. The rules and authored content have no rendering depend
 
 Design data (keywords, faces, dice, characters, items, relics, room types) lives in `data/*.json`; each entity has a stable `id` and everything refers to other entities by ID. The `docs/*.md` tables are **generated** from it (`npm run docs`, checked by `npm test`), so edit data, not those files. The old Slice & Dice extraction is kept for reference in `docs/legacy/`.
 
-The editor is a static page at `/editor/` on the published site (also installable as an app on Android). It edits `data/*.json`, shows where each ID is used, renames an ID everywhere at once, validates references, and uploads face images (converted to WebP into `public/face-art/`).
+The editor is a static page at `/editor/` on the published site (also installable as an app on Android). It edits `data/*.json`, shows where each ID is used, renames an ID everywhere at once, validates references, and lets you pick a face's image from a library of about 100 icons (`public/face-art/library/`, with a search box). The icons are drawn as vectors in `scripts/face-art/icons.ts`; `npm run face-art` re-renders them (needs Chrome: `PW_CHANNEL=chrome`).
 
 To save from the published page, open the settings (gear) and paste a GitHub fine-grained personal access token limited to this repository with **Contents: Read and write**. The token stays in that browser only. **Save** makes one commit on `main` containing the data, regenerated docs and any images; if `main` moved since you loaded, the changes are merged per entity and any clashes are offered for you to resolve.
 

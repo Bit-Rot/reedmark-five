@@ -2,8 +2,7 @@ import type { FieldDef } from '../src/data/schema.ts';
 import type { Collections, CollectionName, Die, Face, Item, ItemEffect, KeywordUse, SlotName } from '../src/data/types.ts';
 import { EFFECT_OPS, SLOT_NAMES } from '../src/data/types.ts';
 import { h, select } from './dom.ts';
-
-export interface PendingImageEntry { path: string; base64: string; dataUrl: string }
+import { chooseImage, imageUrl, thumb } from './library.ts';
 
 export interface FormCtx {
   db: Collections;
@@ -11,10 +10,6 @@ export interface FormCtx {
   changed(): void;
   /** The structure of the form changed (rows added/removed); rebuild it. */
   rerender(): void;
-  /** Uploaded images not yet committed, keyed by repo path. */
-  images: Map<string, PendingImageEntry>;
-  /** Convert a chosen file into a pending image for repo path `path`. */
-  pickImage(file: File, path: string): Promise<void>;
 }
 
 type Rec = Record<string, unknown>;
@@ -112,7 +107,8 @@ function dieDiagram(ctx: FormCtx, die: Die): HTMLElement {
         type: 'number', placeholder: 'pips', title: 'pips', value: slot.pips === undefined ? '' : String(slot.pips),
         onInput: (e: Event) => { const t = (e.target as HTMLInputElement).value; if (t === '') delete slot.pips; else slot.pips = Number(t); ctx.changed(); },
       }),
-      face ? h('div.hint', null, face.keywords.map(k => k.keyword + (k.x !== undefined ? ` ${k.x}` : '')).join(', ') || 'no keywords') : h('div.hint.bad', null, 'face missing'));
+      face ? h('div.slot-face', null, face.image ? thumb(face.image, face.id, 36) : null,
+        h('span.hint', null, face.keywords.map(k => k.keyword + (k.x !== undefined ? ` ${k.x}` : '')).join(', ') || 'no keywords')) : h('div.hint.bad', null, 'face missing'));
   };
   const empty = () => h('div.slot.empty');
   return h('div.tdiagram', null, empty(), cell(2), empty(), empty(), cell(0), cell(1), cell(4), cell(5), empty(), cell(3), empty(), empty());
@@ -168,26 +164,17 @@ function effectRow(ctx: FormCtx, item: Item, e: ItemEffect, i: number): HTMLElem
     h('button.small.danger', { type: 'button', onClick: () => { item.effects.splice(i, 1); ctx.rerender(); } }, '✕')));
 }
 
-export function faceImagePath(id: string): string { return `face-art/${id}.webp`; }
-
 function imageField(ctx: FormCtx, face: Face): HTMLElement {
-  const repoPath = `public/${face.image || faceImagePath(face.id)}`;
-  const pending = ctx.images.get(repoPath);
-  const src = pending?.dataUrl ?? (face.image ? `../${face.image}` : '');
-  const input = h('input', { type: 'file', accept: 'image/*', onChange: async (ev: Event) => {
-    const file = (ev.target as HTMLInputElement).files?.[0];
-    if (!file) return;
-    const path = faceImagePath(face.id);
-    await ctx.pickImage(file, `public/${path}`);
-    face.image = path;
+  const choose = async () => {
+    const picked = await chooseImage(face.image);
+    if (picked === null) return;
+    face.image = picked;
     ctx.rerender();
-  } });
+  };
   return h('div.image-field', null,
-    src ? h('img.face-image', { src, alt: face.id }) : h('div.hint', null, 'No image'),
-    h('div.row', null, input, face.image ? h('button.small.danger', { type: 'button', onClick: () => {
-      ctx.images.delete(repoPath);
-      face.image = '';
-      ctx.rerender();
-    } }, 'remove') : null),
-    face.image ? h('div.hint', null, `${face.image}${pending ? ' (uploads when you save)' : ''}`) : null);
+    face.image ? h('img.face-image', { src: imageUrl(face.image), alt: face.id }) : h('div.face-image.none', null, 'No image'),
+    h('div.row', null,
+      h('button', { type: 'button', 'data-action': 'choose-image', onClick: choose }, face.image ? 'Change image…' : 'Choose image…'),
+      face.image ? h('button.danger', { type: 'button', onClick: () => { face.image = ''; ctx.rerender(); } }, 'Clear') : null),
+    face.image ? h('div.hint', null, face.image) : null);
 }

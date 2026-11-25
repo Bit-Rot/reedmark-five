@@ -59,7 +59,18 @@ input.num { width: 5.5em; }
 .issues .error { color: var(--bad); }
 .issues .warning { color: var(--warn); }
 .actions { display: flex; gap: 8px; margin-top: 22px; flex-wrap: wrap; }
-.image-field .face-image { width: 128px; height: 128px; object-fit: contain; background: #0b1519; border: 1px solid var(--line); border-radius: 8px; display: block; margin-bottom: 6px; }
+.image-field .face-image { width: 128px; height: 128px; object-fit: contain; background: #0b1519; border: 1px solid var(--line); border-radius: 12px; display: block; margin-bottom: 6px; }
+.face-image.none { display: grid; place-items: center; color: var(--dim); font-size: .85rem; }
+.thumb { width: 28px; height: 28px; border-radius: 6px; flex: none; object-fit: cover; }
+.thumb.none { display: inline-block; background: var(--panel2); border: 1px dashed var(--line); }
+.slot-face { display: flex; gap: 6px; align-items: center; }
+.slot-face .thumb { width: 36px; height: 36px; }
+dialog.picker { width: min(760px, 96vw); }
+.image-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 8px; margin: 12px 0; max-height: 52dvh; overflow: auto; }
+.image-choice { display: grid; gap: 4px; justify-items: center; padding: 6px; font-size: .72rem; background: var(--panel2); }
+.image-choice img { border-radius: 10px; }
+.image-choice.current { border-color: var(--accent); }
+.image-choice span { text-align: center; line-height: 1.15; }
 
 .tdiagram { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; max-width: 760px; }
 .slot { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px; display: flex; flex-direction: column; gap: 4px; }

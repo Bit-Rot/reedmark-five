@@ -23,20 +23,20 @@ test('the keywords the engine runs are exactly the ones flagged implemented in t
 
 test('faces compile from keywords, pips and X values', () => {
   const face = (id: string) => DATA.faces.find(f => f.id === id) as DataFace;
-  assert.deepEqual(compileFace(face('slash'), 3).parts, [{ kind: 'hit', value: 3 }]);
+  assert.deepEqual(compileFace(face('dmg'), 3).parts, [{ kind: 'hit', value: 3 }]);
   assert.deepEqual(compileFace(face('block'), 2), { id: 'block', target: 'self', parts: [{ kind: 'guard', value: 2 }] });
-  assert.deepEqual(compileFace(face('slash_block'), 2).parts, [{ kind: 'hit', value: 2 }, { kind: 'guard', value: 2 }]);
-  assert.deepEqual(compileFace(face('bash'), 2).parts, [{ kind: 'hit', value: 2 }, { kind: 'vulnerable', value: 1 }, { kind: 'exert', value: 0 }]);
+  assert.deepEqual(compileFace(face('dmgBlock'), 2).parts, [{ kind: 'hit', value: 2 }, { kind: 'guard', value: 2 }]);
+  assert.deepEqual(compileFace(face('dmgVulnerable'), 2).parts, [{ kind: 'hit', value: 2 }, { kind: 'vulnerable', value: 1 }, { kind: 'exert', value: 0 }]);
   assert.deepEqual(compileFace(face('poison'), 1).parts, [{ kind: 'hit', value: 1 }, { kind: 'seep', value: 1 }]);
   assert.equal(compileFace(face('blank'), undefined).target, 'none');
   const issues: { where: string; message: string }[] = [];
-  compileFace(face('slash'), undefined, issues);
+  compileFace(face('dmg'), undefined, issues);
   assert(issues.some(i => i.message.includes('pips')));
 });
 
 test('dice, items and characters with problems are left out instead of breaking the game', () => {
   const db = structuredClone(DATA);
-  db.faces.push({ id: 'lasso', targeting: 'allEnemies', keywords: [{ keyword: 'damage' }, { keyword: 'taunt' }], iconDescription: '', image: '', notes: '', status: 'active' });
+  db.faces.push({ id: 'lasso', targeting: 'allEnemies', keywords: [{ keyword: 'damage' }, { keyword: 'taunt' }], image: '', notes: '', status: 'active' });
   db.dice.push({ id: 'die_lasso', name: '', tone: 'rust', notes: '', faces: db.dice[0].faces.map(f => ({ ...f, face: 'lasso', pips: 1 })) });
   db.items.push({ id: 'odd', name: 'Odd', rarity: 'common', description: '', implemented: 'planned', effects: [{ target: 'all', op: 'pipDelta', delta: 1 }] });
   db.characters.push({ id: 'broken', name: 'Broken', starterDice: ['die_lasso'], items: [], unlocks: [], notes: '' });

@@ -99,7 +99,7 @@ function migrateFaces(db: Collections) {
     if (!targeting) { note(`faces: ${id}: unknown targeting "${r[1]}", using "none"`); targeting = 'none'; }
     const face: Face = {
       id, targeting, keywords: parseKeywordUses(r[2], id),
-      iconDescription: r[3] ?? '', image: '', notes: r[4] ?? '', status: 'active',
+      image: '', notes: r[4] ?? '', status: 'active',
     };
     if (/<br>\s*$/.test(r[2])) note(`faces: ${id}: removed a trailing <br> in the Keywords cell`);
     db.faces.push(face);

@@ -1,0 +1,1388 @@
+[
+  {
+    "id": "anvil",
+    "label": "Anvil",
+    "tags": [
+      "forge",
+      "smith",
+      "upgrade",
+      "craft",
+      "workshop"
+    ],
+    "tile": "grey",
+    "path": "face-art/library/anvil.webp"
+  },
+  {
+    "id": "arrow",
+    "label": "Arrow",
+    "tags": [
+      "weapon",
+      "ranged",
+      "shot",
+      "attack",
+      "pierce"
+    ],
+    "tile": "orange",
+    "path": "face-art/library/arrow.webp"
+  },
+  {
+    "id": "arrow_down",
+    "label": "Arrow down",
+    "tags": [
+      "debuff",
+      "decrease",
+      "weaken",
+      "lower",
+      "reduce",
+      "down"
+    ],
+    "tile": "purple",
+    "path": "face-art/library/arrow_down.webp"
+  },
+  {
+    "id": "arrow_up",
+    "label": "Arrow up",
+    "tags": [
+      "buff",
+      "increase",
+      "boost",
+      "strengthen",
+      "rise",
+      "up"
+    ],
+    "tile": "green",
+    "path": "face-art/library/arrow_up.webp"
+  },
+  {
+    "id": "axe",
+    "label": "Axe",
+    "tags": [
+      "weapon",
+      "chop",
+      "cleave",
+      "attack"
+    ],
+    "tile": "red",
+    "path": "face-art/library/axe.webp"
+  },
+  {
+    "id": "flag",
+    "label": "Banner",
+    "tags": [
+      "flag",
+      "rally",
+      "standard",
+      "inspire",
+      "victory"
+    ],
+    "tile": "red",
+    "path": "face-art/library/flag.webp"
+  },
+  {
+    "id": "barrier",
+    "label": "Barrier dome",
+    "tags": [
+      "dome",
+      "force field",
+      "ward",
+      "protect",
+      "block"
+    ],
+    "tile": "cyan",
+    "path": "face-art/library/barrier.webp"
+  },
+  {
+    "id": "bat",
+    "label": "Bat",
+    "tags": [
+      "flying",
+      "night",
+      "creature",
+      "vampire",
+      "swoop"
+    ],
+    "tile": "dark",
+    "path": "face-art/library/bat.webp"
+  },
+  {
+    "id": "bell",
+    "label": "Bell",
+    "tags": [
+      "ring",
+      "alarm",
+      "sound",
+      "call",
+      "chime"
+    ],
+    "tile": "gold",
+    "path": "face-art/library/bell.webp"
+  },
+  {
+    "id": "blank",
+    "label": "Blank",
+    "tags": [
+      "empty",
+      "nothing",
+      "none",
+      "unused",
+      "inert"
+    ],
+    "tile": "grey",
+    "path": "face-art/library/blank.webp"
+  },
+  {
+    "id": "bomb",
+    "label": "Bomb",
+    "tags": [
+      "explosive",
+      "blast",
+      "fuse",
+      "simple bomb",
+      "attack",
+      "single cast"
+    ],
+    "tile": "orange",
+    "path": "face-art/library/bomb.webp"
+  },
+  {
+    "id": "bone",
+    "label": "Bone",
+    "tags": [
+      "skeleton",
+      "undead",
+      "remains",
+      "death"
+    ],
+    "tile": "dark",
+    "path": "face-art/library/bone.webp"
+  },
+  {
+    "id": "book",
+    "label": "Book",
+    "tags": [
+      "spellbook",
+      "knowledge",
+      "tome",
+      "learn",
+      "read"
+    ],
+    "tile": "purple",
+    "path": "face-art/library/book.webp"
+  },
+  {
+    "id": "boomerang",
+    "label": "Boomerang",
+    "tags": [
+      "weapon",
+      "thrown",
+      "return",
+      "attack"
+    ],
+    "tile": "orange",
+    "path": "face-art/library/boomerang.webp"
+  },
+  {
+    "id": "bow",
+    "label": "Bow",
+    "tags": [
+      "weapon",
+      "ranged",
+      "arrow",
+      "archer",
+      "attack"
+    ],
+    "tile": "orange",
+    "path": "face-art/library/bow.webp"
+  },
+  {
+    "id": "broken_sword",
+    "label": "Broken sword",
+    "tags": [
+      "weak",
+      "weaken",
+      "snapped",
+      "damage down",
+      "feeble"
+    ],
+    "tile": "purple",
+    "path": "face-art/library/broken_sword.webp"
+  },
+  {
+    "id": "bug",
+    "label": "Bug",
+    "tags": [
+      "beetle",
+      "insect",
+      "gnat",
+      "critter",
+      "pest"
+    ],
+    "tile": "green",
+    "path": "face-art/library/bug.webp"
+  },
+  {
+    "id": "cauldron",
+    "label": "Cauldron",
+    "tags": [
+      "brew",
+      "cook",
+      "witch",
+      "potion",
+      "bubble",
+      "poison"
+    ],
+    "tile": "green",
+    "path": "face-art/library/cauldron.webp"
+  },
+  {
+    "id": "chain",
+    "label": "Chain",
+    "tags": [
+      "bind",
+      "restrain",
+      "lock",
+      "link",
+      "root"
+    ],
+    "tile": "grey",
+    "path": "face-art/library/chain.webp"
+  },
+  {
+    "id": "armor",
+    "label": "Chestplate",
+    "tags": [
+      "armor",
+      "body",
+      "defend",
+      "guard",
+      "protect"
+    ],
+    "tile": "blue",
+    "path": "face-art/library/armor.webp"
+  },
+  {
+    "id": "claw",
+    "label": "Claw",
+    "tags": [
+      "weapon",
+      "scratch",
+      "slash",
+      "beast",
+      "attack"
+    ],
+    "tile": "red",
+    "path": "face-art/library/claw.webp"
+  },
+  {
+    "id": "cleaver",
+    "label": "Cleaver",
+    "tags": [
+      "weapon",
+      "chop",
+      "butcher",
+      "heavy",
+      "attack"
+    ],
+    "tile": "red",
+    "path": "face-art/library/cleaver.webp"
+  },
+  {
+    "id": "cloak",
+    "label": "Cloak",
+    "tags": [
+      "cape",
+      "hood",
+      "stealth",
+      "cover",
+      "defend"
+    ],
+    "tile": "green",
+    "path": "face-art/library/cloak.webp"
+  },
+  {
+    "id": "club",
+    "label": "Club",
+    "tags": [
+      "weapon",
+      "bludgeon",
+      "bash",
+      "attack"
+    ],
+    "tile": "red",
+    "path": "face-art/library/club.webp"
+  },
+  {
+    "id": "coin",
+    "label": "Coin",
+    "tags": [
+      "gold",
+      "money",
+      "shop",
+      "buy",
+      "treasure",
+      "pay"
+    ],
+    "tile": "gold",
+    "path": "face-art/library/coin.webp"
+  },
+  {
+    "id": "cracked_shield",
+    "label": "Cracked shield",
+    "tags": [
+      "shield",
+      "broken",
+      "vulnerable",
+      "damaged",
+      "weak defence"
+    ],
+    "tile": "blue",
+    "path": "face-art/library/cracked_shield.webp"
+  },
+  {
+    "id": "hammer_crack",
+    "label": "Cracking hammer",
+    "tags": [
+      "hammer",
+      "vulnerable",
+      "break",
+      "smash",
+      "impact",
+      "shatter"
+    ],
+    "tile": "orange",
+    "path": "face-art/library/hammer_crack.webp"
+  },
+  {
+    "id": "crossbow",
+    "label": "Crossbow",
+    "tags": [
+      "weapon",
+      "ranged",
+      "bolt",
+      "attack"
+    ],
+    "tile": "orange",
+    "path": "face-art/library/crossbow.webp"
+  },
+  {
+    "id": "crossed_swords",
+    "label": "Crossed swords",
+    "tags": [
+      "weapon",
+      "duel",
+      "battle",
+      "attack",
+      "double"
+    ],
+    "tile": "red",
+    "path": "face-art/library/crossed_swords.webp"
+  },
+  {
+    "id": "crown",
+    "label": "Crown",
+    "tags": [
+      "king",
+      "royal",
+      "boss",
+      "elite",
+      "rule"
+    ],
+    "tile": "gold",
+    "path": "face-art/library/crown.webp"
+  },
+  {
+    "id": "dagger",
+    "label": "Dagger",
+    "tags": [
+      "weapon",
+      "knife",
+      "blade",
+      "attack",
+      "stab"
+    ],
+    "tile": "red",
+    "path": "face-art/library/dagger.webp"
+  },
+  {
+    "id": "dart",
+    "label": "Dart",
+    "tags": [
+      "weapon",
+      "throw",
+      "thrown",
+      "ranged",
+      "attack"
+    ],
+    "tile": "orange",
+    "path": "face-art/library/dart.webp"
+  },
+  {
+    "id": "boot_dash",
+    "label": "Dash (boot)",
+    "tags": [
+      "foot",
+      "boot",
+      "speed",
+      "dash",
+      "run",
+      "dust",
+      "dodge"
+    ],
+    "tile": "blue",
+    "path": "face-art/library/boot_dash.webp"
+  },
+  {
+    "id": "dice",
+    "label": "Die",
+    "tags": [
+      "luck",
+      "roll",
+      "random",
+      "chance",
+      "cube",
+      "dice"
+    ],
+    "tile": "red",
+    "path": "face-art/library/dice.webp"
+  },
+  {
+    "id": "dodge",
+    "label": "Dodge (swirl)",
+    "tags": [
+      "evade",
+      "avoid",
+      "sidestep",
+      "swirl",
+      "miss"
+    ],
+    "tile": "cyan",
+    "path": "face-art/library/dodge.webp"
+  },
+  {
+    "id": "exclaim",
+    "label": "Exclamation",
+    "tags": [
+      "warning",
+      "alert",
+      "danger",
+      "notice",
+      "!"
+    ],
+    "tile": "orange",
+    "path": "face-art/library/exclaim.webp"
+  },
+  {
+    "id": "eye",
+    "label": "Eye",
+    "tags": [
+      "watch",
+      "see",
+      "gaze",
+      "mark",
+      "target",
+      "vision"
+    ],
+    "tile": "purple",
+    "path": "face-art/library/eye.webp"
+  },
+  {
+    "id": "fang",
+    "label": "Fang",
+    "tags": [
+      "bite",
+      "tooth",
+      "beast",
+      "venom",
+      "attack"
+    ],
+    "tile": "green",
+    "path": "face-art/library/fang.webp"
+  },
+  {
+    "id": "feather",
+    "label": "Feather",
+    "tags": [
+      "light",
+      "quick",
+      "air",
+      "bird",
+      "quill"
+    ],
+    "tile": "cyan",
+    "path": "face-art/library/feather.webp"
+  },
+  {
+    "id": "fist",
+    "label": "Fist",
+    "tags": [
+      "punch",
+      "brawl",
+      "hit",
+      "attack",
+      "unarmed"
+    ],
+    "tile": "red",
+    "path": "face-art/library/fist.webp"
+  },
+  {
+    "id": "flail",
+    "label": "Flail",
+    "tags": [
+      "weapon",
+      "chain",
+      "spiked ball",
+      "attack"
+    ],
+    "tile": "red",
+    "path": "face-art/library/flail.webp"
+  },
+  {
+    "id": "flame",
+    "label": "Flame",
+    "tags": [
+      "fire",
+      "burn",
+      "heat",
+      "ignite"
+    ],
+    "tile": "orange",
+    "path": "face-art/library/flame.webp"
+  },
+  {
+    "id": "shield_flame",
+    "label": "Flame shield",
+    "tags": [
+      "fire",
+      "shield",
+      "burn",
+      "block",
+      "retaliate"
+    ],
+    "tile": "orange",
+    "path": "face-art/library/shield_flame.webp"
+  },
+  {
+    "id": "sword_flame",
+    "label": "Flaming sword",
+    "tags": [
+      "fire",
+      "burn",
+      "sword",
+      "damage",
+      "blaze"
+    ],
+    "tile": "orange",
+    "path": "face-art/library/sword_flame.webp"
+  },
+  {
+    "id": "shield_snow",
+    "label": "Frost shield",
+    "tags": [
+      "ice",
+      "shield",
+      "cold",
+      "block",
+      "freeze"
+    ],
+    "tile": "cyan",
+    "path": "face-art/library/shield_snow.webp"
+  },
+  {
+    "id": "sword_snow",
+    "label": "Frost sword",
+    "tags": [
+      "ice",
+      "cold",
+      "sword",
+      "damage",
+      "freeze",
+      "slow"
+    ],
+    "tile": "cyan",
+    "path": "face-art/library/sword_snow.webp"
+  },
+  {
+    "id": "gauntlet",
+    "label": "Gauntlet",
+    "tags": [
+      "armor",
+      "glove",
+      "fist",
+      "defend",
+      "block"
+    ],
+    "tile": "blue",
+    "path": "face-art/library/gauntlet.webp"
+  },
+  {
+    "id": "gear",
+    "label": "Gear",
+    "tags": [
+      "machine",
+      "mechanism",
+      "tune",
+      "settings",
+      "cog"
+    ],
+    "tile": "grey",
+    "path": "face-art/library/gear.webp"
+  },
+  {
+    "id": "gem",
+    "label": "Gem",
+    "tags": [
+      "jewel",
+      "crystal",
+      "treasure",
+      "precious",
+      "diamond"
+    ],
+    "tile": "cyan",
+    "path": "face-art/library/gem.webp"
+  },
+  {
+    "id": "hammer",
+    "label": "Hammer",
+    "tags": [
+      "weapon",
+      "bash",
+      "smash",
+      "mallet",
+      "attack"
+    ],
+    "tile": "red",
+    "path": "face-art/library/hammer.webp"
+  },
+  {
+    "id": "heart",
+    "label": "Heart",
+    "tags": [
+      "health",
+      "life",
+      "heal",
+      "love",
+      "hp"
+    ],
+    "tile": "pink",
+    "path": "face-art/library/heart.webp"
+  },
+  {
+    "id": "helmet",
+    "label": "Helmet",
+    "tags": [
+      "armor",
+      "head",
+      "knight",
+      "defend",
+      "guard"
+    ],
+    "tile": "blue",
+    "path": "face-art/library/helmet.webp"
+  },
+  {
+    "id": "hourglass",
+    "label": "Hourglass",
+    "tags": [
+      "time",
+      "wait",
+      "exert",
+      "tired",
+      "delay",
+      "cooldown"
+    ],
+    "tile": "gold",
+    "path": "face-art/library/hourglass.webp"
+  },
+  {
+    "id": "katana",
+    "label": "Katana",
+    "tags": [
+      "weapon",
+      "sword",
+      "curved",
+      "blade",
+      "attack"
+    ],
+    "tile": "red",
+    "path": "face-art/library/katana.webp"
+  },
+  {
+    "id": "key",
+    "label": "Key",
+    "tags": [
+      "unlock",
+      "open",
+      "treasure",
+      "lock",
+      "access"
+    ],
+    "tile": "gold",
+    "path": "face-art/library/key.webp"
+  },
+  {
+    "id": "kris",
+    "label": "Kris (wavy dagger)",
+    "tags": [
+      "weapon",
+      "curvy",
+      "dagger",
+      "blade",
+      "wavy",
+      "attack"
+    ],
+    "tile": "red",
+    "path": "face-art/library/kris.webp"
+  },
+  {
+    "id": "leaf",
+    "label": "Leaf",
+    "tags": [
+      "nature",
+      "plant",
+      "growth",
+      "regen",
+      "green"
+    ],
+    "tile": "green",
+    "path": "face-art/library/leaf.webp"
+  },
+  {
+    "id": "lightning",
+    "label": "Lightning",
+    "tags": [
+      "shock",
+      "electric",
+      "storm",
+      "zap",
+      "bolt"
+    ],
+    "tile": "gold",
+    "path": "face-art/library/lightning.webp"
+  },
+  {
+    "id": "mace",
+    "label": "Mace",
+    "tags": [
+      "weapon",
+      "spiked",
+      "bludgeon",
+      "attack"
+    ],
+    "tile": "red",
+    "path": "face-art/library/mace.webp"
+  },
+  {
+    "id": "moon",
+    "label": "Moon",
+    "tags": [
+      "night",
+      "dark",
+      "lunar",
+      "dream",
+      "crescent"
+    ],
+    "tile": "dark",
+    "path": "face-art/library/moon.webp"
+  },
+  {
+    "id": "mushroom",
+    "label": "Mushroom",
+    "tags": [
+      "fungus",
+      "spore",
+      "nature",
+      "poison",
+      "toadstool"
+    ],
+    "tile": "green",
+    "path": "face-art/library/mushroom.webp"
+  },
+  {
+    "id": "hand",
+    "label": "Open hand",
+    "tags": [
+      "grab",
+      "palm",
+      "stop",
+      "touch",
+      "hand"
+    ],
+    "tile": "orange",
+    "path": "face-art/library/hand.webp"
+  },
+  {
+    "id": "cross_plus",
+    "label": "Plus cross",
+    "tags": [
+      "heal",
+      "medic",
+      "health",
+      "cure",
+      "add",
+      "plus"
+    ],
+    "tile": "green",
+    "path": "face-art/library/cross_plus.webp"
+  },
+  {
+    "id": "drop",
+    "label": "Poison drop",
+    "tags": [
+      "poison",
+      "venom",
+      "toxic",
+      "drip",
+      "seep",
+      "single drop of poison"
+    ],
+    "tile": "green",
+    "path": "face-art/library/drop.webp"
+  },
+  {
+    "id": "sword_drop",
+    "label": "Poisoned sword",
+    "tags": [
+      "poison",
+      "venom",
+      "sword",
+      "damage",
+      "toxic blade"
+    ],
+    "tile": "green",
+    "path": "face-art/library/sword_drop.webp"
+  },
+  {
+    "id": "potion",
+    "label": "Potion",
+    "tags": [
+      "flask",
+      "drink",
+      "elixir",
+      "brew",
+      "bottle"
+    ],
+    "tile": "purple",
+    "path": "face-art/library/potion.webp"
+  },
+  {
+    "id": "question",
+    "label": "Question mark",
+    "tags": [
+      "unknown",
+      "mystery",
+      "random",
+      "help",
+      "?"
+    ],
+    "tile": "purple",
+    "path": "face-art/library/question.webp"
+  },
+  {
+    "id": "reroll",
+    "label": "Reroll (salvage)",
+    "tags": [
+      "reroll",
+      "salvage",
+      "recycle",
+      "refund",
+      "again"
+    ],
+    "tile": "gold",
+    "path": "face-art/library/reroll.webp"
+  },
+  {
+    "id": "buckler",
+    "label": "Round shield",
+    "tags": [
+      "shield",
+      "buckler",
+      "block",
+      "defend",
+      "guard",
+      "round"
+    ],
+    "tile": "blue",
+    "path": "face-art/library/buckler.webp"
+  },
+  {
+    "id": "sad_face",
+    "label": "Sad face",
+    "tags": [
+      "weak",
+      "weaken",
+      "sad",
+      "frown",
+      "unhappy",
+      "debuff"
+    ],
+    "tile": "purple",
+    "path": "face-art/library/sad_face.webp"
+  },
+  {
+    "id": "scroll",
+    "label": "Scroll",
+    "tags": [
+      "spell",
+      "paper",
+      "letter",
+      "magic",
+      "text"
+    ],
+    "tile": "gold",
+    "path": "face-art/library/scroll.webp"
+  },
+  {
+    "id": "scythe",
+    "label": "Scythe",
+    "tags": [
+      "weapon",
+      "reaper",
+      "harvest",
+      "attack"
+    ],
+    "tile": "dark",
+    "path": "face-art/library/scythe.webp"
+  },
+  {
+    "id": "shield",
+    "label": "Shield",
+    "tags": [
+      "block",
+      "defend",
+      "guard",
+      "protect",
+      "plain shield"
+    ],
+    "tile": "blue",
+    "path": "face-art/library/shield.webp"
+  },
+  {
+    "id": "shuriken",
+    "label": "Shuriken",
+    "tags": [
+      "weapon",
+      "throwing star",
+      "ninja",
+      "ranged",
+      "attack"
+    ],
+    "tile": "dark",
+    "path": "face-art/library/shuriken.webp"
+  },
+  {
+    "id": "sickle",
+    "label": "Sickle",
+    "tags": [
+      "weapon",
+      "curved",
+      "harvest",
+      "attack"
+    ],
+    "tile": "dark",
+    "path": "face-art/library/sickle.webp"
+  },
+  {
+    "id": "skull",
+    "label": "Skull",
+    "tags": [
+      "death",
+      "kill",
+      "doom",
+      "curse",
+      "danger"
+    ],
+    "tile": "dark",
+    "path": "face-art/library/skull.webp"
+  },
+  {
+    "id": "sleep",
+    "label": "Sleep (zzz)",
+    "tags": [
+      "stun",
+      "rest",
+      "zzz",
+      "daze",
+      "doze"
+    ],
+    "tile": "purple",
+    "path": "face-art/library/sleep.webp"
+  },
+  {
+    "id": "snake",
+    "label": "Snake",
+    "tags": [
+      "serpent",
+      "venom",
+      "reptile",
+      "bite",
+      "coil"
+    ],
+    "tile": "green",
+    "path": "face-art/library/snake.webp"
+  },
+  {
+    "id": "snowflake",
+    "label": "Snowflake",
+    "tags": [
+      "ice",
+      "frost",
+      "freeze",
+      "cold",
+      "chill"
+    ],
+    "tile": "cyan",
+    "path": "face-art/library/snowflake.webp"
+  },
+  {
+    "id": "bomb_spark",
+    "label": "Sparking bomb",
+    "tags": [
+      "bomb",
+      "fuse",
+      "explosion",
+      "single cast",
+      "blast"
+    ],
+    "tile": "red",
+    "path": "face-art/library/bomb_spark.webp"
+  },
+  {
+    "id": "sparkle",
+    "label": "Sparkle",
+    "tags": [
+      "magic",
+      "cantrip",
+      "shine",
+      "glitter",
+      "free"
+    ],
+    "tile": "purple",
+    "path": "face-art/library/sparkle.webp"
+  },
+  {
+    "id": "spear",
+    "label": "Spear",
+    "tags": [
+      "weapon",
+      "pierce",
+      "lance",
+      "attack"
+    ],
+    "tile": "red",
+    "path": "face-art/library/spear.webp"
+  },
+  {
+    "id": "spider",
+    "label": "Spider",
+    "tags": [
+      "arachnid",
+      "bug",
+      "web",
+      "venom",
+      "creepy"
+    ],
+    "tile": "dark",
+    "path": "face-art/library/spider.webp"
+  },
+  {
+    "id": "spiked_ball",
+    "label": "Spiked ball",
+    "tags": [
+      "spikes",
+      "thorns",
+      "caltrop",
+      "attack"
+    ],
+    "tile": "red",
+    "path": "face-art/library/spiked_ball.webp"
+  },
+  {
+    "id": "shield_spikes",
+    "label": "Spiked shield",
+    "tags": [
+      "thorns",
+      "spikes",
+      "retaliate",
+      "shield",
+      "block"
+    ],
+    "tile": "blue",
+    "path": "face-art/library/shield_spikes.webp"
+  },
+  {
+    "id": "spiral",
+    "label": "Spiral",
+    "tags": [
+      "dizzy",
+      "confuse",
+      "hypnosis",
+      "swirl",
+      "vortex"
+    ],
+    "tile": "purple",
+    "path": "face-art/library/spiral.webp"
+  },
+  {
+    "id": "star",
+    "label": "Star",
+    "tags": [
+      "favourite",
+      "bonus",
+      "rank",
+      "special",
+      "favorite"
+    ],
+    "tile": "gold",
+    "path": "face-art/library/star.webp"
+  },
+  {
+    "id": "stinger",
+    "label": "Stinger",
+    "tags": [
+      "sting",
+      "insect",
+      "venom",
+      "needle",
+      "attack"
+    ],
+    "tile": "green",
+    "path": "face-art/library/stinger.webp"
+  },
+  {
+    "id": "sun",
+    "label": "Sun",
+    "tags": [
+      "light",
+      "day",
+      "radiant",
+      "holy",
+      "bright"
+    ],
+    "tile": "gold",
+    "path": "face-art/library/sun.webp"
+  },
+  {
+    "id": "sword",
+    "label": "Sword",
+    "tags": [
+      "damage",
+      "attack",
+      "weapon",
+      "blade",
+      "slash",
+      "plain sword",
+      "hit"
+    ],
+    "tile": "red",
+    "path": "face-art/library/sword.webp"
+  },
+  {
+    "id": "sword_shield",
+    "label": "Sword and shield",
+    "tags": [
+      "damage",
+      "block",
+      "attack",
+      "defend",
+      "both",
+      "combo",
+      "sword and shield"
+    ],
+    "tile": "blue",
+    "path": "face-art/library/sword_shield.webp"
+  },
+  {
+    "id": "target",
+    "label": "Target",
+    "tags": [
+      "aim",
+      "bullseye",
+      "focus",
+      "mark",
+      "precision"
+    ],
+    "tile": "red",
+    "path": "face-art/library/target.webp"
+  },
+  {
+    "id": "thorns",
+    "label": "Thorn vine",
+    "tags": [
+      "plant",
+      "bramble",
+      "spikes",
+      "retaliate",
+      "thorns"
+    ],
+    "tile": "green",
+    "path": "face-art/library/thorns.webp"
+  },
+  {
+    "id": "rock",
+    "label": "Thrown rock",
+    "tags": [
+      "stone",
+      "throw",
+      "sling",
+      "attack",
+      "boulder"
+    ],
+    "tile": "grey",
+    "path": "face-art/library/rock.webp"
+  },
+  {
+    "id": "tower_shield",
+    "label": "Tower shield",
+    "tags": [
+      "shield",
+      "heavy",
+      "block",
+      "defend",
+      "guard"
+    ],
+    "tile": "blue",
+    "path": "face-art/library/tower_shield.webp"
+  },
+  {
+    "id": "trident",
+    "label": "Trident",
+    "tags": [
+      "weapon",
+      "three prongs",
+      "spear",
+      "sea",
+      "attack"
+    ],
+    "tile": "cyan",
+    "path": "face-art/library/trident.webp"
+  },
+  {
+    "id": "tune",
+    "label": "Tune (boost)",
+    "tags": [
+      "boost",
+      "buff",
+      "support",
+      "enhance",
+      "plus"
+    ],
+    "tile": "cyan",
+    "path": "face-art/library/tune.webp"
+  },
+  {
+    "id": "dagger_drop",
+    "label": "Venom dagger",
+    "tags": [
+      "poison",
+      "venom",
+      "dagger",
+      "stab",
+      "toxic"
+    ],
+    "tile": "green",
+    "path": "face-art/library/dagger_drop.webp"
+  },
+  {
+    "id": "brick_wall",
+    "label": "Wall",
+    "tags": [
+      "barrier",
+      "brick",
+      "defend",
+      "fortify",
+      "block"
+    ],
+    "tile": "blue",
+    "path": "face-art/library/brick_wall.webp"
+  },
+  {
+    "id": "horn",
+    "label": "War horn",
+    "tags": [
+      "call",
+      "signal",
+      "rally",
+      "sound",
+      "trumpet"
+    ],
+    "tile": "gold",
+    "path": "face-art/library/horn.webp"
+  },
+  {
+    "id": "ward",
+    "label": "Ward",
+    "tags": [
+      "protect",
+      "store",
+      "charge",
+      "bank",
+      "shield"
+    ],
+    "tile": "purple",
+    "path": "face-art/library/ward.webp"
+  },
+  {
+    "id": "wave",
+    "label": "Wave",
+    "tags": [
+      "water",
+      "sea",
+      "tide",
+      "flow",
+      "flood"
+    ],
+    "tile": "cyan",
+    "path": "face-art/library/wave.webp"
+  },
+  {
+    "id": "web",
+    "label": "Web",
+    "tags": [
+      "spider",
+      "slow",
+      "trap",
+      "snare",
+      "entangle"
+    ],
+    "tile": "grey",
+    "path": "face-art/library/web.webp"
+  },
+  {
+    "id": "whip",
+    "label": "Whip",
+    "tags": [
+      "weapon",
+      "lash",
+      "crack",
+      "attack"
+    ],
+    "tile": "orange",
+    "path": "face-art/library/whip.webp"
+  },
+  {
+    "id": "wind",
+    "label": "Wind",
+    "tags": [
+      "air",
+      "gust",
+      "breeze",
+      "push",
+      "speed"
+    ],
+    "tile": "cyan",
+    "path": "face-art/library/wind.webp"
+  },
+  {
+    "id": "wing",
+    "label": "Wing",
+    "tags": [
+      "fly",
+      "swift",
+      "angel",
+      "bird",
+      "evade"
+    ],
+    "tile": "cyan",
+    "path": "face-art/library/wing.webp"
+  }
+]

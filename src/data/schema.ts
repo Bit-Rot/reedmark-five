@@ -44,7 +44,6 @@ export const SCHEMA: Record<CollectionName, CollectionSchema> = {
     fields: [
       { key: 'targeting', label: 'Targeting', kind: 'enum', options: TARGETING },
       { key: 'keywords', label: 'Keywords', kind: 'keywordUses' },
-      { key: 'iconDescription', label: 'Icon description', kind: 'text' },
       { key: 'image', label: 'Image', kind: 'image' },
       { key: 'status', label: 'Status', kind: 'enum', options: FACE_STATUS },
       { key: 'notes', label: 'Notes', kind: 'longtext' },

@@ -50,8 +50,7 @@ export interface Face {
   id: string;
   targeting: Targeting;
   keywords: KeywordUse[];
-  iconDescription: string;
-  /** Path of an uploaded image relative to the site root, e.g. `art/faces/slash.webp`. */
+  /** Library image path relative to the site root, e.g. `face-art/library/sword.webp` (empty for none). */
   image: string;
   notes: string;
   status: FaceStatus;

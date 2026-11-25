@@ -1,15 +1,11 @@
-import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { COLLECTION_NAMES } from '../../src/data/types.ts';
-import { filePath } from '../../src/data/db.ts';
 import { FakeGitHub } from '../helpers/fake-github.ts';
+import { fixtureFiles } from '../helpers/fixture-data.ts';
 
-/** Serve the editor a fake GitHub seeded with the repo's real data files. */
+/** Serve the editor a fake GitHub seeded with a fixed fixture dataset. */
 async function openEditor(page: Page) {
-  const files: Record<string, string> = {};
-  for (const n of COLLECTION_NAMES) files[filePath(n)] = readFileSync(filePath(n), 'utf8');
-  const fake = new FakeGitHub(files);
+  const fake = new FakeGitHub(fixtureFiles());
   await page.addInitScript(() => {
     localStorage.setItem('fivedice-editor-token', 'test-token');
     localStorage.setItem('fivedice-editor-repo', JSON.stringify({ owner: 'o', repo: 'r', branch: 'main' }));
@@ -27,7 +23,7 @@ async function openEditor(page: Page) {
 test('lists data, shows the T diagram, flags dangling references, and renames with propagation', async ({ page }) => {
   await openEditor(page);
   await page.locator('#nav button', { hasText: 'Faces' }).click();
-  await expect(page.locator('#items li')).toHaveCount(10);
+  await expect(page.locator('#items li')).toHaveCount(7);
 
   await page.locator('#nav button', { hasText: 'Dice' }).click();
   await page.locator('#items button', { hasText: 'die_hammer' }).click();
@@ -80,6 +76,7 @@ test('creates a new face and builds a die and an item that reference it', async 
   await page.getByRole('button', { name: '+ New' }).click();
   await expect(page.locator('#id-input')).toHaveValue('smite');
   await page.getByRole('button', { name: '+ add keyword' }).click();
+  await expect(page.locator('.image-field .face-image.none')).toBeVisible();
 
   await page.locator('#nav button', { hasText: 'Items' }).click();
   await page.locator('.list-new input').fill('holy_symbol');
@@ -89,20 +86,39 @@ test('creates a new face and builds a die and an item that reference it', async 
   await expect(page.locator('#items li').filter({ hasText: 'holy_symbol' })).toBeVisible();
 });
 
-test('uploads a face image and commits it as a binary file', async ({ page }) => {
+test('faces show their images, and the picker searches the icon library and saves the choice', async ({ page }) => {
   const fake = await openEditor(page);
   await page.locator('#nav button', { hasText: 'Faces' }).click();
-  await page.locator('#items button', { hasText: /^stab$/ }).click();
-  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
-  await page.locator('.image-field input[type=file]').setInputFiles({ name: 'dagger.png', mimeType: 'image/png', buffer: png });
-  await expect(page.locator('.face-image')).toBeVisible();
-  await expect(page.locator('.image-field .hint')).toContainText('face-art/stab.webp');
+  // Every face in the data already has a library image, shown as a thumbnail in the list.
+  await expect(page.locator('#items img.thumb')).toHaveCount(await page.locator('#items li').count());
+  await page.locator('#items button', { hasText: /^slash$/ }).click();
+  await expect(page.locator('.image-field img.face-image')).toBeVisible();
+  await expect(page.locator('.image-field img.face-image')).toHaveJSProperty('complete', true);
+  expect(await page.locator('.image-field img.face-image').evaluate((i: HTMLImageElement) => i.naturalWidth)).toBeGreaterThan(0);
+  await expect(page.locator('.image-field .hint')).toContainText('face-art/library/sword.webp');
+
+  await page.getByRole('button', { name: 'Change image…' }).click();
+  const picker = page.locator('dialog.picker');
+  await expect(picker).toBeVisible();
+  expect(await picker.locator('.image-choice').count()).toBeGreaterThanOrEqual(100);
+  await picker.locator('input[type=search]').fill('poison');
+  await expect(picker.locator('.image-choice').first()).toContainText(/poison|venom|drop|fang|stinger|cauldron/i);
+  await picker.locator('input[type=search]').fill('flame');
+  await picker.locator('.image-choice[title="Flame (flame)"]').click();
+  await expect(page.locator('.image-field .hint')).toContainText('face-art/library/flame.webp');
+
   await page.locator('#bar button.primary').click();
   await page.getByRole('button', { name: 'Commit to GitHub' }).click();
   await expect(page.locator('#toast')).toContainText('Saved');
-  const sha = fake.trees.get(fake.commits.get(fake.head)!.tree)!.get('public/face-art/stab.webp')!;
-  expect(fake.blobs.get(sha)!.encoding).toBe('base64');
-  expect(fake.file('data/faces.json')).toContain('face-art/stab.webp');
+  expect(fake.file('data/faces.json')).toContain('face-art/library/flame.webp');
+  expect(fake.file('docs/Dice Faces.md')).toContain('../public/face-art/library/flame.webp');
+});
+
+test('the die diagram shows an image on each face', async ({ page }) => {
+  await openEditor(page);
+  await page.locator('#nav button', { hasText: 'Dice' }).click();
+  await page.locator('#items button').first().click();
+  await expect(page.locator('.tdiagram .slot-face img.thumb').first()).toBeVisible();
 });
 
 test('narrow screens show one pane at a time', async ({ page }) => {

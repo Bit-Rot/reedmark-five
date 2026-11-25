@@ -12,9 +12,9 @@ import { COLLECTION_NAMES, SLOT_NAMES, emptyDb } from '../src/data/types.ts';
 import { validate } from '../src/data/validate.ts';
 import type { Issue } from '../src/data/validate.ts';
 import { clear, h } from './dom.ts';
-import type { FormCtx, PendingImageEntry } from './forms.ts';
+import type { FormCtx } from './forms.ts';
 import { renderField } from './forms.ts';
-import { imageToWebp } from './images.ts';
+import { loadLibrary, thumb } from './library.ts';
 
 const DEFAULT_REPO: RepoRef = { owner: 'Bit-Rot', repo: 'reedmark-five', branch: 'main' };
 const KEY_TOKEN = 'fivedice-editor-token';
@@ -32,7 +32,6 @@ const store = {
 const state = {
   base: null as Snapshot | null,
   db: emptyDb() as Collections,
-  images: new Map<string, PendingImageEntry>(),
   view: 'faces' as View,
   selected: '' as string,
   search: '',
@@ -67,7 +66,7 @@ function changes(): Change[] {
   return out;
 }
 
-const dirtyCount = () => changes().length + state.images.size;
+const dirtyCount = () => changes().length;
 let issuesCache: Issue[] = [];
 
 function recompute(): void { issuesCache = validate(state.db); }
@@ -75,7 +74,7 @@ function recompute(): void { issuesCache = validate(state.db); }
 function saveDraft(): void {
   if (!state.base) return;
   if (!dirtyCount()) { store.del(KEY_DRAFT); return; }
-  store.set(KEY_DRAFT, JSON.stringify({ commit: state.base.commit, db: state.db, images: [...state.images.values()] }));
+  store.set(KEY_DRAFT, JSON.stringify({ commit: state.base.commit, db: state.db }));
 }
 
 // ---------- shell
@@ -180,7 +179,9 @@ function renderList(): void {
     for (const e of state.db[c] as Entity[]) {
       if (!matches(c, e)) continue;
       const kind = changed.get(e.id);
+      const image = c === 'faces' ? (e as Collections['faces'][number]).image : '';
       ul.append(h('li', { class: e.id === state.selected ? 'selected' : '' }, h('button', { type: 'button', onClick: () => { state.selected = e.id; fullRender(); } },
+        c === 'faces' ? (image ? thumb(image, e.id, 28) : h('span.thumb.none')) : null,
         h('span.name', null, displayName(c, e)),
         kind ? h('span.badge', null, kind === 'added' ? 'new' : 'edited') : null,
         errIds.has(e.id) ? h('span.dot', null, '●') : null)));
@@ -194,7 +195,7 @@ function blankEntity(c: CollectionName, id: string): Entity {
   const faceId = state.db.faces.find(f => f.id === 'blank')?.id ?? state.db.faces[0]?.id ?? '';
   switch (c) {
     case 'keywords': return { id, valueKind: 'none', ruleText: '', category: '', appliesTo: '', implemented: 'planned', notes: '' };
-    case 'faces': return { id, targeting: 'none', keywords: [], iconDescription: '', image: '', notes: '', status: 'active' };
+    case 'faces': return { id, targeting: 'none', keywords: [], image: '', notes: '', status: 'active' };
     case 'dice': return { id, name: '', tone: 'rust', faces: SLOT_NAMES.map(() => ({ face: faceId })), notes: '' };
     case 'characters': return { id, name: id, starterDice: [], items: [], unlocks: [], notes: '' };
     case 'items': return { id, name: id, rarity: 'common', description: '', effects: [], implemented: 'planned' };
@@ -215,13 +216,8 @@ function createEntity(c: CollectionName, id: string): void {
 // ---------- detail
 const formCtx: FormCtx = {
   get db() { return state.db; },
-  images: state.images,
   changed: () => refreshChrome(),
   rerender: () => { refreshChrome(); renderDetail(); },
-  pickImage: async (file, path) => {
-    const img = await imageToWebp(file, 256);
-    state.images.set(path, { path, base64: img.base64, dataUrl: img.dataUrl });
-  },
 };
 
 function renderDetail(): void {
@@ -337,7 +333,6 @@ function openSettings(): void {
       h('button', { type: 'button', onClick: async () => {
         d.close();
         if (dirtyCount() && !confirm('Discard unsaved changes and reload from GitHub?')) return;
-        state.images.clear();
         store.del(KEY_DRAFT);
         await load(true);
       } }, 'Discard changes & reload'),
@@ -349,7 +344,7 @@ function summary(): string {
   const cs = changes();
   const names = cs.slice(0, 4).map(c => `${c.collection}/${c.id}`);
   const more = cs.length > 4 ? ` and ${cs.length - 4} more` : '';
-  return names.length ? `Edit ${names.join(', ')}${more}` : 'Update images';
+  return names.length ? `Edit ${names.join(', ')}${more}` : 'Update data';
 }
 
 function openSave(): void {
@@ -357,7 +352,7 @@ function openSave(): void {
   const cs = changes();
   const msg = h('textarea', { rows: 3, value: summary() });
   const status = h('div.hint');
-  const list = h('ul.issues', null, ...cs.map(c => h('li', null, `${c.kind}: ${c.collection}/${c.id}`)), ...[...state.images.keys()].map(p => h('li', null, `image: ${p}`)));
+  const list = h('ul.issues', null, ...cs.map(c => h('li', null, `${c.kind}: ${c.collection}/${c.id}`)));
   const go = h('button.primary', { type: 'button', onClick: async () => {
     (go as HTMLButtonElement).disabled = true;
     status.textContent = 'Saving…';
@@ -376,7 +371,7 @@ function openSave(): void {
 async function doSave(message: string, status: HTMLElement, base: Snapshot | null = state.base): Promise<boolean> {
   if (!base) return false;
   try {
-    const r = await save(client(), base, state.db, [...state.images.values()].map(i => ({ path: i.path, base64: i.base64 })), message);
+    const r = await save(client(), base, state.db, [], message);
     if (r.status === 'conflict') {
       state.base = r.theirs;
       state.db = r.merged;
@@ -386,7 +381,6 @@ async function doSave(message: string, status: HTMLElement, base: Snapshot | nul
     }
     state.base = r.snapshot;
     state.db = clone(r.snapshot.db);
-    state.images.clear();
     store.del(KEY_DRAFT);
     say(r.status === 'saved' ? `Saved ${r.snapshot.commit.slice(0, 7)}. The site redeploys in a minute or two.` : 'Nothing to save.');
     fullRender();
@@ -444,7 +438,6 @@ async function load(forceRemote = false): Promise<void> {
     }
     state.base = snap;
     state.db = clone(snap.db);
-    state.images.clear();
     if (!forceRemote) restoreDraft(snap);
     if (!state.selected) state.selected = '';
   } catch (e) {
@@ -459,10 +452,9 @@ function restoreDraft(snap: Snapshot): void {
   const raw = store.get(KEY_DRAFT);
   if (!raw) return;
   try {
-    const d = JSON.parse(raw) as { commit: string; db: Collections; images: PendingImageEntry[] };
+    const d = JSON.parse(raw) as { commit: string; db: Collections };
     if (d.commit !== snap.commit) { store.del(KEY_DRAFT); return; }
     state.db = d.db;
-    for (const i of d.images) state.images.set(i.path, i);
     say('Restored your unsaved changes.');
   } catch { store.del(KEY_DRAFT); }
 }
@@ -471,4 +463,4 @@ window.addEventListener('beforeunload', ev => { if (dirtyCount()) { saveDraft();
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
   navigator.serviceWorker.register('./sw.js').catch(() => { /* offline shell is optional */ });
 }
-void load();
+void loadLibrary().then(() => load());

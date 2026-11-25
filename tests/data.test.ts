@@ -16,9 +16,9 @@ function sample(): Collections {
     { id: 'weak', valueKind: 'x', ruleText: 'weak X', category: 'x', appliesTo: '', implemented: 'planned', notes: '' },
   );
   db.faces.push(
-    { id: 'slash', targeting: 'singleEnemy', keywords: [{ keyword: 'damage' }], iconDescription: '', image: '', notes: '', status: 'active' },
-    { id: 'hobble', targeting: 'singleEnemy', keywords: [{ keyword: 'damage' }, { keyword: 'weak', x: 1 }], iconDescription: '', image: '', notes: '', status: 'active' },
-    { id: 'blank', targeting: 'none', keywords: [], iconDescription: '', image: '', notes: '', status: 'active' },
+    { id: 'slash', targeting: 'singleEnemy', keywords: [{ keyword: 'damage' }], image: '', notes: '', status: 'active' },
+    { id: 'hobble', targeting: 'singleEnemy', keywords: [{ keyword: 'damage' }, { keyword: 'weak', x: 1 }], image: '', notes: '', status: 'active' },
+    { id: 'blank', targeting: 'none', keywords: [], image: '', notes: '', status: 'active' },
   );
   db.dice.push({
     id: 'die_a', name: 'A', tone: 'rust', notes: '',
@@ -83,25 +83,25 @@ test('merge3 combines edits to different entities and fields, and reports clashe
   const base = sample();
   const mine = clone(base);
   const theirs = clone(base);
-  mine.faces[0].iconDescription = 'my sword';
+  mine.faces[0].notes = 'my sword';
   theirs.faces[2].notes = 'their blank';
   mine.items[0].description = 'mine';
   theirs.items[0].rarity = 'rare';
   const ok = merge3(base, mine, theirs);
   assert.equal(ok.conflicts.length, 0);
-  assert.equal(ok.merged.faces[0].iconDescription, 'my sword');
+  assert.equal(ok.merged.faces[0].notes, 'my sword');
   assert.equal(ok.merged.faces[2].notes, 'their blank');
   assert.equal(ok.merged.items[0].description, 'mine');
   assert.equal(ok.merged.items[0].rarity, 'rare');
 
-  mine.faces[1].iconDescription = 'mine';
-  theirs.faces[1].iconDescription = 'theirs';
+  mine.faces[1].notes = 'mine';
+  theirs.faces[1].notes = 'theirs';
   const clash = merge3(base, mine, theirs);
   assert.equal(clash.conflicts.length, 1);
-  assert.deepEqual(clash.conflicts[0].fields, ['iconDescription']);
-  assert.equal(clash.merged.faces[1].iconDescription, 'theirs');
+  assert.deepEqual(clash.conflicts[0].fields, ['notes']);
+  assert.equal(clash.merged.faces[1].notes, 'theirs');
   resolveConflict(clash.merged, clash.conflicts[0], 'mine');
-  assert.equal(clash.merged.faces[1].iconDescription, 'mine');
+  assert.equal(clash.merged.faces[1].notes, 'mine');
 });
 
 test('merge3 keeps new entities from both sides and honours deletions', () => {
@@ -134,4 +134,17 @@ test('committed data/*.json parses and the generated docs are in sync', { skip: 
   for (const [path, text] of Object.entries(exportAll(db))) {
     assert.equal(readFileSync(path, 'utf8'), text, `${path} is out of date: run npm run docs`);
   }
+});
+
+test('every face image exists in the icon library and the library has about a hundred icons', { skip: !existsSync('data/faces.json') }, () => {
+  const index = JSON.parse(readFileSync('public/face-art/library/index.json', 'utf8')) as { id: string; path: string; label: string; tags: string[] }[];
+  assert(index.length >= 100, `library has ${index.length} icons`);
+  assert.equal(new Set(index.map(i => i.id)).size, index.length, 'duplicate library ids');
+  for (const i of index) {
+    assert(existsSync(`public/${i.path}`), `${i.path} is listed in the library but missing`);
+    assert(i.label && i.tags.length, `${i.id} needs a label and tags`);
+  }
+  const paths = new Set(index.map(i => i.path));
+  const faces = JSON.parse(readFileSync('data/faces.json', 'utf8')) as { id: string; image: string }[];
+  for (const f of faces) assert(paths.has(f.image), `face ${f.id} has image "${f.image}" which is not in the library`);
 });
