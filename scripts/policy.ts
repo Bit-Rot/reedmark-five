@@ -50,13 +50,20 @@ export function act(s: State, commands?: Command[]): void {
       const guard = face.parts.find(part => part.kind === 'guard')?.value ?? 0;
       return { roll, face, guard };
     }).sort((a, b) => b.guard - a.guard);
-    for (const { roll, face, guard } of options) {
+    const decisions = options.map(({ roll, face, guard }) => {
       const salvage = !!face.salvage && !roll.salvaged;
       const direct = face.parts.find(part => part.kind === 'hit');
       const damage = direct ? direct.value * (direct.count ?? 1) : 0;
       const keep = (guard > 0 && guardKept < target && !salvage)
         || damage >= 4 || weight(face) >= 4.5 && !salvage || attempt === 1 && damage >= 3;
       if (keep) guardKept += guard;
+      return { roll, keep };
+    });
+    // Release dice before holding others: the game commits on its own once every die is held.
+    for (const { roll, keep } of decisions.filter(d => !d.keep)) {
+      if (setHold(s, roll.dieId, false)) commands?.push({ action: 'hold', id: roll.dieId });
+    }
+    for (const { roll, keep } of decisions.filter(d => d.keep)) {
       if (setHold(s, roll.dieId, keep)) commands?.push({ action: 'hold', id: roll.dieId });
     }
     if (reroll(s)) commands?.push({ action: 'reroll' });
@@ -94,6 +101,11 @@ export function act(s: State, commands?: Command[]): void {
     }
   }
   if (s.phase !== 'battle') return;
+  for (const roll of c.rolls) {
+    const wide = { kind: 'all' } as const;
+    if (!roll.used && rollFace(s, roll).target === 'all' && play(s, roll.dieId, wide)) commands?.push({ action: 'play', id: roll.dieId, target: wide });
+    if (s.phase !== 'battle') return;
+  }
   for (const roll of c.rolls) {
     const aim = { kind: 'self' } as const;
     if (play(s, roll.dieId, aim)) commands?.push({ action: 'play', id: roll.dieId, target: aim });

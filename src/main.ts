@@ -3,7 +3,7 @@ import './face-ui.css';
 import { CHARACTERS, DICE, FACE_IMAGE_PATHS, ITEMS, ROOMS } from './content.ts';
 import { actionPreview, advance, canPlay, chooseOffer, commitRoll, endTurn, incoming, intentValues, isExerted, isSave,
   newRun, offerTargets, play, previewDie, reroll, rollFace, setHold } from './game.ts';
-import type { Die, Offer, Roll, State, Target, Variant } from './model.ts';
+import type { Die, Face, Offer, Roll, State, Target, Variant } from './model.ts';
 import { EFFECTS, faceImageUrl, loadEffectImages, loadFaceImages } from './effects.ts';
 import { art, Battlefield } from './scene.ts';
 import { button, caption, chips, effectChip, element, faceEmblem, FaceTooltips, faceNet, faceText, helpOn, itemNet, positionFloater } from './ui.ts';
@@ -78,6 +78,9 @@ function save(): void {
   }
 }
 function tell(value: string): void { announcer.textContent = value; }
+/** Dice have no player-facing name; they are told apart by their faces, and by number where a label is needed. */
+function dieNumber(id: string): string { return '' + (state.dice.findIndex(die => die.id === id) + 1); }
+function dieLabel(id: string): string { return `Die ${dieNumber(id)}`; }
 function owned(id: string): Die { return state.dice.find(die => die.id === id)!; }
 function current(id: string): Roll | undefined { return state.combat?.rolls.find(roll => roll.dieId === id); }
 
@@ -170,8 +173,7 @@ function worldLayer(): HTMLElement {
     const die = owned(roll.dieId);
     const identity = DICE[die.template];
     const face = rollFace(state, roll);
-    const dieButton = button(`stage-cube tone-${identity.tone}`, 'die', `${identity.name}, ${faceText(face)}`,
-      element('span', 'world-face', faceEmblem(face)), element('span', 'cube-tag', identity.name));
+    const dieButton = button(`stage-cube tone-${identity.tone}`, 'die', faceText(face), element('span', 'world-face', faceEmblem(face)));
     dieButton.dataset.worldDie = roll.dieId;
     dieButton.dataset.die = roll.dieId;
     dieButton.dataset.inspectDie = roll.dieId;
@@ -199,8 +201,7 @@ function tray(): HTMLElement | null {
       const die = owned(roll.dieId);
       const identity = DICE[die.template];
       const face = rollFace(state, roll);
-      const seated = button(`seated tone-${identity.tone}`, 'die', `${identity.name}, ${faceText(face, roll.boost)}`,
-        chips(face, roll.boost), element('small', '', identity.name));
+      const seated = button(`seated tone-${identity.tone}`, 'die', faceText(face, roll.boost), chips(face, roll.boost));
       seated.dataset.die = roll.dieId;
       seated.dataset.inspectDie = roll.dieId;
       helpOn(seated, face, roll.boost);
@@ -243,8 +244,8 @@ function tray(): HTMLElement | null {
 
 function describeOffer(offer: Offer): string {
   if (offer.kind === 'item') return ITEMS[offer.id].name;
-  if (offer.kind === 'add') return DICE[offer.id].name;
-  if (offer.kind === 'transform') return `Transform · ${DICE[offer.id].name}`;
+  if (offer.kind === 'add') return 'New die';
+  if (offer.kind === 'transform') return 'Transform a die';
   return offer.kind === 'heal' ? 'Rest' : 'Remove';
 }
 
@@ -296,8 +297,8 @@ function fixedOfferSheet(): HTMLElement {
   if (earned) pane.append(earned);
   const kit = element('div', 'imprint-kit');
   for (const die of state.dice) {
-    const name = DICE[die.template].name;
-    const card = button('imprint-die', 'imprint-die', name, element('strong', '', name), faceNet(die));
+    const name = dieLabel(die.id);
+    const card = button('imprint-die', 'imprint-die', name, faceNet(die));
     card.dataset.imprintTarget = die.id;
     card.dataset.inspectDie = die.id;
     card.dataset.focus = `imprint-${die.id}`;
@@ -324,7 +325,7 @@ function renderOffers(): HTMLElement {
     for (const die of candidates) {
       const entry = DICE[die.template];
       const picker = button(`picker tone-${entry.tone}${rewardDie === die.id ? ' is-selected' : ''}`, 'reward-die',
-        entry.name, element('span', '', '◇'), entry.name);
+        dieLabel(die.id), element('span', '', '◇'), dieNumber(die.id));
       picker.dataset.id = die.id;
       picker.dataset.inspectDie = die.id;
       picker.dataset.focus = `reward-${die.id}`;
@@ -356,7 +357,7 @@ function renderLedger(): HTMLElement {
   for (const die of order) {
     const entry = DICE[die.template];
     const status = variant === 'fixed' || !remaining ? '' : remaining.includes(die.id) ? '◇' : drawn.has(die.id) ? '◈' : '·';
-    const pick = button(`picker tone-${entry.tone}${ledgerDie === die.id ? ' is-selected' : ''}`, 'inspect', entry.name, status, entry.name);
+    const pick = button(`picker tone-${entry.tone}${ledgerDie === die.id ? ' is-selected' : ''}`, 'inspect', dieLabel(die.id), status, dieNumber(die.id));
     pick.dataset.id = die.id;
     pick.dataset.inspectDie = die.id;
     pick.dataset.focus = `inspect-${die.id}`;
@@ -372,8 +373,7 @@ function renderLedger(): HTMLElement {
 
 function renderSelect(): HTMLElement {
   const choices = CHARACTERS.map(hero => {
-    const dice = hero.starterDice.map(id => DICE[id].name).join(' · ');
-    const choice = button('control character-choice', 'character', `Play ${hero.name}`, element('strong', '', hero.name), element('small', '', dice));
+    const choice = button('control character-choice', 'character', `Play ${hero.name}`, element('strong', '', hero.name), element('small', '', `${hero.starterDice.length} starter dice`));
     choice.dataset.id = hero.id;
     return choice;
   });
@@ -515,7 +515,10 @@ function animateRoll(ids: string[], newTurn = false): void {
     animTimer = window.setTimeout(() => {
       rolling = false;
       render();
+      autoCommit();
     }, 835 + lead);
+  } else {
+    autoCommit();
   }
 }
 
@@ -534,16 +537,18 @@ function transition(before: State['phase'], oldTurn: number): void {
 function apply(id: string, target: Target): void {
   const combat = state.combat;
   const forecast = actionPreview(state, id, target);
-  if (!combat || !forecast) return;
+  const roll = current(id);
+  if (!combat || !forecast || !roll) return;
+  const playedFace = rollFace(state, roll);
   const actor = target.kind === 'self' ? 'courier' : target.id;
-  const point = target.kind === 'die' ? null : board?.actorPoint(actor!, 'center');
+  const point = target.kind === 'die' || target.kind === 'all' ? null : board?.actorPoint(actor!, 'center');
   const old = combat.enemies.find(enemy => target.kind === 'enemy' && enemy.id === target.id);
   const after = forecast.enemies.find(enemy => old?.id === enemy.id);
   const hits = old && after ? old.hp - after.hp + old.guard - after.guard : 0;
   const guard = forecast.guard - combat.guard;
   const seep = old && after ? after.seep - old.seep : 0;
   if (!play(state, id, target)) return;
-  tell(`${DICE[owned(id).template].name} played.`);
+  tell(`Played ${faceText(playedFace)}.`);
   transition('battle', state.combat?.turn ?? 0);
   const amount = hits ? `−${hits}` : seep ? `◈ +${seep}` : guard ? `⬟ +${guard}` : '';
   if (point && amount && !board?.motion.matches) {
@@ -606,11 +611,11 @@ function openInspection(anchor: HTMLElement, keyboard = false): void {
   const close = button('subtle', 'close-inspection', 'Close die layout', 'Close');
   close.addEventListener('click', () => closeInspection(true));
   const panel = element('section', 'die-inspection',
-    element('div', 'inspect-heading', element('h2', '', DICE[die.template].name), close),
+    element('div', 'inspect-heading', element('h2', '', 'Die faces'), close),
     faceNet(die, undefined, true),
   );
   panel.setAttribute('role', 'dialog');
-  panel.setAttribute('aria-label', `${DICE[die.template].name} die layout`);
+  panel.setAttribute('aria-label', `${dieLabel(die.id)} layout`);
   root.append(panel);
   positionFloater(panel, anchor.getBoundingClientRect(), true);
   inspection = { node: panel, anchor };
@@ -630,6 +635,25 @@ document.addEventListener('pointerdown', event => {
 });
 window.addEventListener('resize', () => closeInspection());
 
+/** The target of a face that has nothing to aim, or null when the player must choose one. */
+function automaticTarget(face: Face): Target | null {
+  if (face.target === 'self') return { kind: 'self' };
+  if (face.target === 'all') return { kind: 'all' };
+  return null;
+}
+
+/** Commits the roll once nothing more can change: the last reroll is spent, or every die is held. */
+function autoCommit(): boolean {
+  const combat = state.combat;
+  if (rolling || state.phase !== 'battle' || !combat || combat.phase !== 'roll') return false;
+  if (combat.rerolls > 0 && !combat.rolls.every(roll => roll.held)) return false;
+  const turn = combat.turn;
+  if (!commitRoll(state)) return false;
+  tell('Dice committed.');
+  transition('battle', turn);
+  return true;
+}
+
 function toggleDie(id: string): void {
   const combat = state.combat;
   const roll = current(id);
@@ -637,13 +661,20 @@ function toggleDie(id: string): void {
   if (combat.phase === 'roll') {
     if (setHold(state, id, !roll.held)) {
       save();
-      render();
+      if (!autoCommit()) render();
     }
   } else if (selected && selected !== id && canPlay(state, selected, { kind: 'die', id })) {
     apply(selected, { kind: 'die', id });
   } else {
-    selected = selected === id ? null : id;
-    paintTargets(selected);
+    // Faces that need no aiming (self or all enemies) are used the moment they are chosen.
+    const aim = automaticTarget(rollFace(state, roll));
+    if (aim && canPlay(state, id, aim)) {
+      selected = null;
+      apply(id, aim);
+    } else {
+      selected = selected === id ? null : id;
+      paintTargets(selected);
+    }
   }
 }
 
@@ -862,7 +893,7 @@ document.addEventListener('pointerup', event => {
     const inRack = drop.some(node => node.closest('[data-hold]'));
     const inStage = drop.includes(stage) && event.clientY < (view.querySelector('.combat-tray')?.getBoundingClientRect().top ?? innerHeight);
     if ((inRack || inStage) && setHold(state, id, inRack)) save();
-    render();
+    if (!autoCommit()) render();
   } else {
     const target = pointTarget(event.clientX, event.clientY, id);
     if (target) apply(id, targetFor(target));
@@ -903,4 +934,7 @@ board = new Battlefield(stage, positionWorld);
 save();
 if (!choosing && state.phase === 'battle' && state.combat?.phase === 'roll' && state.combat.turn === 1 && state.combat.rerolls === 2) {
   animateRoll(state.combat.rolls.filter(roll => !roll.held).map(roll => roll.dieId), true);
-} else render();
+} else {
+  render();
+  autoCommit();
+}

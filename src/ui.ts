@@ -96,7 +96,7 @@ const slotNames = { left: 'Left', center: 'Center', right: 'Right', far: 'Far ri
 
 export function faceNet(die: Die, result?: Die, interactive = false): HTMLElement {
   const grid = element('div', 'face-net');
-  grid.setAttribute('aria-label', `${DICE[die.template].name} faces`);
+  grid.setAttribute('aria-label', 'Die faces');
   for (const slot of SLOTS) {
     const before = faceFor(die, slot);
     const after = result ? faceFor(result, slot) : before;

@@ -45,7 +45,6 @@ test('dice, items and characters with problems are left out instead of breaking 
   assert(!out.dice.die_lasso && !out.items.odd);
   assert(!out.characters.some(c => c.id === 'broken'));
   assert(out.issues.some(i => i.message.includes('"taunt" is not implemented')));
-  assert(out.issues.some(i => i.message.includes('allEnemies')));
   assert(out.issues.some(i => i.message.includes('pipDelta')));
 });
 
@@ -251,5 +250,30 @@ test('the first fights are tuned so the starter dice usually win them without lo
       if (s.phase === 'reward' && s.hp === s.maxHp) flawless++;
     }
     assert(flawless / runs >= 0.6, `${hero.id} won the first fight untouched only ${flawless}/${runs} times`);
+  }
+});
+
+test('all-enemies faces compile and hit every living enemy once, applying their self effects a single time', () => {
+  const wide: DataFace = { id: 'sweep', targeting: 'allEnemies', keywords: [{ keyword: 'damage' }, { keyword: 'selfShield' }], image: '', notes: '', status: 'active' };
+  const issues: { where: string; message: string }[] = [];
+  const compiled = compileFace(wide, 2, issues);
+  assert.deepEqual(issues, []);
+  assert.equal(compiled.target, 'all');
+  const original = DICE.die_sword.faces.left;
+  DICE.die_sword.faces.left = compiled;
+  try {
+    const s = newRun('fixed', 231);
+    const c = s.combat!;
+    c.rolls[0].slot = 'left';
+    const hp = c.enemies.map(e => e.hp);
+    assert(commitRoll(s));
+    assert.equal(canPlay(s, 'd0', { kind: 'self' }), false);
+    assert(canPlay(s, 'd0', { kind: 'all' }));
+    const guard = c.guard;
+    assert(play(s, 'd0', { kind: 'all' }));
+    assert.deepEqual(c.enemies.map(e => e.hp), hp.map(h => h - 2));
+    assert.equal(c.guard, guard + 2);
+  } finally {
+    DICE.die_sword.faces.left = original;
   }
 });

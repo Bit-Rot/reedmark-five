@@ -9,7 +9,7 @@ import { SLOT_NAMES } from './types.ts';
 
 /** Keywords the game engine can execute. Anything else on a face is reported by `compileDb`. */
 export const IMPLEMENTED_KEYWORDS = ['damage', 'block', 'selfShield', 'poison', 'vulnerable', 'weak', 'exert', 'cantrip'] as const;
-export const TARGETINGS_SUPPORTED: readonly Targeting[] = ['none', 'self', 'singleEnemy'];
+export const TARGETINGS_SUPPORTED: readonly Targeting[] = ['none', 'self', 'singleEnemy', 'allEnemies'];
 /** Item operations the game can execute. */
 export const ITEM_OPS_SUPPORTED = ['setFace'] as const;
 
@@ -19,7 +19,7 @@ export const SLOT_TO_GAME: Record<SlotName, Slot> = {
 };
 
 const TARGET_TO_GAME: Record<Targeting, TargetKind | undefined> = {
-  none: 'none', self: 'self', singleEnemy: 'enemy', allEnemies: undefined,
+  none: 'none', self: 'self', singleEnemy: 'enemy', allEnemies: 'all',
 };
 
 export interface Diagnostic { where: string; message: string }

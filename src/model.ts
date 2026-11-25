@@ -4,7 +4,7 @@ export type Variant = 'fixed' | 'pool';
 export type Kind = 'hit' | 'guard' | 'seep' | 'boost' | 'ward' | 'vulnerable' | 'weak' | 'exert' | 'cantrip' | 'blank';
 /** Kinds that carry no number (they are either present or not). */
 export const FLAG_KINDS: readonly Kind[] = ['exert', 'cantrip', 'blank'];
-export type TargetKind = 'enemy' | 'self' | 'die' | 'none';
+export type TargetKind = 'enemy' | 'self' | 'die' | 'none' | 'all';
 export type Target = { kind: TargetKind; id?: string };
 
 export interface Part {

@@ -130,15 +130,20 @@ function fireCantrips(state: State, combat: Combat, rolls: Roll[]): void {
   for (const roll of rolls) {
     const face = rollFace(state, roll);
     if (!face.parts.some(part => part.kind === 'cantrip')) continue;
+    const parts = face.parts.filter(part => part.kind !== 'exert' && part.kind !== 'cantrip');
     let enemy: Enemy | undefined;
     if (face.target === 'enemy') {
       const alive = combat.enemies.filter(e => e.hp > 0);
       if (!alive.length) continue;
       enemy = alive[pick(state, alive.length, 'combatRng')];
+    } else if (face.target === 'all') {
+      if (combat.enemies.every(e => e.hp <= 0)) continue;
+      applyToAll(combat, roll, parts);
+      combat.events.push(`Cantrip: ${describe(face)} on all enemies`);
+      continue;
     } else if (face.target !== 'self') continue;
-    applyParts(combat, roll, face.parts.filter(part => part.kind !== 'exert' && part.kind !== 'cantrip'), enemy, undefined);
-    const owner = state.dice.find(die => die.id === roll.dieId);
-    combat.events.push(`${owner ? DICE[owner.template].name : 'Die'} cantrip: ${describe(face)}${enemy ? ` on ${enemy.name}` : ''}`);
+    applyParts(combat, roll, parts, enemy, undefined);
+    combat.events.push(`Cantrip: ${describe(face)}${enemy ? ` on ${enemy.name}` : ''}`);
   }
 }
 
@@ -215,6 +220,7 @@ export function canPlay(state: State, dieId: string, target: Target): boolean {
   if (state.phase !== 'battle' || !combat || combat.phase !== 'play' || !roll || roll.used) return false;
   const face = rollFace(state, roll);
   if (face.target === 'none' || face.target !== target.kind) return false;
+  if (target.kind === 'all') return combat.enemies.some(enemy => enemy.hp > 0);
   if (target.kind === 'enemy') return combat.enemies.some(enemy => enemy.id === target.id && enemy.hp > 0);
   if (target.kind === 'die') {
     return combat.rolls.some(other => other.dieId === target.id && other !== roll && !other.used
@@ -227,7 +233,19 @@ function applyFace(state: State, combat: Combat, roll: Roll, target: Target): vo
   const enemy = combat.enemies.find(e => target.kind === 'enemy' && e.id === target.id);
   const die = combat.rolls.find(r => target.kind === 'die' && r.dieId === target.id);
   roll.used = true;
-  applyParts(combat, roll, effectiveParts(rollFace(state, roll), roll.boost), enemy, die);
+  const parts = effectiveParts(rollFace(state, roll), roll.boost);
+  if (target.kind === 'all') applyToAll(combat, roll, parts);
+  else applyParts(combat, roll, parts, enemy, die);
+}
+
+const AIMED = ['hit', 'seep', 'vulnerable', 'weak'];
+
+/** An all-enemies face hits every living enemy; its self effects (block, exert...) apply once. */
+function applyToAll(combat: Combat, roll: Roll, parts: readonly Part[]): void {
+  for (const enemy of combat.enemies) {
+    if (enemy.hp > 0) applyParts(combat, roll, parts.filter(part => AIMED.includes(part.kind)), enemy, undefined);
+  }
+  applyParts(combat, roll, parts.filter(part => !AIMED.includes(part.kind)), undefined, undefined);
 }
 
 function applyParts(combat: Combat, roll: Roll, parts: readonly Part[], enemy: Enemy | undefined, die: Roll | undefined): void {

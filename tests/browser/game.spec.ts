@@ -93,7 +93,7 @@ test('hover and right click show illustrated faces and their in-game definitions
   await expect(die(page, 'd4')).not.toHaveAttribute('title', /.+/);
 
   await die(page, 'd2').click({ button: 'right' });
-  const layout = page.getByRole('dialog', { name: 'Shield die layout' });
+  const layout = page.getByRole('dialog', { name: 'Die 3 layout' });
   await expect(layout).toBeVisible();
   await expect(layout.locator('.net-tile img')).not.toHaveCount(0);
   await expect(layout.locator('.net-tile')).toHaveCount(6);
@@ -108,7 +108,7 @@ test('hover and right click show illustrated faces and their in-game definitions
   await expect(page.locator('.stage-cube')).toHaveCount(5);
   await die(page, 'd4').focus();
   await page.keyboard.press('Shift+F10');
-  await expect(page.getByRole('dialog', { name: 'Hammer die layout' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Die 5 layout' })).toBeVisible();
 });
 
 test('Fixed Five keeps every die visible and applies an item directly on drop', async ({ page }) => {
@@ -150,7 +150,7 @@ test('Fixed Five accepts a tap on an item and a tap on its destination', async (
   state.offers = [{ kind: 'item', id: 'sea' }, { kind: 'item', id: 'moss' }, { kind: 'item', id: 'nick' }];
   await saveFixture(page, state);
   await page.getByRole('button', { name: 'Sea Thread' }).tap();
-  await page.getByRole('button', { name: 'Imprint on Sword' }).first().tap();
+  await page.getByRole('button', { name: 'Imprint on Die 1' }).tap();
   await expect(page.locator('#interface')).toHaveAttribute('data-phase', 'battle');
   await context.close();
 });
@@ -161,9 +161,9 @@ async function perform(page: Page, command: Command): Promise<void> {
   } else if (command.action === 'play') {
     await die(page, command.id).click();
     const target = command.target;
-    if (target.kind === 'self') await actor(page, 'courier').click();
-    else if (target.kind === 'enemy') await actor(page, target.id!).click();
-    else await die(page, target.id!).click();
+    // Self and all-enemy faces are used the moment they are clicked; only aimed faces need a second click.
+    if (target.kind === 'enemy') await actor(page, target.id!).click();
+    else if (target.kind === 'die') await die(page, target.id!).click();
   } else if (command.action === 'take') {
     await page.locator(`button[data-action="offer"][data-index="${command.index}"]`).click();
     if (command.id) {
@@ -174,6 +174,9 @@ async function perform(page: Page, command: Command): Promise<void> {
         await action(page, 'take').click();
       }
     }
+  } else if (command.action === 'commit') {
+    // The page commits by itself after the last reroll or once every die is held.
+    if (await action(page, 'commit').count()) await action(page, 'commit').click();
   } else {
     await action(page, command.action).click();
   }
@@ -253,7 +256,7 @@ test('each face is drawn with the image chosen for its face in the data', async 
   await expect(page.locator('button.seated[data-die="d0"] img')).toHaveAttribute('src', /face-art\/library\/sword\.webp$/);
   await expect(page.locator('button.seated[data-die="d2"] img')).toHaveAttribute('src', /face-art\/library\/shield\.webp$/);
   await die(page, 'd2').click({ button: 'right' });
-  const layout = page.getByRole('dialog', { name: 'Shield die layout' });
+  const layout = page.getByRole('dialog', { name: 'Die 3 layout' });
   await expect(layout.locator('.net-tile img').first()).toHaveAttribute('src', /face-art\/library\/shield\.webp$/);
 });
 
@@ -334,4 +337,60 @@ test('abandoning a seeded run restarts the same seed', async ({ page }) => {
   await page.getByRole('button', { name: 'Confirm abandon run' }).click();
   await expect(page.locator('#interface')).toHaveAttribute('data-phase', 'battle');
   await expect(action(page, 'commit')).toBeVisible();
+});
+
+
+test('dice names are never shown or announced; they are code names only', async ({ page }) => {
+  await page.goto('/?character=thief&seed=11');
+  await expect(page.locator('#interface')).toHaveAttribute('data-phase', 'battle');
+  const names = /Dagger|Dodge|Kris|Sword|Hammer/;
+  expect(await page.locator('#interface').innerText()).not.toMatch(names);
+  const labels = await page.locator('[aria-label]').evaluateAll(nodes => nodes.map(n => n.getAttribute('aria-label') ?? ''));
+  for (const label of labels) expect(label).not.toMatch(names);
+  await action(page, 'commit').click();
+  expect(await page.locator('#interface').innerText()).not.toMatch(names);
+  await page.locator('[data-action="ledger"]').click();
+  expect(await page.locator('#interface').innerText()).not.toMatch(names);
+});
+
+test('the roll commits by itself after the last reroll', async ({ page }) => {
+  await page.goto('/?seed=231');
+  await expect(action(page, 'commit')).toBeVisible();
+  await action(page, 'reroll').click();
+  await expect(action(page, 'commit')).toBeVisible();
+  await action(page, 'reroll').click();
+  await expect(action(page, 'end')).toBeVisible();
+  await expect(action(page, 'commit')).toHaveCount(0);
+});
+
+test('the roll commits by itself when the last die is put in a slot', async ({ page }) => {
+  await page.goto('/?seed=231');
+  for (const id of ['d0', 'd1', 'd2', 'd3']) await die(page, id).click();
+  await expect(action(page, 'commit')).toBeVisible();
+  await die(page, 'd4').click();
+  await expect(action(page, 'end')).toBeVisible();
+  await expect(action(page, 'commit')).toHaveCount(0);
+});
+
+test('clicking a self-target die uses it at once, with no target to pick', async ({ page }) => {
+  const state = newRun('fixed', 231);
+  state.combat!.rolls[2].slot = 'right';
+  await saveFixture(page, state);
+  await action(page, 'commit').click();
+  await expect(actor(page, 'courier').locator('.chip--guard')).toHaveCount(0);
+  await die(page, 'd2').click();
+  await expect(actor(page, 'courier').locator('.chip--guard')).toContainText('1');
+  await expect(page.locator('[data-socket="2"].is-spent')).toBeVisible();
+});
+
+test('an aimed die still waits for a target after being clicked', async ({ page }) => {
+  const state = newRun('fixed', 231);
+  state.combat!.rolls[0].slot = 'left';
+  await saveFixture(page, state);
+  await action(page, 'commit').click();
+  await die(page, 'd0').click();
+  await expect(page.locator('[data-socket="0"].is-spent')).toHaveCount(0);
+  await expect(actor(page, 'gnat-a')).toHaveClass(/is-legal/);
+  await actor(page, 'gnat-a').click();
+  await expect(page.locator('[data-socket="0"].is-spent')).toBeVisible();
 });
