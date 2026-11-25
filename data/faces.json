@@ -152,5 +152,21 @@
     "image": "",
     "notes": "Pips do nothing at baseline",
     "status": "active"
+  },
+  {
+    "id": "dmgSingleCast",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "singleCast"
+      },
+      {
+        "keyword": "damage"
+      }
+    ],
+    "iconDescription": "A simple bomb",
+    "image": "",
+    "notes": "",
+    "status": "active"
   }
 ]

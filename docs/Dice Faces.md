@@ -16,3 +16,4 @@ These dice faces are active and intended to be enabled and implemented in-game.
 | `poison`        | Single Enemy | {damage}<br>{poison 1}                | A single drop of poison                                    |       |                              |
 | `dmgWeak`       | Single Enemy | {damage}<br>{weak 1}                  | A curvy kris dagger                                        |       |                              |
 | `weak`          | Single Enemy | {weak 1}<br>{exert}                   | A sad face                                                 |       | Pips do nothing at baseline  |
+| `dmgSingleCast` | Single Enemy | {singleCast}<br>{damage}              | A simple bomb                                              |       |                              |
