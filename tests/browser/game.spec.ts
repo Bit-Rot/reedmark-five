@@ -50,7 +50,7 @@ test('desktop holds a 3D die, rejects an invalid drop, and plays a valid drop', 
   await expect(actor(page, 'courier').locator('.chip--guard')).toHaveText('1');
   const attack = page.locator('button.seated[aria-label*="Damage"]').first();
   await drag(page, attack, actor(page, 'gnat-a'));
-  await expect(actor(page, 'gnat-a')).not.toContainText('10/10');
+  await expect(actor(page, 'gnat-a')).not.toContainText('7/7');
 });
 
 test('narrow touch layout exposes ten pool dice and supports tap targeting', async ({ browser }) => {
@@ -69,7 +69,7 @@ test('narrow touch layout exposes ten pool dice and supports tap targeting', asy
   await die(page, attacker).tap();
   await expect(actor(page, 'gnat-a')).toHaveClass(/is-legal/);
   await actor(page, 'gnat-a').tap();
-  await expect(actor(page, 'gnat-a')).not.toContainText('10/10');
+  await expect(actor(page, 'gnat-a')).not.toContainText('7/7');
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
   await context.close();
 });
@@ -267,4 +267,71 @@ test('an exerted die shows the blank face image', async ({ page }) => {
   await action(page, 'end').click();
   await action(page, 'commit').click();
   await expect(page.locator('button.seated[data-die="d4"] img')).toHaveAttribute('src', /face-art\/library\/blank\.webp$/);
+});
+
+test('the HUD shows gold, and a won fight pays gold on the spoils screen', async ({ page }) => {
+  const state = newRun('fixed', 231);
+  const c = state.combat!;
+  c.enemies.forEach(e => { e.hp = 1; });
+  c.rolls[0].slot = 'left';
+  c.rolls[1].slot = 'left';
+  await saveFixture(page, state);
+  await expect(page.locator('.gold-hud')).toContainText('0');
+  await action(page, 'commit').click();
+  await die(page, 'd0').click();
+  await actor(page, 'gnat-a').click();
+  await die(page, 'd1').click();
+  await actor(page, 'gnat-b').click();
+  await expect(page.getByRole('heading', { name: 'Spoils' })).toBeVisible();
+  const banner = page.locator('.gold-banner');
+  await expect(banner).toBeVisible();
+  const earned = Number((await banner.innerText()).replace(/\D/g, ''));
+  expect(earned).toBeGreaterThanOrEqual(10);
+  expect(earned).toBeLessThanOrEqual(20);
+  await expect(page.locator('.gold-hud .gold-amount')).toHaveText(`${earned}`);
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('reedmark:fixed:v1')!)) as State;
+  expect(saved.gold).toBe(earned);
+});
+
+test('the gear opens a menu where a run can be abandoned after confirming', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/?character=thief');
+  await expect(page.locator('#interface')).toHaveAttribute('data-phase', 'battle');
+  await expect(page.locator('.hud-right [data-action="ledger"]')).toBeVisible();
+  const gear = page.locator('.hud-right [data-action="menu"]');
+  await expect(gear).toBeVisible();
+  await gear.click();
+  const menu = page.getByRole('region', { name: 'Menu' });
+  await expect(menu).toBeVisible();
+  // Closing the menu leaves the run untouched.
+  await menu.getByRole('button', { name: 'Close menu' }).click();
+  await expect(menu).toHaveCount(0);
+  await expect(page.locator('.stage-cube')).toHaveCount(5);
+  await page.keyboard.press('Escape');
+
+  await gear.click();
+  await page.getByRole('button', { name: 'Abandon run' }).click();
+  await expect(page.getByText('Abandon this run?')).toBeVisible();
+  await page.getByRole('button', { name: 'Keep playing' }).click();
+  await expect(page.getByRole('button', { name: 'Abandon run' })).toBeVisible();
+  await page.getByRole('button', { name: 'Abandon run' }).click();
+  await page.getByRole('button', { name: 'Confirm abandon run' }).click();
+  await expect(page.getByRole('heading', { name: 'Choose your hero' })).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('reedmark:fixed:v1'))).toBeNull();
+  // Reloading does not bring the abandoned run back.
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Choose your hero' })).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('abandoning a seeded run restarts the same seed', async ({ page }) => {
+  await page.goto('/?seed=231');
+  await expect(page.locator('#interface')).toHaveAttribute('data-phase', 'battle');
+  await action(page, 'commit').click();
+  await page.locator('[data-action="menu"]').click();
+  await page.getByRole('button', { name: 'Abandon run' }).click();
+  await page.getByRole('button', { name: 'Confirm abandon run' }).click();
+  await expect(page.locator('#interface')).toHaveAttribute('data-phase', 'battle');
+  await expect(action(page, 'commit')).toBeVisible();
 });

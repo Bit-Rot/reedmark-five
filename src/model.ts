@@ -101,7 +101,7 @@ export type Offer =
   | { kind: 'item' | 'add' | 'transform'; id: string }
   | { kind: 'remove' | 'heal' };
 export interface State {
-  version: 2;
+  version: 3;
   variant: Variant;
   character: string;
   seed: number;
@@ -110,6 +110,10 @@ export interface State {
   room: number;
   hp: number;
   maxHp: number;
+  /** Gold earned this run. */
+  gold: number;
+  /** Gold awarded by the fight that just ended (shown on the reward screen). */
+  lastGold: number;
   nextDie: number;
   dice: Die[];
   phase: 'battle' | 'reward' | 'victory' | 'defeat';

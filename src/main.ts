@@ -4,7 +4,7 @@ import { CHARACTERS, DICE, FACE_IMAGE_PATHS, ITEMS, ROOMS } from './content.ts';
 import { actionPreview, advance, canPlay, chooseOffer, commitRoll, endTurn, incoming, intentValues, isExerted, isSave,
   newRun, offerTargets, play, previewDie, reroll, rollFace, setHold } from './game.ts';
 import type { Die, Offer, Roll, State, Target, Variant } from './model.ts';
-import { EFFECTS, loadEffectImages, loadFaceImages } from './effects.ts';
+import { EFFECTS, faceImageUrl, loadEffectImages, loadFaceImages } from './effects.ts';
 import { art, Battlefield } from './scene.ts';
 import { button, caption, chips, effectChip, element, faceEmblem, FaceTooltips, faceNet, faceText, helpOn, itemNet, positionFloater } from './ui.ts';
 
@@ -46,6 +46,9 @@ let selected: string | null = null;
 let offerIndex: number | null = null;
 let rewardDie: string | null = null;
 let ledger = false;
+/** The gear menu is open; `confirmingAbandon` is the second step of abandoning the run. */
+let menu = false;
+let confirmingAbandon = false;
 let ledgerDie: string | null = null;
 let rolling = false;
 let animTimer = 0;
@@ -102,8 +105,16 @@ function hud(): HTMLElement {
   path.append(pips);
   const health = element('div', 'health-hud', element('span', 'heart', '♥'), element('span', 'hero-hp', `${state.hp}`, element('small', '', ` / ${state.maxHp}`)));
   health.append(meter(state.hp, state.maxHp));
+  const coin = element('img', 'gold-coin');
+  coin.src = faceImageUrl('face-art/library/coin.webp');
+  coin.alt = '';
+  coin.draggable = false;
+  const gold = element('div', 'gold-hud', coin, element('span', 'gold-amount', `${state.gold}`));
+  gold.title = 'Gold';
+  gold.setAttribute('aria-label', `${state.gold} gold`);
   const kit = button('icon-button', 'ledger', variant === 'pool' ? 'View dice bag' : 'View dice kit', '◫');
-  return element('header', 'hud', identity, path, element('div', 'hud-right', health, kit));
+  const gear = button('icon-button', 'menu', 'Game menu', '⚙');
+  return element('header', 'hud', identity, path, element('div', 'hud-right', element('div', 'hud-stats', health, gold), kit, gear));
 }
 
 function targetFor(node: HTMLElement): Target {
@@ -267,10 +278,22 @@ function offerGrid(direct = false): HTMLElement {
   return grid;
 }
 
+function goldBanner(): HTMLElement | null {
+  if (!state.lastGold) return null;
+  const coin = element('img', 'gold-coin');
+  coin.src = faceImageUrl('face-art/library/coin.webp');
+  coin.alt = '';
+  const banner = element('div', 'gold-banner', coin, element('span', '', `+${state.lastGold} gold`));
+  banner.setAttribute('aria-label', `Earned ${state.lastGold} gold`);
+  return banner;
+}
+
 function fixedOfferSheet(): HTMLElement {
   const room = ROOMS[state.room];
   const pane = sheet(room.type === 'battle' ? 'Spoils' : room.name, button('subtle', 'skip', 'Skip reward', 'Skip'));
   pane.classList.add('fixed-spoils');
+  const earned = goldBanner();
+  if (earned) pane.append(earned);
   const kit = element('div', 'imprint-kit');
   for (const die of state.dice) {
     const name = DICE[die.template].name;
@@ -291,6 +314,8 @@ function renderOffers(): HTMLElement {
   const offer = offerIndex === null ? undefined : state.offers[offerIndex];
   const title = offer ? describeOffer(offer) : room.type === 'battle' ? 'Spoils' : room.name;
   const pane = sheet(title, offer ? button('subtle', 'back', 'Back to rewards', 'Back') : button('subtle', 'skip', 'Skip reward', 'Skip'));
+  const earned = offer ? null : goldBanner();
+  if (earned) pane.append(earned);
   if (!offer) {
     pane.append(offerGrid());
   } else {
@@ -356,13 +381,29 @@ function renderSelect(): HTMLElement {
     element('h1', '', 'Choose your hero'), caption('Five dice to start'), element('div', 'character-list', ...choices)));
 }
 
+function renderMenu(): HTMLElement {
+  const pane = sheet('Menu', button('subtle', 'menu', 'Close menu', 'Close'));
+  pane.classList.add('menu-sheet');
+  if (confirmingAbandon) {
+    pane.append(
+      element('p', 'menu-note', 'Abandon this run? Your progress will be lost.'),
+      element('div', 'menu-actions',
+        button('control control--danger', 'abandon-confirm', 'Confirm abandon run', 'Yes, abandon'),
+        button('control', 'abandon-cancel', 'Keep playing', 'Keep playing')),
+    );
+  } else {
+    pane.append(element('div', 'menu-actions', button('control control--danger', 'abandon', 'Abandon run', 'Abandon run')));
+  }
+  return element('div', 'overlay', pane);
+}
+
 function renderEnding(): HTMLElement {
   const won = state.phase === 'victory';
   const score = won ? `${state.hp} HP left` : ROOMS[state.room].name;
   return element('div', 'overlay', element('section', 'sheet ending',
     element('div', 'end-mark', won ? '✧' : '◇'),
     element('h1', '', won ? 'Passage clear' : 'Run ended'),
-    caption(score), button('control control--primary', 'new', 'New run', 'New run')));
+    caption(score), state.gold ? caption(`${state.gold} gold`) : null, button('control control--primary', 'new', 'New run', 'New run')));
 }
 
 function positionWorld(): void {
@@ -406,7 +447,8 @@ function render(animate: ReadonlySet<string> = new Set(), lead = 0): void {
   view.replaceChildren(hud(), worldLayer());
   const shelf = tray();
   if (shelf) view.append(shelf);
-  if (ledger) view.append(renderLedger());
+  if (menu) view.append(renderMenu());
+  else if (ledger) view.append(renderLedger());
   else if (state.phase === 'reward') view.append(renderOffers());
   else if (state.phase === 'victory' || state.phase === 'defeat') view.append(renderEnding());
   if (art('courier')) stage.dataset.illustrated = 'true';
@@ -428,7 +470,7 @@ function paintedClear(): void {
 function paintTargets(id: string | null, pointed?: HTMLElement): void {
   paintedClear();
   for (const node of view.querySelectorAll<HTMLElement>('[data-target-kind]')) {
-    node.classList.toggle('is-legal', !!id && !ledger && canPlay(state, id, targetFor(node)));
+    node.classList.toggle('is-legal', !!id && !ledger && !menu && canPlay(state, id, targetFor(node)));
   }
   for (const node of view.querySelectorAll<HTMLElement>('[data-die]')) {
     node.classList.toggle('is-selected', !!id && node.dataset.die === id);
@@ -605,6 +647,40 @@ function toggleDie(id: string): void {
   }
 }
 
+function clearSave(): void {
+  try {
+    localStorage.removeItem(saveKey);
+  } catch {
+    // Nothing to clear when storage is unavailable.
+  }
+}
+
+/** Leave the current run and go back to hero select (or restart the seeded run). */
+function restart(): void {
+  clearTimeout(animTimer);
+  rolling = false;
+  offerIndex = null;
+  rewardDie = null;
+  selected = null;
+  ledger = false;
+  clearSave();
+  if (seeded) {
+    state = newRun(variant, Number(seedParam), state.character);
+    transition('victory', 0);
+  } else {
+    choosing = true;
+    state = newRun(variant, randomSeed(), state.character);
+    render();
+  }
+}
+
+function abandonRun(): void {
+  menu = false;
+  confirmingAbandon = false;
+  tell('Run abandoned.');
+  restart();
+}
+
 view.addEventListener('click', event => {
   if (suppressedClick && performance.now() < suppressedClick.until && event.detail > 0
     && Math.hypot(event.clientX - suppressedClick.x, event.clientY - suppressedClick.y) < 3) return;
@@ -613,6 +689,23 @@ view.addEventListener('click', event => {
   const action = node.dataset.action;
   const turn = state.combat?.turn ?? 0;
 
+  if (action === 'menu') {
+    menu = !menu;
+    confirmingAbandon = false;
+    selected = null;
+    render();
+    return;
+  }
+  if (action === 'abandon' || action === 'abandon-cancel') {
+    confirmingAbandon = action === 'abandon';
+    render();
+    return;
+  }
+  if (action === 'abandon-confirm') {
+    abandonRun();
+    return;
+  }
+  if (menu) return;
   if (action === 'ledger') {
     ledger = !ledger;
     ledgerDie = state.dice[0].id;
@@ -687,22 +780,12 @@ view.addEventListener('click', event => {
     offerIndex = null;
     transition('reward', 0);
   } else if (action === 'new') {
-    offerIndex = null;
-    rewardDie = null;
-    if (seeded) {
-      state = newRun(variant, Number(seedParam), state.character);
-      transition('victory', 0);
-    } else {
-      choosing = true;
-      state = newRun(variant, randomSeed(), state.character);
-      selected = null;
-      render();
-    }
+    restart();
   }
 });
 
 view.addEventListener('pointerdown', event => {
-  if (rolling || ledger || event.button !== 0 || drag) return;
+  if (rolling || ledger || menu || event.button !== 0 || drag) return;
   const element = event.target as HTMLElement;
   const item = element.closest<HTMLElement>('[data-drag-item]');
   const id = element.closest<HTMLElement>('[data-die]')?.dataset.die;
@@ -809,7 +892,8 @@ document.addEventListener('keydown', event => {
   if (event.key !== 'Escape') return;
   tooltips.hide();
   if (inspection) { closeInspection(true); return; }
-  if (ledger) { ledger = false; render(); }
+  if (menu) { menu = false; confirmingAbandon = false; render(); }
+  else if (ledger) { ledger = false; render(); }
   else if (offerIndex !== null) { offerIndex = null; rewardDie = null; render(); }
   else { selected = null; clearDrag(); paintTargets(null); }
 });

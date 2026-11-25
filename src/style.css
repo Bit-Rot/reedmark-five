@@ -75,6 +75,16 @@
   .health-hud .meter { grid-column: span 2; margin-top: 4px; }
   .icon-button { width: 38px; height: 38px; font-size: 22px; border: 1px solid var(--border); border-radius: 7px; color: #e0c094; background: #18262bde; }
   .icon-button:hover { color: #fff1c5; border-color: #dcbb70; }
+  .hud-stats { display: grid; gap: 4px; justify-items: start; }
+  .gold-hud, .gold-banner { display: inline-flex; align-items: center; gap: 5px; font-weight: 760; font-variant-numeric: tabular-nums; color: #f3d37a; }
+  .gold-hud { font-size: .95rem; }
+  .gold-coin { width: 1.25em; height: 1.25em; border-radius: 50%; object-fit: cover; }
+  .gold-banner { font-size: 1.15rem; margin: -4px 0 12px; }
+  .menu-sheet { width: min(380px,100%); }
+  .menu-note { margin: 0 0 14px; line-height: 1.4; }
+  .menu-actions { display: grid; gap: 10px; }
+  .control--danger { color: #ffe3dc; background: linear-gradient(#a24a3f, #7b3027); border-color: #d98b7b; }
+  .control--danger:hover:enabled { background: #b6554a; }
 
   .actor-target, .stage-cube {
     position: absolute; left: var(--x,-100px); top: var(--y,-100px);
@@ -296,6 +306,7 @@
     .hero-hp { font-size: .84rem; }
     .hero-hp small { font-size: .58rem; }
     .icon-button { width: 30px; height: 30px; font-size: 17px; }
+    .gold-hud { font-size: .78rem; }
     .actor-target { width: 25vw; min-width: 72px; height: 130px; }
     .actor-caption { min-width: 69px; padding: 4px 5px; gap: 3px; }
     .actor-caption strong { font-size: .61rem; }

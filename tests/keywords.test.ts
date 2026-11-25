@@ -202,3 +202,54 @@ test('compiled faces carry the image chosen for their data face, including on di
   assert(FACE_IMAGE_PATHS.length >= 5);
   for (const path of FACE_IMAGE_PATHS) assert(existsSync(`public/${path}`), `${path} missing from public/`);
 });
+
+test('winning a fight awards gold in the Slay the Spire ranges and records it for the reward screen', async () => {
+  const { GOLD_RANGE, advance } = await import('../src/game.ts');
+  assert.deepEqual(GOLD_RANGE, { normal: [10, 20], elite: [25, 35], boss: [95, 105] });
+  const seen = new Set<number>();
+  for (let i = 1; i <= 60; i++) {
+    const s = newRun('fixed', Math.imul(i, 0x9e3779b1) >>> 0); // spread seeds, as real runs use random 32-bit ones
+    const c = s.combat!;
+    assert.equal(s.gold, 0);
+    // Two sword dice on their 3-damage face finish the first fight's two 1-HP gnats.
+    c.enemies.forEach(e => { e.hp = 1; });
+    c.rolls[0].slot = 'left';
+    c.rolls[1].slot = 'left';
+    assert(commitRoll(s));
+    assert(play(s, 'd0', enemyTarget(s, 0)));
+    assert(play(s, 'd1', enemyTarget(s, 1)));
+    assert.equal(s.phase, 'reward');
+    assert(s.lastGold >= 10 && s.lastGold <= 20, `gold ${s.lastGold}`);
+    assert.equal(s.gold, s.lastGold);
+    seen.add(s.lastGold);
+    const before = s.gold;
+    assert(advance(s));
+    assert.equal(s.lastGold, 0);
+    assert.equal(s.gold, before);
+  }
+  assert(seen.size > 3, 'gold amounts should vary between seeds');
+});
+
+test('elite and boss fights pay more than normal fights', async () => {
+  const { ROOMS } = await import('../src/content.ts');
+  const { GOLD_RANGE } = await import('../src/game.ts');
+  const ranks = ROOMS.flatMap(r => (r.type === 'battle' ? [r.rank] : []));
+  assert(ranks.includes('elite') && ranks.includes('boss'));
+  assert(GOLD_RANGE.elite[0] > GOLD_RANGE.normal[1] && GOLD_RANGE.boss[0] > GOLD_RANGE.elite[1]);
+});
+
+test('the first fights are tuned so the starter dice usually win them without losing HP', async () => {
+  const { act } = await import('../scripts/policy.ts');
+  const { ROOMS } = await import('../src/content.ts');
+  for (const hero of CHARACTERS) {
+    let flawless = 0;
+    const runs = 40;
+    for (let seed = 1; seed <= runs; seed++) {
+      const s = newRun('fixed', seed, hero.id);
+      assert.equal(ROOMS[0].type, 'battle');
+      for (let i = 0; i < 40 && s.phase === 'battle'; i++) act(s);
+      if (s.phase === 'reward' && s.hp === s.maxHp) flawless++;
+    }
+    assert(flawless / runs >= 0.6, `${hero.id} won the first fight untouched only ${flawless}/${runs} times`);
+  }
+});

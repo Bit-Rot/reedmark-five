@@ -32,8 +32,8 @@ export function newRun(variant: Variant, seed: number, character = CHARACTERS[0]
   // Dice Pool starts with ten dice: the character's five, twice.
   const ids = variant === 'fixed' ? hero.starterDice : [...hero.starterDice, ...hero.starterDice];
   const state: State = {
-    version: 2, character: hero.id, variant, seed: seed >>> 0, rng: (seed ^ 0x6bdc) >>> 0, combatRng: 0,
-    room: 0, hp: 44, maxHp: 44, nextDie: ids.length, dice: ids.map(newDie), phase: 'battle',
+    version: 3, character: hero.id, variant, seed: seed >>> 0, rng: (seed ^ 0x6bdc) >>> 0, combatRng: 0,
+    room: 0, hp: 44, maxHp: 44, gold: 0, lastGold: 0, nextDie: ids.length, dice: ids.map(newDie), phase: 'battle',
     combat: null, offers: [],
   };
   enterRoom(state);
@@ -44,7 +44,7 @@ export function isSave(data: unknown, variant: Variant): data is State {
   if (!data || typeof data !== 'object') return false;
   const save = data as State;
   try {
-    return save.version === 2 && save.variant === variant && CHARACTERS.some(c => c.id === save.character) && Number.isInteger(save.seed)
+    return save.version === 3 && Number.isInteger(save.gold) && save.gold >= 0 && Number.isInteger(save.lastGold) && save.variant === variant && CHARACTERS.some(c => c.id === save.character) && Number.isInteger(save.seed)
       && Number.isInteger(save.room) && !!ROOMS[save.room] && Number.isFinite(save.hp)
       && ['battle', 'reward', 'victory', 'defeat'].includes(save.phase)
       && Array.isArray(save.dice) && save.dice.length >= 5
@@ -344,9 +344,19 @@ function discovery(state: State, exclude = ''): string {
   return choices[pick(state, choices.length)];
 }
 
+/** Gold for winning a fight, as in Slay the Spire: normal 10-20, elite 25-35, boss 95-105. */
+export const GOLD_RANGE = { normal: [10, 20], elite: [25, 35], boss: [95, 105] } as const;
+
+function awardGold(state: State, rank: Encounter['rank']): void {
+  const [low, high] = GOLD_RANGE[rank];
+  state.lastGold = low + pick(state, high - low + 1);
+  state.gold += state.lastGold;
+}
+
 function finishFight(state: State): void {
   const room = ROOMS[state.room];
   if (room.type !== 'battle') return;
+  awardGold(state, room.rank);
   if (room.rank === 'boss') {
     state.phase = 'victory';
     return;
@@ -402,6 +412,7 @@ export function chooseOffer(state: State, index: number, dieId?: string): boolea
 export function advance(state: State): boolean {
   if (state.phase !== 'reward' || state.room + 1 >= ROOMS.length) return false;
   state.room++;
+  state.lastGold = 0;
   enterRoom(state);
   return true;
 }
