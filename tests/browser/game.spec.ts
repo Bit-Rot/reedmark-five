@@ -231,3 +231,13 @@ test('vulnerable stacks show on the enemy and exert blanks the die next turn', a
   await action(page, 'commit').click();
   await expect(page.locator('button.seated[aria-label*="Blank"]')).toHaveCount(1);
 });
+
+test('picking a hero works right away even with animations enabled', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: 'no-preference' });
+  const page = await context.newPage();
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Play Barbarian' }).click();
+  await expect(page.locator('#interface')).toHaveAttribute('data-phase', 'battle');
+  await expect(page.locator('.stage-cube')).toHaveCount(5);
+  await context.close();
+});

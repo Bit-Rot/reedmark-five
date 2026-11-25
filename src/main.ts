@@ -625,6 +625,16 @@ view.addEventListener('click', event => {
     render();
     return;
   }
+  if (action === 'character') {
+    clearTimeout(animTimer);
+    rolling = false;
+    state = newRun(variant, randomSeed(), node.dataset.id);
+    choosing = false;
+    offerIndex = null;
+    rewardDie = null;
+    transition('victory', 0);
+    return;
+  }
   if (rolling || ledger) return;
 
   if (action === 'die') toggleDie(node.dataset.die!);
@@ -676,12 +686,6 @@ view.addEventListener('click', event => {
   } else if (action === 'skip' && advance(state)) {
     offerIndex = null;
     transition('reward', 0);
-  } else if (action === 'character') {
-    state = newRun(variant, randomSeed(), node.dataset.id);
-    choosing = false;
-    offerIndex = null;
-    rewardDie = null;
-    transition('victory', 0);
   } else if (action === 'new') {
     offerIndex = null;
     rewardDie = null;
@@ -813,6 +817,6 @@ document.addEventListener('keydown', event => {
 await loadEffectImages();
 board = new Battlefield(stage, positionWorld);
 save();
-if (state.phase === 'battle' && state.combat?.phase === 'roll' && state.combat.turn === 1 && state.combat.rerolls === 2) {
+if (!choosing && state.phase === 'battle' && state.combat?.phase === 'roll' && state.combat.turn === 1 && state.combat.rerolls === 2) {
   animateRoll(state.combat.rolls.filter(roll => !roll.held).map(roll => roll.dieId), true);
 } else render();
