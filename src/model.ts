@@ -29,6 +29,7 @@ export interface DieDefinition {
 }
 export interface Item {
   name: string;
+  rewardCharacter?: string;
   rarity: 'common' | 'uncommon' | 'rare';
   edits: Partial<Record<Slot, Face>>;
 }

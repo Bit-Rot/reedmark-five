@@ -160,7 +160,7 @@ export function compileItem(db: Collections, item: Item, issues: Diagnostic[] = 
     issues.push({ where: `item ${item.id}`, message: 'has no effects' });
     return undefined;
   }
-  return { name: item.name, rarity: item.rarity, edits };
+  return { name: item.name, rewardCharacter: item.rewardCharacter, rarity: item.rarity, edits };
 }
 
 export interface CompiledContent {

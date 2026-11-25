@@ -339,6 +339,10 @@ function fixedOfferSheet(): HTMLElement {
   pane.classList.add('fixed-spoils');
   const earned = goldBanner();
   if (earned) pane.append(earned);
+  if (!state.offers.length) {
+    pane.append(element('p', 'menu-note', 'No items available.'));
+    return element('div', 'overlay', pane);
+  }
   const kit = element('div', 'imprint-kit');
   for (const die of state.dice) {
     const name = dieLabel(die.id);

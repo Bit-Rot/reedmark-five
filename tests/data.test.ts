@@ -55,6 +55,9 @@ test('rename rewrites every reference and refuses clashes', () => {
   assert.equal(db.items[0].effects[1].keyword, 'feeble');
   assert.equal(renameId(db, 'dice', 'die_a', 'die_b').updated[0].owner.id, 'hero');
   assert.deepEqual(db.characters[0].starterDice, ['die_b']);
+  db.items[0].rewardCharacter = 'hero';
+  assert.equal(renameId(db, 'characters', 'hero', 'fighter').updated[0].owner.id, 'sharpen');
+  assert.equal(db.items[0].rewardCharacter, 'fighter');
 });
 
 test('delete is blocked while something still references the entity', () => {
@@ -72,10 +75,12 @@ test('validation reports dangling references, missing X values, and wrong face c
   assert.equal(validate(db).filter(i => i.severity === 'error').length, 0);
   db.dice[0].faces[0].face = 'missing';
   delete db.faces[1].keywords[1].x;
+  db.items[0].rewardCharacter = 'unknown_hero';
   db.dice.push({ id: 'short', name: '', tone: 'rust', faces: [{ face: 'slash' }], notes: '' });
   const msgs = validate(db).map(i => i.message);
   assert(msgs.some(m => m.includes('"missing"') && m.includes('does not exist')));
   assert(msgs.some(m => m.includes('needs an X value')));
+  assert(msgs.some(m => m.includes('rewardCharacter refers to character "unknown_hero"')));
   assert(msgs.some(m => m.includes('has 1 faces')));
 });
 

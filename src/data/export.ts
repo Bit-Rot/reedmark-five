@@ -96,8 +96,11 @@ function effectLabel(e: ItemEffect): string {
 
 export function exportItems(db: Collections): string {
   return `${GENERATED_NOTE}\n\n# Items\n\n${table(
-    ['ID', 'Name', 'Rarity', 'Description', 'Effects', 'Implemented'],
-    db.items.map(i => [code(i.id), i.name, i.rarity, i.description, i.effects.map(effectLabel).join('<br>'), i.implemented]),
+    ['ID', 'Name', 'Reward Pool', 'Rarity', 'Description', 'Effects', 'Implemented'],
+    db.items.map(i => [
+      code(i.id), i.name, i.rewardCharacter === undefined ? 'Shared (inactive)' : code(i.rewardCharacter),
+      i.rarity, i.description, i.effects.map(effectLabel).join('<br>'), i.implemented,
+    ]),
   )}\n`;
 }
 

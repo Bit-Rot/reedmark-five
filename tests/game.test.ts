@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ITEMS } from '../src/content.ts';
-import { actionPreview, canPlay, chooseOffer, commitRoll, endTurn, faceFor, incoming, newRun, offerTargets, play, reroll, setHold } from '../src/game.ts';
+import { DATA, ITEMS, ROOMS } from '../src/content.ts';
+import { actionPreview, advance, canPlay, chooseOffer, commitRoll, endTurn, faceFor, incoming, newRun, offerTargets, play, reroll, setHold } from '../src/game.ts';
 
 test('fixed rolls five, holds through two rerolls, and commits once', () => {
   const s = newRun('fixed', 231);
@@ -101,4 +101,35 @@ test('matched seeds share enemy dice across variants and valid saves round-trip'
   assert.deepEqual(a.combat!.intents, b.combat!.intents);
   assert.deepEqual(newRun('fixed', 44), a);
   assert.deepEqual(JSON.parse(JSON.stringify(b)), b);
+});
+
+test('battle and Workshop item rewards draw only from the selected character’s pool', () => {
+  for (const character of ['barbarian', 'thief']) {
+    const pool = DATA.items.filter(item => item.rewardCharacter === character);
+    assert(pool.length >= 3);
+    assert.deepEqual(new Set(pool.map(item => item.rarity)), new Set(['common', 'uncommon', 'rare']));
+    const eligible = new Set(pool.map(item => item.id));
+    for (const variant of ['fixed', 'pool'] as const) {
+      for (let seed = 1; seed <= 10; seed++) {
+        for (const [index, room] of ROOMS.entries()) {
+          if (room.type === 'camp' || (room.type === 'battle' && room.rank === 'boss')) continue;
+          const state = newRun(variant, seed, character);
+          state.room = index - 1;
+          state.phase = 'reward';
+          assert(advance(state));
+          if (state.combat) {
+            state.combat.intents = [];
+            for (const enemy of state.combat.enemies) enemy.seep = enemy.hp;
+            assert(commitRoll(state));
+            assert(endTurn(state));
+          }
+          assert.equal(state.phase, 'reward');
+          const ids = state.offers.flatMap(offer => offer.kind === 'item' ? [offer.id] : []);
+          assert.equal(ids.length, variant === 'fixed' ? 3 : room.type === 'workshop' ? 0 : 1);
+          assert.equal(new Set(ids).size, ids.length);
+          assert(ids.every(id => eligible.has(id)), `${character} received ${ids.join(', ')}`);
+        }
+      }
+    }
+  }
 });

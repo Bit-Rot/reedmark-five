@@ -10,7 +10,7 @@ import {
 export type FieldDef =
   | { key: string; label: string; kind: 'text' | 'longtext' | 'number' | 'image' }
   | { key: string; label: string; kind: 'enum'; options: readonly string[] }
-  | { key: string; label: string; kind: 'ref'; to: CollectionName }
+  | { key: string; label: string; kind: 'ref'; to: CollectionName; emptyLabel?: string }
   | { key: string; label: string; kind: 'refList'; to: CollectionName }
   | { key: string; label: string; kind: 'stringList' }
   | { key: string; label: string; kind: 'enumList'; options: readonly string[] }
@@ -72,6 +72,7 @@ export const SCHEMA: Record<CollectionName, CollectionSchema> = {
     name: 'items', singular: 'item', label: 'Items', nameField: 'name',
     fields: [
       { key: 'name', label: 'Name', kind: 'text' },
+      { key: 'rewardCharacter', label: 'Reward pool', kind: 'ref', to: 'characters', emptyLabel: 'Shared (inactive)' },
       { key: 'rarity', label: 'Rarity', kind: 'enum', options: RARITIES },
       { key: 'description', label: 'Description', kind: 'longtext' },
       { key: 'effects', label: 'Effects', kind: 'effects' },

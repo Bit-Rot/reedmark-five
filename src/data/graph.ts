@@ -37,6 +37,12 @@ export function forEachRef(db: Collections, visit: (ref: RefLocation) => void): 
     }));
   }
   for (const it of db.items) {
+    if (it.rewardCharacter !== undefined) {
+      visit({
+        owner: { collection: 'items', id: it.id }, target: { collection: 'characters', id: it.rewardCharacter },
+        path: 'rewardCharacter', set: id => { it.rewardCharacter = id; },
+      });
+    }
     it.effects.forEach((e, i) => {
       if (e.face !== undefined) {
         visit({

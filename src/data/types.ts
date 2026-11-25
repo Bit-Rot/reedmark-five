@@ -95,6 +95,8 @@ export interface ItemEffect {
 export interface Item {
   id: string;
   name: string;
+  /** Character ID for reward eligibility. Omit for the inactive shared pool. */
+  rewardCharacter?: string;
   rarity: Rarity;
   description: string;
   effects: ItemEffect[];

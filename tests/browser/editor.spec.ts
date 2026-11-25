@@ -86,6 +86,29 @@ test('creates a new face and builds a die and an item that reference it', async 
   await expect(page.locator('#items li').filter({ hasText: 'holy_symbol' })).toBeVisible();
 });
 
+test('assigns an item to a character and can move it to the inactive shared pool', async ({ page }) => {
+  const fake = await openEditor(page);
+  await page.locator('#nav button', { hasText: 'Items' }).click();
+  await page.locator('.list-new input').fill('example_item');
+  await page.getByRole('button', { name: '+ New' }).click();
+
+  const pool = page.getByRole('combobox', { name: 'Reward pool' });
+  await expect(pool.locator('option:checked')).toHaveText('Shared (inactive)');
+  await pool.selectOption('barbarian');
+  await page.locator('#bar button.primary').click();
+  await page.getByRole('button', { name: 'Commit to GitHub' }).click();
+  await expect(pool).toHaveValue('barbarian');
+  await expect(page.locator('#bar button.primary')).toBeDisabled();
+  expect(JSON.parse(fake.file('data/items.json')!)[0].rewardCharacter).toBe('barbarian');
+
+  await pool.selectOption('');
+  await page.locator('#bar button.primary').click();
+  await page.getByRole('button', { name: 'Commit to GitHub' }).click();
+  await expect(page.locator('#bar button.primary')).toBeDisabled();
+  expect(JSON.parse(fake.file('data/items.json')!)[0]).not.toHaveProperty('rewardCharacter');
+  expect(fake.file('docs/Items.md')).toContain('Shared (inactive)');
+});
+
 test('faces show their images, and the picker searches the icon library and saves the choice', async ({ page }) => {
   const fake = await openEditor(page);
   await page.locator('#nav button', { hasText: 'Faces' }).click();

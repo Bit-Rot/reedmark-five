@@ -81,7 +81,7 @@ function enterRoom(state: State): void {
     } else if (room.type === 'camp') {
       state.offers = [{ kind: 'heal' }, { kind: 'upgrade', ...CAMP_UPGRADES[pick(state, CAMP_UPGRADES.length)] }];
     } else {
-      state.offers = itemChoices(state, 3).map(id => ({ kind: 'item', id }));
+      state.offers = itemOffers(state, 3);
     }
   }
 }
@@ -371,17 +371,19 @@ export function endTurn(state: State): boolean {
   return true;
 }
 
-function itemChoices(state: State, count: number, rich = false): string[] {
-  const choices: string[] = [];
-  for (let i = 0; i < count; i++) {
+function itemOffers(state: State, count: number, rich = false): Offer[] {
+  const remaining = Object.keys(ITEMS).filter(id => ITEMS[id].rewardCharacter === state.character);
+  const offers: Offer[] = [];
+  while (offers.length < count && remaining.length) {
     const chance = pick(state, 100);
     const rarity = chance < (rich ? 30 : 8) ? 'rare' : chance < (rich ? 100 : 35) ? 'uncommon' : 'common';
-    let available = Object.keys(ITEMS).filter(id => ITEMS[id].rarity === rarity && !choices.includes(id));
-    if (!available.length) available = Object.keys(ITEMS).filter(id => !choices.includes(id));
-    if (!available.length) available = Object.keys(ITEMS);
-    choices.push(available[pick(state, available.length)]);
+    const matching = remaining.filter(id => ITEMS[id].rarity === rarity);
+    const available = matching.length ? matching : remaining;
+    const id = available[pick(state, available.length)];
+    offers.push({ kind: 'item', id });
+    remaining.splice(remaining.indexOf(id), 1);
   }
-  return choices;
+  return offers;
 }
 
 function discovery(state: State, exclude = ''): string {
@@ -407,16 +409,16 @@ function finishFight(state: State): void {
     return;
   }
   state.phase = 'reward';
-  state.offers = state.variant === 'fixed'
-    ? itemChoices(state, 3, room.rank === 'elite').map(id => ({ kind: 'item', id }))
-    : [
-      { kind: 'add', id: discovery(state) },
-      { kind: 'item', id: itemChoices(state, 1, room.rank === 'elite')[0] },
-      { kind: 'add', id: '' },
+  const rich = room.rank === 'elite';
+  if (state.variant === 'fixed') {
+    state.offers = itemOffers(state, 3, rich);
+  } else {
+    const first = discovery(state);
+    state.offers = [
+      { kind: 'add', id: first },
+      ...itemOffers(state, 1, rich),
+      { kind: 'add', id: discovery(state, first) },
     ];
-  if (state.variant === 'pool') {
-    const first = state.offers[0];
-    state.offers[2] = { kind: 'add', id: discovery(state, first.kind === 'add' ? first.id : '') };
   }
 }
 

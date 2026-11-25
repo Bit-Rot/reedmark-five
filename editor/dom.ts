@@ -39,9 +39,9 @@ export function option(value: string, label: string, selected: boolean): HTMLOpt
 }
 
 /** A <select> for choosing among `values`; keeps an unknown current value visible (marked missing). */
-export function select(values: readonly string[], current: string, onChange: (v: string) => void, opts: { allowEmpty?: boolean; labels?: Record<string, string> } = {}): HTMLSelectElement {
+export function select(values: readonly string[], current: string, onChange: (v: string) => void, opts: { allowEmpty?: boolean; emptyLabel?: string; labels?: Record<string, string> } = {}): HTMLSelectElement {
   const s = document.createElement('select');
-  if (opts.allowEmpty || current === '') s.append(option('', '(none)', current === ''));
+  if (opts.allowEmpty || current === '') s.append(option('', opts.emptyLabel ?? '(none)', current === ''));
   const all = current !== '' && !values.includes(current) ? [...values, current] : values;
   for (const v of all) {
     const missing = !values.includes(v);

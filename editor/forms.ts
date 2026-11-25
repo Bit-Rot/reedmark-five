@@ -1,3 +1,4 @@
+import { displayName } from '../src/data/graph.ts';
 import type { FieldDef } from '../src/data/schema.ts';
 import type { Collections, CollectionName, Die, Face, Item, ItemEffect, KeywordUse, SlotName } from '../src/data/types.ts';
 import { EFFECT_OPS, SLOT_NAMES } from '../src/data/types.ts';
@@ -29,8 +30,17 @@ export function renderField(ctx: FormCtx, entity: { id: string }, f: FieldDef): 
       return row(h('input', { type: 'number', value: String(rec[f.key] ?? ''), onInput: (e: Event) => { rec[f.key] = Number((e.target as HTMLInputElement).value); ctx.changed(); } }));
     case 'enum':
       return row(select(f.options, String(rec[f.key] ?? ''), v => { rec[f.key] = v; ctx.changed(); }));
-    case 'ref':
-      return row(select(ids(ctx.db[f.to]), String(rec[f.key] ?? ''), v => { rec[f.key] = v; ctx.changed(); }));
+    case 'ref': {
+      const targets = ctx.db[f.to];
+      const labels = Object.fromEntries(targets.map(target => [target.id, displayName(f.to, target)]));
+      const control = select(ids(targets), String(rec[f.key] ?? ''), v => {
+        if (v === '' && f.emptyLabel !== undefined) delete rec[f.key];
+        else rec[f.key] = v;
+        ctx.changed();
+      }, { allowEmpty: f.emptyLabel !== undefined, emptyLabel: f.emptyLabel, labels });
+      control.setAttribute('aria-label', f.label);
+      return row(control);
+    }
     case 'refList':
       return row(refList(ctx, rec[f.key] as string[], f.to));
     case 'stringList':
