@@ -1,28 +1,3 @@
-# Slice & Dice - Item Catalogue
-
-Source: `src/com/tann/dice/gameplay/content/item/blob/ItemBlob{Negative,Zero,OneFive,SixNine,TenPlus}.java` (builder `ItBill(tier, name).prs(<Personal triggers>)`), registry `ItemLib` (quality range -7..20). Effects below are resolved by reading the trigger classes (`AffectSides`, `ESB` side templates, `Keyword` rules). Read-only research; nothing in the reference folder was modified.
-
-## Contents
-
-- [Negative tiers - cursed items](#negative-tiers---cursed-items) (24)
-- [Tier 0](#tier-0) (55)
-- [Tiers 1-5](#tiers-1-5) (182)
-- [Tiers 6-9](#tiers-6-9) (90)
-- [Tiers 10+](#tiers-10) (33)
-- [Counts](#counts)
-- [Reading guide / side positions](#reading-guide--side-positions)
-- [Keyword glossary](#keyword-glossary)
-- [Findings and caveats](#findings-and-caveats)
-- [Removed items](#removed-items)
-
-## Counts
-
-- **Total items: 384** = 358 named equipment items + 24 spell items ("Learn X") + 2 tactic items. (470 before removing 85 items that use removed keywords; see [Removed items](#removed-items).)
-- Cursed / force-equip (`ForceEquip` trigger): 24 remaining.
-- Potions (item name contains "potion"): 0 (every potion item used the removed `potion` keyword).
-- Distribution by tier: t-7: 1, t-4: 2, t-2: 10, t-1: 11, t0: 55, t1: 46, t2: 35, t3: 33, t4: 35, t5: 33, t6: 28, t7: 26, t8: 20, t9: 16, t10: 5, t11: 4, t12: 5, t13: 2, t14: 6, t15: 5, t16: 4, t17: 2.
-- No other fixed item definitions exist outside these five blob files; `ItemLib.init()` only adds `ItemBlob.makeAll()` and then registers the string-DSL pipes (`PipeItem`), which generate further items (combined, random `ritem.*`, `hat.*`, `cast.*` etc.) on demand and are not enumerated here. No item is marked `.hidden()`.
-
 ## Reading guide / side positions
 
 A hero die has 6 sides. Item text uses these names:
@@ -38,7 +13,23 @@ A hero die has 6 sides. Item text uses these names:
 
 Other conventions: "pips" = the number on a side; "basic" sides are plain (keyword-free) damage/shield/heal/mana sides; "max hp" lines add real hp, "empty hp" adds hp pips that start empty; "incoming" bonuses affect values applied to the wearer. "Colour-linked" items only apply their side change while the wearer is that hero colour. "Tier" is the raw `ItBill` tier. Spell/tactic items grant the named ability to the wearer ("Learn " + title).
 
-## Negative tiers - cursed items
+## Active Items
+
+| **ID**       | Face 1     | Face 2     | Face 3         | Face 4         | Face 5     | Face 6     |
+| ------------ | ---------- | ---------- | -------------- | -------------- | ---------- | ---------- |
+| name | (none) | (none) | 4 {damage} {pain 1} | 4 {damage} {pain 1} | (none) | (none) |
+| name | (none) | (none) | 6 {damage} {exert} | 6 {damage} {exert} | (none) | (none) |
+| name | another die can be rerolled | (none) | (none) | (none) | 1 {damage} {cleave} | 1 {damage} {cleave} |
+| name | (none) | (none) | Add {selfShield} to target all of die's faces this turn  | Add {selfShield} to target all of die's faces this turn  | (none) | (none) |
+| name | (none) | (none) | (none) | (none) | (none) | (none) |
+| name | (none) | (none) | (none) | (none) | (none) | (none) |
+
+
+## Reference
+
+Original Slice & Dice items for reference only
+
+### Negative tiers - cursed items
 
 24 items.
 
@@ -69,7 +60,7 @@ Other conventions: "pips" = the number on a side; "basic" sides are plain (keywo
 | D4 | -1 | Right side becomes 1 damage to self with `cantrip`. | Cursed (force-equip) |
 | Barrel Hoops | -1 | On death: 5 damage to adjacent allies. | Cursed (force-equip) |
 
-## Tier 0
+### Tier 0
 
 55 items.
 
@@ -132,7 +123,7 @@ Other conventions: "pips" = the number on a side; "basic" sides are plain (keywo
 | Name Tag | 0 | Keep old name when levelling up. |  |
 | Shovel Bite | 0 | Levels up into Spade. |  |
 
-## Tiers 1-5
+### Tiers 1-5
 
 182 items.
 
@@ -321,7 +312,7 @@ Other conventions: "pips" = the number on a side; "basic" sides are plain (keywo
 | Water | 5 | Left +1, mid -1, right +1, rightmost -1. |  |
 | Enhance Wand | 5 | Top becomes a `exhaust` friendly 1-pip `permaBoost` shield side (+1 to all pips for the fight). |  |
 
-## Tiers 6-9
+### Tiers 6-9
 
 90 items.
 
@@ -418,7 +409,7 @@ Other conventions: "pips" = the number on a side; "basic" sides are plain (keywo
 | Overflowing Chalice | 9 | Mid, right, rightmost gain `fizz`. |  |
 | Spike Stone | 9 | Top, mid, bot, right, rightmost gain `phase` and +3 pips. |  |
 
-## Tiers 10+
+### Tiers 10+
 
 33 items.
 
