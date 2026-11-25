@@ -3,10 +3,15 @@ import { addKeywordToFace } from './data/runtime.ts';
 import { SLOTS } from './model.ts';
 import type { Combat, Die, Encounter, Enemy, Face, Intent, Offer, Part, Roll, Slot, State, Target, Variant } from './model.ts';
 
-/** What a die shows while it is exerted. */
+/** What an exerted die or exhausted slot shows. */
 export const BLANK_FACE: Face = { target: 'none', parts: [{ kind: 'blank', value: 0 }], ...(BLANK_IMAGE ? { image: BLANK_IMAGE } : {}) };
 const BLANK = BLANK_FACE;
-const DISCOVERIES = Object.keys(DICE);
+const DISCOVERIES = Object.keys(DICE).filter(id =>
+  !CHARACTERS.some(hero => hero.starterRelic && hero.starterDice.includes(id))
+  || CHARACTERS.some(hero => !hero.starterRelic && hero.starterDice.includes(id)));
+
+export const starterRelicFor = (state: Pick<State, 'character'>) =>
+  CHARACTERS.find(hero => hero.id === state.character)?.starterRelic;
 
 function step(seed: number): number {
   return (Math.imul(seed, 1664525) + 1013904223) >>> 0;
@@ -72,6 +77,7 @@ function enterRoom(state: State): void {
     state.combat = {
       turn: 0, phase: 'roll', rerolls: 2, enemies, intents: [], rolls: [], bag: [], guard: 0, ward: 0, exerted: {}, grown: {}, previous: null, events: [],
     };
+    if (starterRelicFor(state)?.effect === 'frenzyOnDamage') state.combat.frenzy = 0;
     startTurn(state, room, state.combat);
     if (state.combat.enemies.every(enemy => enemy.hp <= 0)) finishFight(state);
   } else {
@@ -123,7 +129,7 @@ function startTurn(state: State, room: Encounter, combat: Combat): void {
 }
 
 function describe(face: Face): string {
-  const names: Record<string, string> = { hit: 'damage', guard: 'block', seep: 'poison', vulnerable: 'vulnerable', weak: 'weak' };
+  const names: Record<string, string> = { hit: 'damage', guard: 'block', seep: 'poison', vulnerable: 'vulnerable', weak: 'weak', burn: 'enemy Burn', selfBurn: 'self Burn', heal: 'healing' };
   return face.parts.filter(part => names[part.kind]).map(part => `${part.value} ${names[part.kind]}`).join(', ');
 }
 
@@ -141,17 +147,17 @@ function fireCantrips(state: State, combat: Combat, rolls: Roll[]): void {
       enemy = alive[pick(state, alive.length, 'combatRng')];
     } else if (face.target === 'all') {
       if (combat.enemies.every(e => e.hp <= 0)) continue;
-      applyToAll(combat, roll, parts);
+      applyToAll(state, roll, parts);
       combat.events.push(`Cantrip: ${describe(face)} on all enemies`);
       continue;
     } else if (face.target !== 'self') continue;
-    applyParts(combat, roll, parts, enemy, undefined);
+    applyParts(state, roll, parts, enemy, undefined);
     combat.events.push(`Cantrip: ${describe(face)}${enemy ? ` on ${enemy.name}` : ''}`);
   }
 }
 
-export function facesFor(die: Die): Record<Slot, Face> {
-  return Object.fromEntries(SLOTS.map(slot => [slot, faceFor(die, slot)])) as Record<Slot, Face>;
+export function facesFor(die: Die, state?: State): Record<Slot, Face> {
+  return Object.fromEntries(SLOTS.map(slot => [slot, state ? combatFaceFor(state, die, slot) : faceFor(die, slot)])) as Record<Slot, Face>;
 }
 
 export function faceFor(die: Die, slot: Slot): Face {
@@ -167,18 +173,57 @@ const withPips = (face: Face, change: (value: number) => number): Face =>
 /** The pips of a face: the value of its first damage or block part. */
 export const mainPips = (face: Pick<Face, 'parts'>): number => face.parts.find(part => PIPS.includes(part.kind))?.value ?? 0;
 
-/** The face a rolled die shows right now: blank while exerted, with the pips it has grown and any inspired bonus. */
 export function rollFace(state: State, roll: Roll): Face {
-  if (isExerted(state, roll.dieId)) return BLANK;
-  let face = faceFor(state.dice.find(die => die.id === roll.dieId)!, roll.slot);
+  return combatFaceFor(state, state.dice.find(die => die.id === roll.dieId)!, roll.slot);
+}
+
+const slotKey = (dieId: string, slot: Slot): string => `${dieId}:${slot}`;
+
+function countBlanks(die: Die, combat: Combat): number {
+  return SLOTS.filter(slot =>
+    combat.exhausted?.[slotKey(die.id, slot)] !== undefined || faceFor(die, slot).target === 'none').length;
+}
+
+function frenzyCost(part: Part, frenzy: number): number {
+  if (part.kind === 'frenzyAll') return frenzy;
+  return part.kind === 'frenzySpend' && frenzy >= part.value ? part.value : 0;
+}
+
+function synergyPips(state: State, combat: Combat, die: Die, face: Face, base: number): number {
+  const burn = combat.burn ?? 0;
+  const frenzy = combat.frenzy ?? 0;
+  return face.parts.reduce((value, part) => {
+    switch (part.kind) {
+      case 'burnDamage': return value + burn;
+      case 'burnDouble': return burn > 0 ? value * 2 : value;
+      case 'afterExhaust': return Object.values(combat.exhausted ?? {}).includes(combat.turn) ? value + part.value : value;
+      case 'dieBlanks': return value + countBlanks(die, combat);
+      case 'kitBlanks': return value + Math.min(part.value, state.dice.reduce((sum, ownedDie) => sum + countBlanks(ownedDie, combat), 0));
+      case 'frenzyThreshold': return frenzy >= part.value ? value + base : value;
+      case 'frenzySpend': return value + 2 * frenzyCost(part, frenzy);
+      case 'frenzyAll': return value + part.value * frenzyCost(part, frenzy);
+      default: return value;
+    }
+  }, base);
+}
+
+/** The current face, including temporary blanks and the pips the player will get for using it. */
+export function combatFaceFor(state: State, die: Die, slot: Slot): Face {
   const combat = state.combat;
-  const grown = combat?.grown[`${roll.dieId}:${roll.slot}`] ?? 0;
+  if (!combat) return faceFor(die, slot);
+  const key = slotKey(die.id, slot);
+  if (isExerted(state, die.id) || combat.exhausted?.[key] !== undefined) return BLANK;
+  let face = faceFor(die, slot);
+  const grown = combat.grown[key] ?? 0;
   if (grown) face = withPips(face, value => value + grown);
   // Inspired: doubled when the die played just before had more pips.
-  if (combat && combat.previous !== null && face.parts.some(part => part.kind === 'inspired') && combat.previous > mainPips(face)) {
+  if (combat.previous !== null && face.parts.some(part => part.kind === 'inspired') && combat.previous > mainPips(face)) {
     face = withPips(face, value => value * 2);
   }
-  return face;
+  const main = face.parts.find(part => PIPS.includes(part.kind));
+  if (!main) return face;
+  const value = synergyPips(state, combat, die, face, main.value);
+  return value === main.value ? face : { ...face, parts: face.parts.map(part => part === main ? { ...part, value } : part) };
 }
 
 /** An exerted die shows blank faces until the end of the turn after the one it was used on. */
@@ -249,44 +294,65 @@ export function canPlay(state: State, dieId: string, target: Target): boolean {
   return true;
 }
 
-function applyFace(state: State, combat: Combat, roll: Roll, target: Target): void {
+function applyFace(state: State, roll: Roll, target: Target): void {
+  const combat = state.combat!;
   const enemy = combat.enemies.find(e => target.kind === 'enemy' && e.id === target.id);
   const die = combat.rolls.find(r => target.kind === 'die' && r.dieId === target.id);
   const face = rollFace(state, roll);
   roll.used = true;
   const parts = effectiveParts(face, roll.boost);
-  if (target.kind === 'all') applyToAll(combat, roll, parts);
-  else applyParts(combat, roll, parts, enemy, die);
+  if (target.kind === 'all') applyToAll(state, roll, parts);
+  else applyParts(state, roll, parts, enemy, die);
+  const frenzy = combat.frenzy;
+  if (frenzy) {
+    const spender = parts.find(part => part.kind === 'frenzySpend' || part.kind === 'frenzyAll');
+    if (spender) combat.frenzy = frenzy - frenzyCost(spender, frenzy);
+  }
+  if (parts.some(part => part.kind === 'exhaust')) {
+    (combat.exhausted ??= {})[slotKey(roll.dieId, roll.slot)] = combat.turn;
+  }
   combat.previous = mainPips({ parts });
   const growth = face.parts.find(part => part.kind === 'growth');
   if (growth) {
-    const key = `${roll.dieId}:${roll.slot}`;
+    const key = slotKey(roll.dieId, roll.slot);
     combat.grown[key] = (combat.grown[key] ?? 0) + growth.value;
   }
 }
 
-const AIMED = ['hit', 'seep', 'vulnerable', 'weak'];
+const AIMED = ['hit', 'seep', 'vulnerable', 'weak', 'burn'];
 
 /** An all-enemies face hits every living enemy; its self effects (block, exert...) apply once. */
-function applyToAll(combat: Combat, roll: Roll, parts: readonly Part[]): void {
-  for (const enemy of combat.enemies) {
-    if (enemy.hp > 0) applyParts(combat, roll, parts.filter(part => AIMED.includes(part.kind)), enemy, undefined);
+function applyToAll(state: State, roll: Roll, parts: readonly Part[]): void {
+  const aimed = parts.filter(part => AIMED.includes(part.kind));
+  for (const enemy of state.combat!.enemies) {
+    if (enemy.hp > 0) applyParts(state, roll, aimed, enemy, undefined);
   }
-  applyParts(combat, roll, parts.filter(part => !AIMED.includes(part.kind)), undefined, undefined);
+  applyParts(state, roll, parts.filter(part => !AIMED.includes(part.kind)), undefined, undefined);
 }
 
-function applyParts(combat: Combat, roll: Roll, parts: readonly Part[], enemy: Enemy | undefined, die: Roll | undefined): void {
+function damageAfterBlock(target: { guard: number }, damage: number): number {
+  const blocked = Math.min(target.guard, damage);
+  target.guard -= blocked;
+  return damage - blocked;
+}
+
+function applyParts(state: State, roll: Roll, parts: readonly Part[], enemy: Enemy | undefined, die: Roll | undefined): void {
+  const combat = state.combat!;
   for (const part of parts) {
     if (part.kind === 'hit' && enemy) {
       // Vulnerable: +50% damage, rounded down.
       const damage = enemy.vulnerable > 0 ? Math.floor(part.value * 1.5) : part.value;
       for (let i = 0; i < (part.count ?? 1); i++) {
-        const blocked = Math.min(damage, enemy.guard);
-        enemy.guard -= blocked;
-        enemy.hp = Math.max(0, enemy.hp - damage + blocked);
+        enemy.hp = Math.max(0, enemy.hp - damageAfterBlock(enemy, damage));
       }
     } else if (part.kind === 'guard') {
       combat.guard += part.value;
+    } else if (part.kind === 'heal') {
+      state.hp = Math.min(state.maxHp, state.hp + part.value);
+    } else if (part.kind === 'selfBurn') {
+      combat.burn = (combat.burn ?? 0) + part.value;
+    } else if (part.kind === 'burn' && enemy && enemy.hp > 0) {
+      enemy.burn = (enemy.burn ?? 0) + part.value;
     } else if (part.kind === 'seep' && enemy && enemy.hp > 0) {
       enemy.seep += part.value;
     } else if (part.kind === 'vulnerable' && enemy && enemy.hp > 0) {
@@ -303,17 +369,18 @@ function applyParts(combat: Combat, roll: Roll, parts: readonly Part[], enemy: E
   }
 }
 
-export function actionPreview(state: State, dieId: string, target: Target): Combat | null {
+export function actionPreview(state: State, dieId: string, target: Target): (Combat & { playerHp: number }) | null {
   if (!canPlay(state, dieId, target)) return null;
   const combat = structuredClone(state.combat!);
-  applyFace(state, combat, combat.rolls.find(roll => roll.dieId === dieId)!, target);
-  return combat;
+  const forecast = { ...state, combat };
+  applyFace(forecast, combat.rolls.find(roll => roll.dieId === dieId)!, target);
+  return Object.assign(combat, { playerHp: forecast.hp });
 }
 
 export function play(state: State, dieId: string, target: Target): boolean {
   if (!canPlay(state, dieId, target)) return false;
   const combat = state.combat!;
-  applyFace(state, combat, combat.rolls.find(roll => roll.dieId === dieId)!, target);
+  applyFace(state, combat.rolls.find(roll => roll.dieId === dieId)!, target);
   if (combat.enemies.every(enemy => enemy.hp <= 0)) finishFight(state);
   return true;
 }
@@ -335,22 +402,32 @@ export function incoming(combat: Combat): number {
   return intentValues(combat).reduce((total, intent) => total + (intent.active && intent.move === 'hit' ? intent.value : 0), 0);
 }
 
+function damagePlayer(state: State, combat: Combat, damage: number, firstHit: boolean): boolean {
+  if (firstHit && damage > 0 && combat.frenzy !== undefined) combat.frenzy++;
+  state.hp = Math.max(0, state.hp - damageAfterBlock(combat, damage));
+  if (state.hp > 0) return false;
+  state.phase = 'defeat';
+  return true;
+}
+
 export function endTurn(state: State): boolean {
   const combat = state.combat;
   const room = ROOMS[state.room];
   if (state.phase !== 'battle' || combat?.phase !== 'play' || room.type !== 'battle') return false;
+  const burn = combat.burn ?? 0;
+  if (burn > 0) {
+    const lethal = damagePlayer(state, combat, burn, true);
+    combat.burn = burn - 1;
+    if (lethal) return true;
+  }
   for (const enemy of combat.enemies) enemy.guard = 0;
+  let hitByEnemy = false;
   for (const intent of intentValues(combat)) {
     if (!intent.active) continue;
     const enemy = combat.enemies.find(e => e.id === intent.owner)!;
     if (intent.move === 'hit') {
-      const blocked = Math.min(combat.guard, intent.value);
-      combat.guard -= blocked;
-      state.hp = Math.max(0, state.hp - intent.value + blocked);
-      if (state.hp === 0) {
-        state.phase = 'defeat';
-        return true;
-      }
+      if (damagePlayer(state, combat, intent.value, !hitByEnemy)) return true;
+      hitByEnemy ||= intent.value > 0;
     } else if (intent.move === 'guard') {
       enemy.guard += intent.value;
     } else if (intent.move === 'power') {
@@ -358,6 +435,10 @@ export function endTurn(state: State): boolean {
     }
   }
   for (const enemy of combat.enemies) {
+    if (enemy.hp > 0 && enemy.burn) {
+      enemy.hp = Math.max(0, enemy.hp - damageAfterBlock(enemy, enemy.burn));
+      enemy.burn--;
+    }
     enemy.hp = Math.max(0, enemy.hp - enemy.seep);
     enemy.seep = Math.max(0, enemy.seep - 1);
     enemy.vulnerable = Math.max(0, enemy.vulnerable - 1);
@@ -387,7 +468,9 @@ function itemOffers(state: State, count: number, rich = false): Offer[] {
 }
 
 function discovery(state: State, exclude = ''): string {
-  const choices = DISCOVERIES.filter(id => id !== exclude);
+  const hero = CHARACTERS.find(c => c.id === state.character);
+  const available = hero?.starterRelic ? new Set([...DISCOVERIES, ...hero.starterDice]) : DISCOVERIES;
+  const choices = [...available].filter(id => id !== exclude);
   return choices[pick(state, choices.length)];
 }
 

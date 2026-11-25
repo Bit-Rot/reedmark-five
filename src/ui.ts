@@ -1,9 +1,9 @@
 import { DICE, ITEMS } from './content.ts';
-import { EFFECTS, effectUrl, faceEffects, faceImageUrl } from './effects.ts';
+import { EFFECTS, effectDescription, effectUrl, faceEffects, faceImageUrl, showsEffectAmount } from './effects.ts';
 import type { EffectKey } from './effects.ts';
-import { effectiveParts, faceFor } from './game.ts';
-import { FLAG_KINDS, SLOTS } from './model.ts';
-import type { Die, Face, Part } from './model.ts';
+import { combatFaceFor, effectiveParts, faceFor } from './game.ts';
+import { SLOTS } from './model.ts';
+import type { Die, Face, Part, State } from './model.ts';
 
 type Child = HTMLElement | string | null | undefined;
 
@@ -28,7 +28,7 @@ export function caption(value: string): HTMLElement {
 }
 
 function amount(part: Part): string {
-  if (FLAG_KINDS.includes(part.kind)) return '';
+  if (!showsEffectAmount(part.kind)) return '';
   return `${part.value}${part.count && part.count > 1 ? `×${part.count}` : ''}`;
 }
 
@@ -113,11 +113,11 @@ export function helpOn(node: HTMLElement, face: Face, boost = 0, before?: Face):
 
 const slotNames = { left: 'Left', center: 'Center', right: 'Right', far: 'Far right', top: 'Top', bottom: 'Bottom' };
 
-export function faceNet(die: Die, result?: Die, interactive = false): HTMLElement {
+export function faceNet(die: Die, result?: Die, interactive = false, battle?: State): HTMLElement {
   const grid = element('div', 'face-net');
   grid.setAttribute('aria-label', 'Die faces');
   for (const slot of SLOTS) {
-    const before = faceFor(die, slot);
+    const before = battle ? combatFaceFor(battle, die, slot) : faceFor(die, slot);
     const after = result ? faceFor(result, slot) : before;
     const changed = !!result && JSON.stringify(before) !== JSON.stringify(after);
     const tile = element('span', `net-tile net-tile--${slot}${changed ? ' is-changed' : ''}`, faceEmblem(after));
@@ -198,7 +198,7 @@ export class FaceTooltips {
     for (const kind of faceEffects(face)) {
       const effect = EFFECTS[kind];
       definitions.append(element('div', 'effect-definition',
-        element('dt', '', effectIcon(kind), effect.name), element('dd', '', effect.description)));
+        element('dt', '', effectIcon(kind), effect.name), element('dd', '', effectDescription(kind, face.parts.find(part => part.kind === kind)))));
     }
     this.panel.replaceChildren(
       element('strong', 'face-tooltip-heading', faceText(face, boost)),

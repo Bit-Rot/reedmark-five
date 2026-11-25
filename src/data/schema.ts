@@ -63,6 +63,7 @@ export const SCHEMA: Record<CollectionName, CollectionSchema> = {
     fields: [
       { key: 'name', label: 'Name', kind: 'text' },
       { key: 'starterDice', label: 'Starter dice', kind: 'refList', to: 'dice' },
+      { key: 'starterRelic', label: 'Starter relic', kind: 'ref', to: 'relics', emptyLabel: 'None' },
       { key: 'items', label: 'Items', kind: 'refList', to: 'items' },
       { key: 'unlocks', label: 'Unlocks', kind: 'stringList' },
       { key: 'notes', label: 'Notes', kind: 'longtext' },
@@ -85,6 +86,7 @@ export const SCHEMA: Record<CollectionName, CollectionSchema> = {
       { key: 'name', label: 'Name', kind: 'text' },
       { key: 'description', label: 'Description', kind: 'longtext' },
       { key: 'trigger', label: 'Trigger', kind: 'text' },
+      { key: 'effect', label: 'Effect', kind: 'enum', options: ['', 'frenzyOnDamage'] },
       { key: 'implemented', label: 'Implemented', kind: 'enum', options: IMPLEMENTED },
     ],
   },

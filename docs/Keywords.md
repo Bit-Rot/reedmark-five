@@ -2,13 +2,13 @@
 
 # Keywords
 
-**85 keywords.** `N` in rule text is the pip value of the face the keyword sits on. `X` is a number written on the keyword itself (e.g. `pain 2`).
+**95 keywords.** `N` in rule text is the pip value of the face the keyword sits on. `X` is a number written on the keyword itself (e.g. `pain 2`).
 
 ## Effect-type keywords
 
 | Keyword      | Rule text                                        | Applies to | Implemented | Notes |
 | ------------ | ------------------------------------------------ | ---------- | ----------- | ----- |
-| `heal`       | heal the target for N                            | TARG_PIPS  | planned     |       |
+| `heal`       | heal the target for N                            | TARG_PIPS  | implemented |       |
 | `block`      | gain N block (absorbs incoming damage this turn) | TARG_PIPS  | implemented |       |
 | `damage`     | damage the target for N                          | TARG_PIPS  | implemented |       |
 | `manaGain`   | gain N mana                                      | PIPS_ONLY  | planned     |       |
@@ -17,19 +17,20 @@
 
 ## Conditional x2 (state / targeting conditions)
 
-| Keyword    | Rule text                                                    | Applies to     | Implemented | Notes                                             |
-| ---------- | ------------------------------------------------------------ | -------------- | ----------- | ------------------------------------------------- |
-| `cruel`    | x2 vs targets on half or less hp                             | TARG_PIPS      | planned     | Cannot be used with `k<keyword>` generated items. |
-| `squish`   | x2 vs targets with the least hp of all                       | TARG_PIPS      | planned     |                                                   |
-| `uppercut` | x2 vs targets with the most hp of all                        | TARG_PIPS      | planned     |                                                   |
-| `ego`      | x2 vs myself                                                 | ALLY_TARG_PIPS | planned     | Cannot be used with `k<keyword>` generated items. |
-| `serrated` | x2 vs targets who have gained no shields this turn           | TARG_PIPS      | planned     |                                                   |
-| `chain`    | x2 if this shares a keyword with the previous dice this turn | PIPS_ONLY      | planned     | Cannot be used with `k<keyword>` generated items. |
-| `inspired` | x2 if the die played just before had more pips               | PIPS_ONLY      | implemented | Cannot be used with `k<keyword>` generated items. |
-| `patient`  | x2 if I was not used last turn                               | PIPS_ONLY      | planned     |                                                   |
-| `focus`    | x2 vs the target of the previous dice this turn              | TARG_PIPS      | planned     |                                                   |
-| `sloth`    | x2 vs targets with fewer blank faces                         | TARG_PIPS      | planned     | Legacy alias: "alliteration".                     |
-| `first`    | x2 if no dice have been used this turn                       | PIPS_ONLY      | planned     |                                                   |
+| Keyword      | Rule text                                                    | Applies to     | Implemented | Notes                                             |
+| ------------ | ------------------------------------------------------------ | -------------- | ----------- | ------------------------------------------------- |
+| `cruel`      | x2 vs targets on half or less hp                             | TARG_PIPS      | planned     | Cannot be used with `k<keyword>` generated items. |
+| `squish`     | x2 vs targets with the least hp of all                       | TARG_PIPS      | planned     |                                                   |
+| `uppercut`   | x2 vs targets with the most hp of all                        | TARG_PIPS      | planned     |                                                   |
+| `ego`        | x2 vs myself                                                 | ALLY_TARG_PIPS | planned     | Cannot be used with `k<keyword>` generated items. |
+| `serrated`   | x2 vs targets who have gained no shields this turn           | TARG_PIPS      | planned     |                                                   |
+| `chain`      | x2 if this shares a keyword with the previous dice this turn | PIPS_ONLY      | planned     | Cannot be used with `k<keyword>` generated items. |
+| `inspired`   | x2 if the die played just before had more pips               | PIPS_ONLY      | implemented | Cannot be used with `k<keyword>` generated items. |
+| `patient`    | x2 if I was not used last turn                               | PIPS_ONLY      | planned     |                                                   |
+| `focus`      | x2 vs the target of the previous dice this turn              | TARG_PIPS      | planned     |                                                   |
+| `sloth`      | x2 vs targets with fewer blank faces                         | TARG_PIPS      | planned     | Legacy alias: "alliteration".                     |
+| `first`      | x2 if no dice have been used this turn                       | PIPS_ONLY      | planned     |                                                   |
+| `burnDouble` | Deal double damage while you have Burn.                      | DAMAGE         | implemented |                                                   |
 
 ## Straights and of-a-kind (multipliers from previous dice)
 
@@ -50,15 +51,20 @@
 
 ## Pip bonuses (bonus pips per thing)
 
-| Keyword     | Rule text                                       | Applies to | Implemented | Notes                                                                     |
-| ----------- | ----------------------------------------------- | ---------- | ----------- | ------------------------------------------------------------------------- |
-| `fizz`      | +1 pip for each ability used this turn          | PIPS_ONLY  | planned     |                                                                           |
-| `bloodlust` | +1 pip for each damaged enemy                   | PIPS_ONLY  | planned     | Extra text: "Pips on this face are increased by 1 for each damaged enemy" |
-| `flesh`     | +1 pip for each hp I have                       | PIPS_ONLY  | planned     |                                                                           |
-| `plague`    | +1 pip for each poison on all characters        | PIPS_ONLY  | planned     |                                                                           |
-| `acidic`    | +1 pip for each poison on me                    | PIPS_ONLY  | planned     |                                                                           |
-| `flurry`    | +1 pip for each time I have been used this turn | PIPS_ONLY  | planned     |                                                                           |
-| `era`       | +1 pip for each elapsed turn                    | PIPS_ONLY  | planned     |                                                                           |
+| Keyword             | Rule text                                                 | Applies to | Implemented | Notes                                                                     |
+| ------------------- | --------------------------------------------------------- | ---------- | ----------- | ------------------------------------------------------------------------- |
+| `fizz`              | +1 pip for each ability used this turn                    | PIPS_ONLY  | planned     |                                                                           |
+| `bloodlust`         | +1 pip for each damaged enemy                             | PIPS_ONLY  | planned     | Extra text: "Pips on this face are increased by 1 for each damaged enemy" |
+| `flesh`             | +1 pip for each hp I have                                 | PIPS_ONLY  | planned     |                                                                           |
+| `plague`            | +1 pip for each poison on all characters                  | PIPS_ONLY  | planned     |                                                                           |
+| `acidic`            | +1 pip for each poison on me                              | PIPS_ONLY  | planned     |                                                                           |
+| `flurry`            | +1 pip for each time I have been used this turn           | PIPS_ONLY  | planned     |                                                                           |
+| `era`               | +1 pip for each elapsed turn                              | PIPS_ONLY  | planned     |                                                                           |
+| `burnDamage`        | Deal +1 damage per Burn on you.                           | DAMAGE     | implemented |                                                                           |
+| `afterExhaust X`    | Gain X pips if you exhausted a face this turn.            | PIPS_ONLY  | implemented |                                                                           |
+| `dieBlanks`         | Gain +1 pip per blank face on this die.                   | PIPS_ONLY  | implemented |                                                                           |
+| `kitBlanks X`       | Gain +1 pip per blank face across your dice, up to +X.    | PIPS_ONLY  | implemented |                                                                           |
+| `frenzyThreshold X` | Gain the face’s pips again if you have at least X Frenzy. | PIPS_ONLY  | implemented |                                                                           |
 
 ## Growth and decay
 
@@ -84,6 +90,8 @@
 | `hypnotise`    | set target's damage faces to 0 this turn                                                                                          | UNKIND_TARG      | planned     |                                                                                                                                                                                                                                                                                                                         |
 | `thorns`       | N damage to all enemies attacking the target                                                                                      | ALLY_TARG_PIPS   | planned     | Cannot be used with `k<keyword>` generated items.                                                                                                                                                                                                                                                                       |
 | `cleanse`      | reduce target's negative effects by N (poisoned, weakened, petrified and inflicted)                                               | TARG_PIPS        | planned     | Base for `selfCleanse`. Extra text: "Cleanse can remove poisoned, weakened, petrified and inflicted. It also affects incoming negative effects."                                                                                                                                                                        |
+| `burn X`       | Apply X Burn to the enemy. At the end of its turn, it takes damage equal to its Burn, then loses 1 stack.                         | ENEMY_TARGET     | implemented |                                                                                                                                                                                                                                                                                                                         |
+| `selfBurn X`   | Apply X Burn to yourself. At the end of your turn, take damage equal to your Burn, then lose 1 stack.                             | NONBLANK         | implemented |                                                                                                                                                                                                                                                                                                                         |
 
 ## Targeting and restrictions
 
@@ -96,15 +104,17 @@
 
 ## Costs, drawbacks and usage limits
 
-| Keyword      | Rule text                                                                             | Applies to           | Implemented | Notes                                                                                                                                                         |
-| ------------ | ------------------------------------------------------------------------------------- | -------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pain X`     | I take X damage                                                                       | PIPS_ONLY            | planned     | X is written on the keyword, e.g. `pain 2`. Extra text: "Pain damage can be blocked. Damage is resolved in an order favourable to the player always (I hope)" |
-| `replay X`   | can be used X times in a turn                                                         | NONBLANK_TOUCHUSABLE | planned     | X is written on the keyword, e.g. `replay 2`. Replaces `doubleUse` (replay 2), `quadUse` (replay 4) and `hyperUse`.                                           |
-| `exhaust`    | after I use this face, replace it with a blank this fight                             | NONBLANK             | planned     | Base for `inflictExhaust`.                                                                                                                                    |
-| `unusable`   | cannot be used (manually)                                                             | NONBLANK             | planned     | Cantrip still activates. Extra text: "cantrip is still allowed"                                                                                               |
-| `exert`      | after this face is used, all of this die's faces are blank until the end of next turn | NONBLANK             | implemented |                                                                                                                                                               |
-| `mandatory`  | must be used (if possible)                                                            | NONBLANK             | planned     |                                                                                                                                                               |
-| `manacost X` | costs X mana                                                                          | PIPS_ONLY            | planned     | X is written on the keyword.                                                                                                                                  |
+| Keyword         | Rule text                                                                             | Applies to           | Implemented | Notes                                                                                                                                                         |
+| --------------- | ------------------------------------------------------------------------------------- | -------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pain X`        | I take X damage                                                                       | PIPS_ONLY            | planned     | X is written on the keyword, e.g. `pain 2`. Extra text: "Pain damage can be blocked. Damage is resolved in an order favourable to the player always (I hope)" |
+| `replay X`      | can be used X times in a turn                                                         | NONBLANK_TOUCHUSABLE | planned     | X is written on the keyword, e.g. `replay 2`. Replaces `doubleUse` (replay 2), `quadUse` (replay 4) and `hyperUse`.                                           |
+| `exhaust`       | after I use this face, replace it with a blank this fight                             | NONBLANK             | implemented | Base for `inflictExhaust`.                                                                                                                                    |
+| `unusable`      | cannot be used (manually)                                                             | NONBLANK             | planned     | Cantrip still activates. Extra text: "cantrip is still allowed"                                                                                               |
+| `exert`         | after this face is used, all of this die's faces are blank until the end of next turn | NONBLANK             | implemented |                                                                                                                                                               |
+| `mandatory`     | must be used (if possible)                                                            | NONBLANK             | planned     |                                                                                                                                                               |
+| `manacost X`    | costs X mana                                                                          | PIPS_ONLY            | planned     | X is written on the keyword.                                                                                                                                  |
+| `frenzySpend X` | If you have X Frenzy, spend it to gain +2 pips per stack spent.                       | PIPS_ONLY            | implemented |                                                                                                                                                               |
+| `frenzyAll X`   | Spend all Frenzy to gain X pips per stack spent.                                      | PIPS_ONLY            | implemented |                                                                                                                                                               |
 
 ## Face behaviour, copying and randomness
 

@@ -79,7 +79,8 @@ export function exportCharacters(db: Collections): string {
   let out = GENERATED_NOTE + '\n';
   for (const c of db.characters) {
     const list = (xs: string[]) => (xs.length ? xs.map(x => `* ${code(x)}`).join('\n') : '');
-    out += `\n## ${c.name}\n\n### Starter Dice\n\n${list(c.starterDice)}\n\n### Items\n\n${list(c.items)}\n\n### Unlocks\n\n${c.unlocks.map(u => `* ${u}`).join('\n')}\n`;
+    const relic = c.starterRelic ? `### Starter Relic\n\n${code(c.starterRelic)}\n\n` : '';
+    out += `\n## ${c.name}\n\n${relic}### Starter Dice\n\n${list(c.starterDice)}\n\n### Items\n\n${list(c.items)}\n\n### Unlocks\n\n${c.unlocks.map(u => `* ${u}`).join('\n')}\n`;
   }
   return out;
 }

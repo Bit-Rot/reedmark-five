@@ -1,9 +1,11 @@
 export const SLOTS = ['left', 'center', 'right', 'far', 'top', 'bottom'] as const;
 export type Slot = typeof SLOTS[number];
 export type Variant = 'fixed' | 'pool';
-export type Kind = 'hit' | 'guard' | 'seep' | 'boost' | 'ward' | 'vulnerable' | 'weak' | 'exert' | 'cantrip' | 'blank' | 'growth' | 'inspired';
+export type Kind = 'hit' | 'guard' | 'seep' | 'boost' | 'ward' | 'vulnerable' | 'weak' | 'exert' | 'cantrip' | 'blank' | 'growth' | 'inspired'
+  | 'burn' | 'selfBurn' | 'heal' | 'exhaust' | 'burnDamage' | 'burnDouble' | 'afterExhaust'
+  | 'dieBlanks' | 'kitBlanks' | 'frenzyThreshold' | 'frenzySpend' | 'frenzyAll';
 /** Kinds that carry no number (they are either present or not). */
-export const FLAG_KINDS: readonly Kind[] = ['exert', 'cantrip', 'blank', 'inspired'];
+export const FLAG_KINDS: readonly Kind[] = ['exert', 'cantrip', 'blank', 'inspired', 'exhaust', 'burnDamage', 'burnDouble', 'dieBlanks'];
 export type TargetKind = 'enemy' | 'self' | 'die' | 'none' | 'all';
 export type Target = { kind: TargetKind; id?: string };
 
@@ -21,6 +23,11 @@ export interface Face {
   id?: string;
   /** Library image path (e.g. `face-art/library/sword.webp`) that the face is drawn with; effect icons are the fallback. */
   image?: string;
+}
+export interface StarterRelic {
+  name: string;
+  description: string;
+  effect: 'frenzyOnDamage';
 }
 export interface DieDefinition {
   name: string;
@@ -70,6 +77,7 @@ export interface Enemy extends EnemyDefinition {
   maxHp: number;
   guard: number;
   seep: number;
+  burn?: number;
   power: number;
   /** Stacks: +50% damage taken while above 0, lose 1 at the end of the enemy turn. */
   vulnerable: number;
@@ -100,6 +108,11 @@ export interface Combat {
   bag: string[];
   guard: number;
   ward: number;
+  burn?: number;
+  /** Present when a relic grants Frenzy. */
+  frenzy?: number;
+  /** Slot key -> turn when exhausted. Old saves can omit this map. */
+  exhausted?: Record<string, number>;
   /** Die ID -> the turn number during which all of that die's faces are blank. */
   exerted: Record<string, number>;
   /** `dieId:slot` -> pips a face has gained this fight (growth). */

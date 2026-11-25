@@ -182,5 +182,98 @@
     ],
     "notes": "",
     "tone": "rust"
+  },
+  {
+    "id": "die_moth_strike",
+    "name": "Moth Strike",
+    "tone": "rust",
+    "faces": [
+      {
+        "face": "dmg",
+        "pips": 3
+      },
+      {
+        "face": "dmg",
+        "pips": 2
+      },
+      {
+        "face": "dmg",
+        "pips": 2
+      },
+      {
+        "face": "dmg",
+        "pips": 2
+      },
+      {
+        "face": "dmg",
+        "pips": 1
+      },
+      {
+        "face": "block",
+        "pips": 1
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "id": "die_moth_guard",
+    "name": "Moth Guard",
+    "tone": "blue",
+    "faces": [
+      {
+        "face": "blockSelfBurn",
+        "pips": 3
+      },
+      {
+        "face": "block",
+        "pips": 3
+      },
+      {
+        "face": "block",
+        "pips": 2
+      },
+      {
+        "face": "block",
+        "pips": 2
+      },
+      {
+        "face": "block",
+        "pips": 1
+      },
+      {
+        "face": "block",
+        "pips": 1
+      }
+    ],
+    "notes": ""
+  },
+  {
+    "id": "die_moth_lantern",
+    "name": "Moth Lantern",
+    "tone": "sand",
+    "faces": [
+      {
+        "face": "dmgWhileBurning",
+        "pips": 3
+      },
+      {
+        "face": "burnEnemy"
+      },
+      {
+        "face": "dmgExhaust",
+        "pips": 5
+      },
+      {
+        "face": "blockSpendFrenzy",
+        "pips": 2
+      },
+      {
+        "face": "blank"
+      },
+      {
+        "face": "blank"
+      }
+    ],
+    "notes": ""
   }
 ]

@@ -35,3 +35,25 @@
 ### Unlocks
 
 
+
+## Moth
+
+### Starter Relic
+
+`lampheart`
+
+### Starter Dice
+
+* `die_moth_strike`
+* `die_moth_strike`
+* `die_moth_guard`
+* `die_moth_guard`
+* `die_moth_lantern`
+
+### Items
+
+
+
+### Unlocks
+
+

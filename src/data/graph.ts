@@ -31,6 +31,12 @@ export function forEachRef(db: Collections, visit: (ref: RefLocation) => void): 
       owner: { collection: 'characters', id: c.id }, target: { collection: 'dice', id },
       path: `starterDice[${i}]`, set: v => { c.starterDice[i] = v; },
     }));
+    if (c.starterRelic) {
+      visit({
+        owner: { collection: 'characters', id: c.id }, target: { collection: 'relics', id: c.starterRelic },
+        path: 'starterRelic', set: id => { c.starterRelic = id; },
+      });
+    }
     c.items.forEach((id, i) => visit({
       owner: { collection: 'characters', id: c.id }, target: { collection: 'items', id },
       path: `items[${i}]`, set: v => { c.items[i] = v; },

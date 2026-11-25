@@ -2,13 +2,20 @@
  * Compiles the design data (data/*.json) into the game's own content types.
  * Pure functions over a `Collections`, so they run in the editor, tests and the game alike.
  */
-import type { DieDefinition, Face as GameFace, Item as GameItem, Part, Slot, TargetKind } from '../model.ts';
+import type { DieDefinition, Face as GameFace, Item as GameItem, Part, Slot, StarterRelic, TargetKind } from '../model.ts';
 import { SLOTS } from '../model.ts';
 import type { Collections, Die, Face, Item, Keyword, SlotName, Targeting } from './types.ts';
 import { SLOT_NAMES } from './types.ts';
 
 /** Keywords the game engine can execute. Anything else on a face is reported by `compileDb`. */
-export const IMPLEMENTED_KEYWORDS = ['damage', 'block', 'selfShield', 'poison', 'vulnerable', 'weak', 'exert', 'cantrip', 'growth', 'inspired', 'cleave'] as const;
+export const IMPLEMENTED_KEYWORDS = ['damage', 'block', 'selfShield', 'poison', 'vulnerable', 'weak', 'exert', 'cantrip', 'growth', 'inspired', 'cleave',
+  'heal', 'burn', 'selfBurn', 'exhaust', 'burnDamage', 'burnDouble', 'afterExhaust',
+  'dieBlanks', 'kitBlanks', 'frenzyThreshold', 'frenzySpend', 'frenzyAll'] as const;
+const MODIFIERS = {
+  burnDamage: 'none', burnDouble: 'none', afterExhaust: 'x', dieBlanks: 'none', kitBlanks: 'x',
+  frenzyThreshold: 'x', frenzySpend: 'x', frenzyAll: 'x',
+} as const;
+
 export const TARGETINGS_SUPPORTED: readonly Targeting[] = ['none', 'self', 'singleEnemy', 'allEnemies'];
 /** Item operations the game can execute. */
 export const ITEM_OPS_SUPPORTED = ['setFace'] as const;
@@ -41,7 +48,9 @@ export function addKeywordToFace(face: GameFace, keyword: string, x?: number): G
   };
   switch (keyword) {
     case 'cantrip':
-      if (face.target === 'none' || parts.some(part => part.kind === 'cantrip')) return undefined;
+      // These effects and their costs are tied to deliberately playing the face.
+      if (face.target === 'none' || parts.some(part =>
+        part.kind === 'cantrip' || part.kind === 'exhaust' || part.kind === 'frenzySpend' || part.kind === 'frenzyAll')) return undefined;
       parts.push({ kind: 'cantrip', value: 0 });
       break;
     case 'selfShield':
@@ -81,10 +90,13 @@ export function compileFace(face: Face, pips: number | undefined, issues: Diagno
   if (!target) issues.push({ where, message: `targeting "${face.targeting}" is not supported by the game yet` });
   const n = pips ?? 0;
   const needsPips = uses.has('damage') || uses.has('block') || uses.has('selfShield');
-  if (needsPips && pips === undefined) issues.push({ where, message: 'needs pips on the die slot that uses it' });
-  const xOf = (id: string): number => {
+  if ((needsPips || uses.has('heal')) && pips === undefined) issues.push({ where, message: 'needs pips on the die slot that uses it' });
+  const xOf = (id: string, positive = false): number => {
     const x = uses.get(id)?.x;
     if (x === undefined) issues.push({ where, message: `keyword "${id}" needs an X value` });
+    else if (positive && (!Number.isInteger(x) || x < 1)) {
+      issues.push({ where, message: `keyword "${id}" needs a positive integer X` });
+    }
     return x ?? 0;
   };
   const parts: Part[] = [];
@@ -94,10 +106,11 @@ export function compileFace(face: Face, pips: number | undefined, issues: Diagno
   if (uses.has('poison')) parts.push({ kind: 'seep', value: xOf('poison') });
   if (uses.has('vulnerable')) parts.push({ kind: 'vulnerable', value: xOf('vulnerable') });
   if (uses.has('weak')) parts.push({ kind: 'weak', value: xOf('weak') });
-  if (uses.has('exert')) parts.push({ kind: 'exert', value: 0 });
-  if (uses.has('cantrip')) parts.push({ kind: 'cantrip', value: 0 });
+  if (uses.has('heal')) parts.push({ kind: 'heal', value: n });
+  if (uses.has('burn')) parts.push({ kind: 'burn', value: xOf('burn', true) });
+  if (uses.has('selfBurn')) parts.push({ kind: 'selfBurn', value: xOf('selfBurn', true) });
   // A face with nothing to do (no effect keywords) is a blank and cannot be played.
-  if (!parts.some(p => p.kind !== 'exert' && p.kind !== 'cantrip')) {
+  if (!parts.length) {
     return { id: face.id, target: 'none', parts: [{ kind: 'blank', value: 0 }], ...(face.image ? { image: face.image } : {}) };
   }
   // Merge two guard parts (block + selfShield) so a face shows one Block value.
@@ -107,9 +120,23 @@ export function compileFace(face: Face, pips: number | undefined, issues: Diagno
     if (same) merged[merged.indexOf(same)] = { ...same, value: same.value + p.value };
     else merged.push(p);
   }
-  const defaultTarget: TargetKind = merged.some(p => p.kind === 'hit' || p.kind === 'seep' || p.kind === 'vulnerable' || p.kind === 'weak') ? 'enemy' : 'self';
-  let result: GameFace = { id: face.id, target: target && target !== 'none' ? target : defaultTarget, parts: merged, ...(face.image ? { image: face.image } : {}) };
-  for (const keyword of ['growth', 'inspired', 'cleave']) {
+  if (uses.has('exert')) merged.push({ kind: 'exert', value: 0 });
+  if (uses.has('exhaust')) merged.push({ kind: 'exhaust', value: 0 });
+  for (const kind of Object.keys(MODIFIERS) as (keyof typeof MODIFIERS)[]) {
+    if (!uses.has(kind)) continue;
+    const damageOnly = kind === 'burnDamage' || kind === 'burnDouble';
+    if (!(damageOnly ? uses.has('damage') : needsPips)) {
+      issues.push({ where, message: `keyword "${kind}" needs a ${damageOnly ? 'damage' : 'damage or block'} effect` });
+    }
+    merged.push({ kind, value: MODIFIERS[kind] === 'x' ? xOf(kind, true) : 0 });
+  }
+  if (uses.has('frenzySpend') && uses.has('frenzyAll')) issues.push({ where, message: 'a face can have only one Frenzy cost' });
+  const defaultTarget: TargetKind = merged.some(p =>
+    p.kind === 'hit' || p.kind === 'seep' || p.kind === 'vulnerable' || p.kind === 'weak' || p.kind === 'burn') ? 'enemy' : 'self';
+  const actualTarget = target && target !== 'none' ? target : defaultTarget;
+  if (uses.has('burn') && actualTarget === 'self') issues.push({ where, message: 'Burn needs an enemy target' });
+  let result: GameFace = { id: face.id, target: actualTarget, parts: merged, ...(face.image ? { image: face.image } : {}) };
+  for (const keyword of ['cantrip', 'growth', 'inspired', 'cleave']) {
     if (!uses.has(keyword)) continue;
     const next = addKeywordToFace(result, keyword, keyword === 'growth' ? xOf('growth') : undefined);
     if (next) result = next;
@@ -166,7 +193,7 @@ export function compileItem(db: Collections, item: Item, issues: Diagnostic[] = 
 export interface CompiledContent {
   dice: Record<string, DieDefinition>;
   items: Record<string, GameItem>;
-  characters: { id: string; name: string; starterDice: string[] }[];
+  characters: { id: string; name: string; starterDice: string[]; starterRelic?: StarterRelic }[];
   /** Everything that stopped something from being usable. */
   issues: Diagnostic[];
 }
@@ -192,7 +219,16 @@ export function compileDb(db: Collections): CompiledContent {
   for (const c of db.characters) {
     const missing = c.starterDice.filter(id => !dice[id]);
     for (const id of missing) issues.push({ where: `character ${c.id}`, message: `starter die "${id}" is missing or has problems` });
-    if (!missing.length && c.starterDice.length) characters.push({ id: c.id, name: c.name, starterDice: c.starterDice });
+    const relic = db.relics.find(r => r.id === c.starterRelic);
+    const starterRelic = relic?.implemented === 'implemented' && relic.effect === 'frenzyOnDamage'
+      ? { name: relic.name, description: relic.description, effect: relic.effect } : undefined;
+    if (c.starterRelic && !starterRelic) {
+      issues.push({ where: `character ${c.id}`, message: `starter relic "${c.starterRelic}" is missing or has no supported effect` });
+      continue;
+    }
+    if (!missing.length && c.starterDice.length) {
+      characters.push({ id: c.id, name: c.name, starterDice: c.starterDice, ...(starterRelic ? { starterRelic } : {}) });
+    }
   }
   return { dice, items, characters, issues };
 }

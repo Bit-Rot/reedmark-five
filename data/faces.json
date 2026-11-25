@@ -157,5 +157,375 @@
     "image": "face-art/library/bomb.webp",
     "notes": "",
     "status": "active"
+  },
+  {
+    "id": "blockSelfBurn",
+    "targeting": "self",
+    "keywords": [
+      {
+        "keyword": "block"
+      },
+      {
+        "keyword": "selfBurn",
+        "x": 1
+      }
+    ],
+    "image": "face-art/library/shield_flame.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "burnEnemy",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "burn",
+        "x": 2
+      }
+    ],
+    "image": "face-art/library/flame.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "dmgExhaust",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "exhaust"
+      }
+    ],
+    "image": "face-art/library/hammer_crack.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "dmgApplyBurn",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "burn",
+        "x": 1
+      }
+    ],
+    "image": "face-art/library/sword_flame.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "blockExhaust",
+    "targeting": "self",
+    "keywords": [
+      {
+        "keyword": "block"
+      },
+      {
+        "keyword": "exhaust"
+      }
+    ],
+    "image": "face-art/library/cracked_shield.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "dmgDieBlanks",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "dieBlanks"
+      }
+    ],
+    "image": "face-art/library/stinger.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "dmgPerBurn",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "burnDamage"
+      }
+    ],
+    "image": "face-art/library/sword_flame.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "dmgWhileBurning",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "burnDouble"
+      }
+    ],
+    "image": "face-art/library/sword_flame.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "blockDieBlanks",
+    "targeting": "self",
+    "keywords": [
+      {
+        "keyword": "block"
+      },
+      {
+        "keyword": "dieBlanks"
+      }
+    ],
+    "image": "face-art/library/cloak.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "dmgAfterExhaust",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "afterExhaust",
+        "x": 3
+      }
+    ],
+    "image": "face-art/library/broken_sword.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "blockFrenzyThreshold",
+    "targeting": "self",
+    "keywords": [
+      {
+        "keyword": "block"
+      },
+      {
+        "keyword": "frenzyThreshold",
+        "x": 3
+      }
+    ],
+    "image": "face-art/library/shield.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "dmgSpendFrenzy",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "frenzySpend",
+        "x": 2
+      }
+    ],
+    "image": "face-art/library/claw.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "dmgAllWhileBurning",
+    "targeting": "allEnemies",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "burnDouble"
+      }
+    ],
+    "image": "face-art/library/sword_flame.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "burnExhaust",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "burn",
+        "x": 4
+      },
+      {
+        "keyword": "exhaust"
+      }
+    ],
+    "image": "face-art/library/bomb_spark.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "dmgSelfBurn",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "selfBurn",
+        "x": 1
+      }
+    ],
+    "image": "face-art/library/sword_flame.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "blockSpendFrenzy",
+    "targeting": "self",
+    "keywords": [
+      {
+        "keyword": "block"
+      },
+      {
+        "keyword": "frenzySpend",
+        "x": 2
+      }
+    ],
+    "image": "face-art/library/gauntlet.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "blockAfterExhaust",
+    "targeting": "self",
+    "keywords": [
+      {
+        "keyword": "block"
+      },
+      {
+        "keyword": "afterExhaust",
+        "x": 3
+      }
+    ],
+    "image": "face-art/library/bell.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "dmgFrenzyThreshold",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "frenzyThreshold",
+        "x": 3
+      }
+    ],
+    "image": "face-art/library/claw.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "dmgKitBlanks",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "kitBlanks",
+        "x": 6
+      }
+    ],
+    "image": "face-art/library/moon.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "dmgSpendAllFrenzy",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "frenzyAll",
+        "x": 2
+      }
+    ],
+    "image": "face-art/library/bomb_spark.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "healExhaust",
+    "targeting": "self",
+    "keywords": [
+      {
+        "keyword": "heal"
+      },
+      {
+        "keyword": "exhaust"
+      }
+    ],
+    "image": "face-art/library/potion.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "blockKitBlanks",
+    "targeting": "self",
+    "keywords": [
+      {
+        "keyword": "block"
+      },
+      {
+        "keyword": "kitBlanks",
+        "x": 5
+      }
+    ],
+    "image": "face-art/library/crown.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "burnAll",
+    "targeting": "allEnemies",
+    "keywords": [
+      {
+        "keyword": "burn",
+        "x": 3
+      }
+    ],
+    "image": "face-art/library/flame.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "blockSelfBurnTwo",
+    "targeting": "self",
+    "keywords": [
+      {
+        "keyword": "block"
+      },
+      {
+        "keyword": "selfBurn",
+        "x": 2
+      }
+    ],
+    "image": "face-art/library/shield_flame.webp",
+    "notes": "",
+    "status": "active"
   }
 ]

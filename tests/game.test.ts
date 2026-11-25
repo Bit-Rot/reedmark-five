@@ -104,7 +104,7 @@ test('matched seeds share enemy dice across variants and valid saves round-trip'
 });
 
 test('battle and Workshop item rewards draw only from the selected character’s pool', () => {
-  for (const character of ['barbarian', 'thief']) {
+  for (const character of ['barbarian', 'thief', 'moth']) {
     const pool = DATA.items.filter(item => item.rewardCharacter === character);
     assert(pool.length >= 3);
     assert.deepEqual(new Set(pool.map(item => item.rarity)), new Set(['common', 'uncommon', 'rare']));

@@ -1,6 +1,7 @@
-import type { Face, Kind } from './model.ts';
+import { FLAG_KINDS } from './model.ts';
+import type { Face, Kind, Part } from './model.ts';
 
-export type EffectKey = Kind | 'salvage' | 'cleave';
+export type EffectKey = Kind | 'salvage' | 'cleave' | 'frenzy';
 
 export const EFFECTS: Record<EffectKey, { name: string; color: string; symbol: string; description: string }> = {
   hit: {
@@ -14,6 +15,58 @@ export const EFFECTS: Record<EffectKey, { name: string; color: string; symbol: s
   seep: {
     name: 'Poison', color: '#426a37', symbol: '◈',
     description: 'After enemies act, the target loses HP equal to its Poison. Poison bypasses Block and then decreases by 1.',
+  },
+  burn: {
+    name: 'Burn', color: '#a85529', symbol: '♨',
+    description: 'At the end of the burning side’s turn, it takes damage equal to its Burn, then loses one stack. Block absorbs Burn damage.',
+  },
+  selfBurn: {
+    name: 'Self Burn', color: '#a85529', symbol: '♨',
+    description: 'Apply Burn to yourself. Your Burn ticks before enemies act, then loses one stack.',
+  },
+  heal: {
+    name: 'Heal', color: '#426a37', symbol: '♥',
+    description: 'Recover HP up to your maximum.',
+  },
+  exhaust: {
+    name: 'Exhaust', color: '#806345', symbol: '◌',
+    description: 'After you play this face, its slot becomes blank for the rest of the fight.',
+  },
+  burnDamage: {
+    name: 'Damage per Burn', color: '#a85529', symbol: '♨',
+    description: 'Deal 1 extra damage for each Burn on you.',
+  },
+  burnDouble: {
+    name: 'Double while burning', color: '#a85529', symbol: '×2',
+    description: 'Deal double damage while you have any Burn.',
+  },
+  afterExhaust: {
+    name: 'After Exhaust', color: '#806345', symbol: '◌',
+    description: 'Add X to the damage or Block shown if you have already exhausted a face this turn.',
+  },
+  dieBlanks: {
+    name: 'Blanks on this die', color: '#655d82', symbol: '□',
+    description: 'Add 1 damage or Block for each blank on this die, including exhausted slots.',
+  },
+  kitBlanks: {
+    name: 'Blanks across your dice', color: '#655d82', symbol: '▦',
+    description: 'Add 1 damage or Block per blank across your dice, including exhausted slots, up to +X.',
+  },
+  frenzy: {
+    name: 'Frenzy', color: '#91601e', symbol: 'ϟ',
+    description: 'Lampheart grants 1 Frenzy the first time you would take damage on each side’s turn.',
+  },
+  frenzyThreshold: {
+    name: 'Frenzy threshold', color: '#91601e', symbol: 'ϟ',
+    description: 'Double this face’s damage or Block pips at X or more Frenzy.',
+  },
+  frenzySpend: {
+    name: 'Spend Frenzy', color: '#91601e', symbol: 'ϟ',
+    description: 'Spend X Frenzy if available and add 2 damage or Block per stack spent.',
+  },
+  frenzyAll: {
+    name: 'Spend all Frenzy', color: '#91601e', symbol: 'ϟ',
+    description: 'Spend all Frenzy and add X damage or Block per stack spent.',
   },
   boost: {
     name: 'Tune', color: '#28766b', symbol: '✚',
@@ -63,6 +116,18 @@ export const EFFECTS: Record<EffectKey, { name: string; color: string; symbol: s
 
 /** Library art for effects that have no hand-made icon of their own. */
 const EFFECT_ART: Partial<Record<EffectKey, string>> = {
+  burn: 'face-art/library/flame.webp',
+  selfBurn: 'face-art/library/shield_flame.webp',
+  heal: 'face-art/library/cross_plus.webp',
+  exhaust: 'face-art/library/arrow_down.webp',
+  burnDamage: 'face-art/library/flame.webp',
+  afterExhaust: 'face-art/library/arrow_up.webp',
+  dieBlanks: 'face-art/library/blank.webp',
+  kitBlanks: 'face-art/library/dice.webp',
+  frenzy: 'face-art/library/lightning.webp',
+  frenzyThreshold: 'face-art/library/lightning.webp',
+  frenzySpend: 'face-art/library/claw.webp',
+  frenzyAll: 'face-art/library/bomb_spark.webp',
   vulnerable: 'face-art/library/cracked_shield.webp',
   weak: 'face-art/library/sad_face.webp',
   exert: 'face-art/library/hourglass.webp',
@@ -110,6 +175,17 @@ export async function loadEffectImages(): Promise<void> {
       // The fallback glyph still identifies the effect if an image can't load.
     }
   }));
+}
+
+/** Conditions use a small icon on the die. Their thresholds and costs are in the tooltip. */
+export function showsEffectAmount(kind: EffectKey): boolean {
+  return !FLAG_KINDS.includes(kind as Kind)
+    && !['cleave', 'afterExhaust', 'kitBlanks', 'frenzyThreshold', 'frenzySpend', 'frenzyAll'].includes(kind);
+}
+
+export function effectDescription(kind: EffectKey, part?: Part): string {
+  const description = EFFECTS[kind].description;
+  return part ? description.replaceAll('X', String(part.value)) : description;
 }
 
 export function faceEffects(face: Face): EffectKey[] {

@@ -75,6 +75,7 @@ export interface Character {
   id: string;
   name: string;
   starterDice: string[];
+  starterRelic?: string;
   items: string[];
   unlocks: string[];
   notes: string;
@@ -108,6 +109,7 @@ export interface Relic {
   name: string;
   description: string;
   trigger: string;
+  effect?: '' | 'frenzyOnDamage';
   implemented: Implemented;
 }
 

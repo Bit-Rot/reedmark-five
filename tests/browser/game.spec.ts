@@ -211,7 +211,7 @@ test('a fresh run asks for a hero and starts with that hero\'s dice', async ({ p
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Choose your hero' })).toBeVisible();
-  await expect(page.locator('.character-choice')).toHaveCount(2);
+  await expect(page.locator('.character-choice')).toHaveCount(3);
   await page.getByRole('button', { name: 'Play Thief' }).click();
   await expect(page.locator('#interface')).toHaveAttribute('data-phase', 'battle');
   await expect(page.locator('.stage-cube')).toHaveCount(5);
@@ -457,4 +457,32 @@ test('a cleave-upgraded die is used with a single click and hits every enemy', a
   await expect(page.locator('[data-socket="0"].is-spent')).toBeVisible();
   await expect(actor(page, 'gnat-a')).not.toContainText('7/7');
   await expect(actor(page, 'gnat-b')).not.toContainText('7/7');
+});
+
+test('Moth shows Lampheart, changes live face values, and shows exhausted slots in the die layout', async ({ page }) => {
+  const state = newRun('fixed', 231, 'moth');
+  const combat = state.combat!;
+  combat.intents = combat.intents.map((intent, index) => ({ ...intent, move: index === 0 ? 'hit' : 'wait', value: index === 0 ? 2 : 0 }));
+  combat.rolls[0].slot = 'top';
+  combat.rolls[1].slot = 'far';
+  combat.rolls[2].slot = 'left';
+  combat.rolls[4].slot = 'left';
+  state.dice[0].imprints.top = 'shed-silk';
+  state.dice[1].imprints.far = 'hush-bell';
+  await saveFixture(page, state);
+  await expect(page.getByRole('img', { name: /Lampheart, 0 Frenzy/ })).toBeVisible();
+  await action(page, 'commit').click();
+  await expect(die(page, 'd4')).toHaveAccessibleName(/3 Damage/);
+  await die(page, 'd2').click();
+  await expect(actor(page, 'courier').locator('.chip--burn')).toHaveText('1');
+  await expect(die(page, 'd4')).toHaveAccessibleName(/6 Damage/);
+  await die(page, 'd0').click();
+  await expect(die(page, 'd1')).toHaveAccessibleName(/6 Block/);
+  await die(page, 'd1').hover();
+  await expect(page.getByRole('tooltip')).toContainText('if you have already exhausted a face this turn');
+  await action(page, 'end').click();
+  await expect(page.getByRole('img', { name: /Lampheart, 2 Frenzy/ })).toBeVisible();
+  await die(page, 'd0').click({ button: 'right' });
+  const layout = page.getByRole('dialog', { name: 'Die 1 layout' });
+  await expect(layout.locator('[data-slot="top"]')).toHaveAttribute('aria-label', 'Top, Blank');
 });

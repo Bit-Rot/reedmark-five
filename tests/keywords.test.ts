@@ -10,7 +10,7 @@ import type { Face as DataFace } from '../src/data/types.ts';
 const enemyTarget = (s: ReturnType<typeof newRun>, i = 0) => ({ kind: 'enemy', id: s.combat!.enemies[i].id }) as const;
 
 test('every character is playable and all active data compiles without problems', () => {
-  assert.deepEqual(CHARACTERS.map(c => c.id).sort(), ['barbarian', 'thief']);
+  assert.deepEqual(CHARACTERS.map(c => c.id).sort(), ['barbarian', 'moth', 'thief']);
   assert.deepEqual(DATA_ISSUES, []);
   assert.deepEqual(validate(DATA).filter(i => i.severity === 'error'), []);
   for (const c of CHARACTERS) assert.equal(c.starterDice.length, 5);

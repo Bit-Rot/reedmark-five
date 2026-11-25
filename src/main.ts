@@ -1,8 +1,8 @@
 import './style.css';
 import './face-ui.css';
 import { CHARACTERS, DICE, FACE_IMAGE_PATHS, ITEMS, ROOMS } from './content.ts';
-import { actionPreview, advance, canPlay, chooseOffer, commitRoll, endTurn, incoming, intentValues, isExerted, isSave,
-  faceFor, newRun, offerTargets, play, previewDie, previewUpgrade, reroll, rollFace, setHold } from './game.ts';
+import { actionPreview, advance, canPlay, chooseOffer, commitRoll, endTurn, incoming, intentValues, isSave,
+  faceFor, facesFor, newRun, offerTargets, play, previewDie, previewUpgrade, reroll, rollFace, setHold, starterRelicFor } from './game.ts';
 import { SLOTS } from './model.ts';
 import type { Die, Face, Offer, Roll, Slot, State, Target, Variant } from './model.ts';
 import { EFFECTS, faceImageUrl, loadEffectImages, loadFaceImages } from './effects.ts';
@@ -116,13 +116,28 @@ function hud(): HTMLElement {
   const gold = element('div', 'gold-hud', coin, element('span', 'gold-amount', `${state.gold}`));
   gold.title = 'Gold';
   gold.setAttribute('aria-label', `${state.gold} gold`);
+  const relic = choosing ? undefined : starterRelicFor(state);
+  const frenzy = state.phase === 'battle' ? state.combat?.frenzy : undefined;
+  const relicHud = relic ? element('span', 'relic-hud', effectChip('frenzy', frenzy ?? ''), relic.name) : null;
+  if (relicHud && relic) {
+    relicHud.title = relic.description;
+    relicHud.setAttribute('role', 'img');
+    relicHud.setAttribute('aria-label', `${relic.name}${frenzy === undefined ? '' : `, ${frenzy} Frenzy`}. ${relic.description}`);
+  }
   const kit = button('icon-button', 'ledger', variant === 'pool' ? 'View dice bag' : 'View dice kit', '◫');
   const gear = button('icon-button', 'menu', 'Game menu', '⚙');
-  return element('header', 'hud', identity, path, element('div', 'hud-right', element('div', 'hud-stats', health, gold), kit, gear));
+  return element('header', 'hud', identity, path, element('div', 'hud-right', element('div', 'hud-stats', health, gold, relicHud), kit, gear));
 }
 
 function targetFor(node: HTMLElement): Target {
   return { kind: node.dataset.targetKind as Target['kind'], id: node.dataset.targetId };
+}
+
+function burnChip(stacks: number): HTMLElement {
+  const status = effectChip('burn', stacks);
+  status.title = EFFECTS.burn.description;
+  status.setAttribute('aria-label', `${stacks} Burn`);
+  return status;
 }
 
 function worldLayer(): HTMLElement {
@@ -138,6 +153,7 @@ function worldLayer(): HTMLElement {
     element('span', 'actor-status',
       combat.guard ? effectChip('guard', combat.guard) : null,
       combat.ward ? effectChip('ward', combat.ward) : null,
+      combat.burn ? burnChip(combat.burn) : null,
     ),
   ));
   world.append(self);
@@ -163,6 +179,7 @@ function worldLayer(): HTMLElement {
       element('span', 'enemy-hp', `${enemy.hp}/${enemy.maxHp}`,
         enemy.guard ? effectChip('guard', enemy.guard) : null,
         enemy.seep ? effectChip('seep', enemy.seep) : null,
+        enemy.burn ? burnChip(enemy.burn) : null,
         enemy.vulnerable ? effectChip('vulnerable', enemy.vulnerable) : null,
         enemy.weak ? effectChip('weak', enemy.weak) : null,
       ),
@@ -218,12 +235,14 @@ function tray(): HTMLElement | null {
   });
 
   const predicted = incoming(combat);
-  const damage = Math.max(0, predicted - combat.guard);
+  const burn = combat.burn ?? 0;
+  const damage = Math.max(0, predicted + burn - combat.guard);
   const readout = element('div', 'threat',
     caption(`Turn ${combat.turn}`),
-    element('span', 'threat-value', effectChip('hit', predicted), element('span', 'muted', ' / '), effectChip('guard', combat.guard)),
+    element('span', 'threat-value', effectChip('hit', predicted), burn ? burnChip(burn) : null,
+      element('span', 'muted', ' / '), effectChip('guard', combat.guard)),
   );
-  readout.setAttribute('aria-label', `Incoming ${predicted} Damage. ${combat.guard} Block. HP loss ${damage}.`);
+  readout.setAttribute('aria-label', `Incoming ${predicted} Damage. ${burn ? `${burn} Burn. ` : ''}${combat.guard} Block. HP loss ${damage}.`);
   readout.dataset.threat = 'true';
   const commands = element('div', 'commands');
   if (combat.phase === 'roll') {
@@ -414,7 +433,7 @@ function renderLedger(): HTMLElement {
     row.append(pick);
   }
   const displayed = state.dice.find(die => die.id === ledgerDie) ?? order[0];
-  pane.append(row, element('div', 'placement-detail', faceNet(displayed, undefined, true)));
+  pane.append(row, element('div', 'placement-detail', faceNet(displayed, undefined, true, state.phase === 'battle' ? state : undefined)));
   if (variant === 'pool' && remaining) {
     pane.append(element('div', 'ledger-counts', caption(`${remaining.length} remaining`), caption(`${state.dice.length} owned`)));
   }
@@ -423,7 +442,7 @@ function renderLedger(): HTMLElement {
 
 function renderSelect(): HTMLElement {
   const choices = CHARACTERS.map(hero => {
-    const choice = button('control character-choice', 'character', `Play ${hero.name}`, element('strong', '', hero.name), element('small', '', `${hero.starterDice.length} starter dice`));
+    const choice = button('control character-choice', 'character', `Play ${hero.name}`, element('strong', '', hero.name), element('small', '', hero.starterRelic?.name ?? `${hero.starterDice.length} starter dice`));
     choice.dataset.id = hero.id;
     return choice;
   });
@@ -504,7 +523,7 @@ function render(animate: ReadonlySet<string> = new Set(), lead = 0): void {
   if (art('courier')) stage.dataset.illustrated = 'true';
   board?.setActors(combat?.enemies ?? []);
   board?.syncDice(fighting && combat ? combat.rolls.map(roll => ({
-    die: owned(roll.dieId), slot: roll.slot, shown: !roll.held && !roll.used, exerted: isExerted(state, roll.dieId),
+    die: owned(roll.dieId), faces: facesFor(owned(roll.dieId), state), slot: roll.slot, shown: !roll.held && !roll.used,
   })) : [], animate, lead);
   positionWorld();
   paintTargets(selected);
@@ -539,6 +558,7 @@ function paintTargets(id: string | null, pointed?: HTMLElement): void {
     if (old.hp !== next.hp) labels.push(next.hp === 0 ? '✦ KO' : `♥ −${old.hp - next.hp}`);
     if (old.guard !== next.guard) labels.push(`⬟ −${old.guard - next.guard}`);
     if (old.seep !== next.seep) labels.push(`◈ +${next.seep - old.seep}`);
+    if (old.burn !== next.burn) labels.push(`♨ +${(next.burn ?? 0) - (old.burn ?? 0)} Burn`);
     if (old.vulnerable !== next.vulnerable) labels.push(`⚠ +${next.vulnerable - old.vulnerable}`);
     if (old.weak !== next.weak) labels.push(`▾ +${next.weak - old.weak}`);
   } else if (target.kind === 'die') {
@@ -548,6 +568,9 @@ function paintTargets(id: string | null, pointed?: HTMLElement): void {
   }
   if (existing.guard !== playResult.guard) labels.push(`⬟ +${playResult.guard - existing.guard}`);
   if (existing.ward !== playResult.ward) labels.push(`◒ +${playResult.ward - existing.ward}`);
+  if (existing.burn !== playResult.burn) labels.push(`♨ +${(playResult.burn ?? 0) - (existing.burn ?? 0)} Self Burn`);
+  if (existing.frenzy !== playResult.frenzy) labels.push(`ϟ −${(existing.frenzy ?? 0) - (playResult.frenzy ?? 0)} Frenzy`);
+  if (state.hp !== playResult.playerHp) labels.push(`♥ +${playResult.playerHp - state.hp}`);
   const swing = incoming(existing) - incoming(playResult);
   if (swing) labels.push(`✦ −${swing} incoming`);
   pointed.classList.add('is-aimed');
@@ -577,7 +600,7 @@ function transition(before: State['phase'], oldTurn: number): void {
   save();
   const combat = state.combat;
   if (state.phase === 'battle' && combat && (before !== 'battle' || oldTurn !== combat.turn)) {
-    tell(`Turn ${combat.turn}. ${incoming(combat)} incoming. ${combat.events.join('. ')}`.trim());
+    tell(`Turn ${combat.turn}. ${incoming(combat) + (combat.burn ?? 0)} incoming. ${combat.events.join('. ')}`.trim());
     animateRoll(combat.rolls.map(roll => roll.dieId), true);
   } else {
     render();
@@ -597,10 +620,12 @@ function apply(id: string, target: Target): void {
   const hits = old && after ? old.hp - after.hp + old.guard - after.guard : 0;
   const guard = forecast.guard - combat.guard;
   const seep = old && after ? after.seep - old.seep : 0;
+  const burn = old && after ? (after.burn ?? 0) - (old.burn ?? 0) : 0;
+  const healed = forecast.playerHp - state.hp;
   if (!play(state, id, target)) return;
   tell(`Played ${faceText(playedFace)}.`);
   transition('battle', state.combat?.turn ?? 0);
-  const amount = hits ? `−${hits}` : seep ? `◈ +${seep}` : guard ? `⬟ +${guard}` : '';
+  const amount = hits ? `−${hits}` : seep ? `◈ +${seep}` : burn ? `♨ +${burn}` : guard ? `⬟ +${guard}` : healed ? `♥ +${healed}` : '';
   if (point && amount && !board?.motion.matches) {
     const effect = element('span', 'impact-fx', amount);
     effect.style.left = `${point.x}px`;
@@ -662,7 +687,7 @@ function openInspection(anchor: HTMLElement, keyboard = false): void {
   close.addEventListener('click', () => closeInspection(true));
   const panel = element('section', 'die-inspection',
     element('div', 'inspect-heading', element('h2', '', 'Die faces'), close),
-    faceNet(die, undefined, true),
+    faceNet(die, undefined, true, state.phase === 'battle' ? state : undefined),
   );
   panel.setAttribute('role', 'dialog');
   panel.setAttribute('aria-label', `${dieLabel(die.id)} layout`);

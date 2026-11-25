@@ -5,7 +5,7 @@
     "ruleText": "heal the target for N",
     "category": "Effect-type keywords",
     "appliesTo": "TARG_PIPS",
-    "implemented": "planned",
+    "implemented": "implemented",
     "notes": ""
   },
   {
@@ -473,7 +473,7 @@
     "ruleText": "after I use this face, replace it with a blank this fight",
     "category": "Costs, drawbacks and usage limits",
     "appliesTo": "NONBLANK",
-    "implemented": "planned",
+    "implemented": "implemented",
     "notes": "Base for `inflictExhaust`."
   },
   {
@@ -763,5 +763,95 @@
     "appliesTo": "SPELL",
     "implemented": "planned",
     "notes": "Ability-only."
+  },
+  {
+    "id": "burn",
+    "valueKind": "x",
+    "ruleText": "Apply X Burn to the enemy. At the end of its turn, it takes damage equal to its Burn, then loses 1 stack.",
+    "category": "Target effects (buffs, debuffs, status)",
+    "appliesTo": "ENEMY_TARGET",
+    "implemented": "implemented",
+    "notes": ""
+  },
+  {
+    "id": "selfBurn",
+    "valueKind": "x",
+    "ruleText": "Apply X Burn to yourself. At the end of your turn, take damage equal to your Burn, then lose 1 stack.",
+    "category": "Target effects (buffs, debuffs, status)",
+    "appliesTo": "NONBLANK",
+    "implemented": "implemented",
+    "notes": ""
+  },
+  {
+    "id": "burnDamage",
+    "valueKind": "none",
+    "ruleText": "Deal +1 damage per Burn on you.",
+    "category": "Pip bonuses (bonus pips per thing)",
+    "appliesTo": "DAMAGE",
+    "implemented": "implemented",
+    "notes": ""
+  },
+  {
+    "id": "burnDouble",
+    "valueKind": "none",
+    "ruleText": "Deal double damage while you have Burn.",
+    "category": "Conditional x2 (state / targeting conditions)",
+    "appliesTo": "DAMAGE",
+    "implemented": "implemented",
+    "notes": ""
+  },
+  {
+    "id": "afterExhaust",
+    "valueKind": "x",
+    "ruleText": "Gain X pips if you exhausted a face this turn.",
+    "category": "Pip bonuses (bonus pips per thing)",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "implemented",
+    "notes": ""
+  },
+  {
+    "id": "dieBlanks",
+    "valueKind": "none",
+    "ruleText": "Gain +1 pip per blank face on this die.",
+    "category": "Pip bonuses (bonus pips per thing)",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "implemented",
+    "notes": ""
+  },
+  {
+    "id": "kitBlanks",
+    "valueKind": "x",
+    "ruleText": "Gain +1 pip per blank face across your dice, up to +X.",
+    "category": "Pip bonuses (bonus pips per thing)",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "implemented",
+    "notes": ""
+  },
+  {
+    "id": "frenzyThreshold",
+    "valueKind": "x",
+    "ruleText": "Gain the face’s pips again if you have at least X Frenzy.",
+    "category": "Pip bonuses (bonus pips per thing)",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "implemented",
+    "notes": ""
+  },
+  {
+    "id": "frenzySpend",
+    "valueKind": "x",
+    "ruleText": "If you have X Frenzy, spend it to gain +2 pips per stack spent.",
+    "category": "Costs, drawbacks and usage limits",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "implemented",
+    "notes": ""
+  },
+  {
+    "id": "frenzyAll",
+    "valueKind": "x",
+    "ruleText": "Spend all Frenzy to gain X pips per stack spent.",
+    "category": "Costs, drawbacks and usage limits",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "implemented",
+    "notes": ""
   }
 ]

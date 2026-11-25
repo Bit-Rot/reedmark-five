@@ -350,5 +350,418 @@
       }
     ],
     "implemented": "implemented"
+  },
+  {
+    "id": "wick-wrap",
+    "name": "Wick Wrap",
+    "rewardCharacter": "moth",
+    "rarity": "common",
+    "description": "Gain 4 Block and apply 1 Burn to yourself.",
+    "effects": [
+      {
+        "target": [
+          "top"
+        ],
+        "op": "setFace",
+        "face": "blockSelfBurn",
+        "pips": 4
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "cinder-needle",
+    "name": "Cinder Needle",
+    "rewardCharacter": "moth",
+    "rarity": "common",
+    "description": "Apply 2 Burn to an enemy.",
+    "effects": [
+      {
+        "target": [
+          "rightmost"
+        ],
+        "op": "setFace",
+        "face": "burnEnemy"
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "scorch-husk",
+    "name": "Scorch Husk",
+    "rewardCharacter": "moth",
+    "rarity": "common",
+    "description": "Deal 6 damage, then Exhaust.",
+    "effects": [
+      {
+        "target": [
+          "left"
+        ],
+        "op": "setFace",
+        "face": "dmgExhaust",
+        "pips": 6
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "soot-stitch",
+    "name": "Soot Stitch",
+    "rewardCharacter": "moth",
+    "rarity": "common",
+    "description": "Deal 2 damage and apply 1 Burn to the target.",
+    "effects": [
+      {
+        "target": [
+          "middle"
+        ],
+        "op": "setFace",
+        "face": "dmgApplyBurn",
+        "pips": 2
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "shed-silk",
+    "name": "Shed Silk",
+    "rewardCharacter": "moth",
+    "rarity": "common",
+    "description": "Gain 6 Block, then Exhaust.",
+    "effects": [
+      {
+        "target": [
+          "top"
+        ],
+        "op": "setFace",
+        "face": "blockExhaust",
+        "pips": 6
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "hollow-pin",
+    "name": "Hollow Pin",
+    "rewardCharacter": "moth",
+    "rarity": "common",
+    "description": "Deal 2 damage plus 1 per blank on this die.",
+    "effects": [
+      {
+        "target": [
+          "bottom"
+        ],
+        "op": "setFace",
+        "face": "dmgDieBlanks",
+        "pips": 2
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "reed-splint",
+    "name": "Reed Splint",
+    "rewardCharacter": "moth",
+    "rarity": "common",
+    "description": "Deal 3 damage on the right and gain 3 Block on the rightmost face.",
+    "effects": [
+      {
+        "target": [
+          "right"
+        ],
+        "op": "setFace",
+        "face": "dmg",
+        "pips": 3
+      },
+      {
+        "target": [
+          "rightmost"
+        ],
+        "op": "setFace",
+        "face": "block",
+        "pips": 3
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "flashwing",
+    "name": "Flashwing",
+    "rewardCharacter": "moth",
+    "rarity": "uncommon",
+    "description": "Deal 2 damage plus 1 per Burn on you on the middle face. Deal 3 damage, doubled while burning, on the right.",
+    "effects": [
+      {
+        "target": [
+          "middle"
+        ],
+        "op": "setFace",
+        "face": "dmgPerBurn",
+        "pips": 2
+      },
+      {
+        "target": [
+          "right"
+        ],
+        "op": "setFace",
+        "face": "dmgWhileBurning",
+        "pips": 3
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "molt-plate",
+    "name": "Molt Plate",
+    "rewardCharacter": "moth",
+    "rarity": "uncommon",
+    "description": "Gain 2 Block plus 1 per blank on this die on the bottom face. Deal 3 damage, plus 3 after Exhaust this turn, on the middle face.",
+    "effects": [
+      {
+        "target": [
+          "bottom"
+        ],
+        "op": "setFace",
+        "face": "blockDieBlanks",
+        "pips": 2
+      },
+      {
+        "target": [
+          "middle"
+        ],
+        "op": "setFace",
+        "face": "dmgAfterExhaust",
+        "pips": 3
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "ember-guard",
+    "name": "Ember Guard",
+    "rewardCharacter": "moth",
+    "rarity": "uncommon",
+    "description": "Gain 3 Block, plus 3 at 3 or more Frenzy, on the top face. Deal 2 damage, plus 4 if you spend 2 Frenzy, on the rightmost face.",
+    "effects": [
+      {
+        "target": [
+          "top"
+        ],
+        "op": "setFace",
+        "face": "blockFrenzyThreshold",
+        "pips": 3
+      },
+      {
+        "target": [
+          "rightmost"
+        ],
+        "op": "setFace",
+        "face": "dmgSpendFrenzy",
+        "pips": 2
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "smolderglass",
+    "name": "Smolderglass",
+    "rewardCharacter": "moth",
+    "rarity": "uncommon",
+    "description": "Deal 2 damage to all enemies, doubled while you are burning.",
+    "effects": [
+      {
+        "target": [
+          "right"
+        ],
+        "op": "setFace",
+        "face": "dmgAllWhileBurning",
+        "pips": 2
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "cinder-clamp",
+    "name": "Cinder Clamp",
+    "rewardCharacter": "moth",
+    "rarity": "uncommon",
+    "description": "Apply 4 Burn to an enemy, then Exhaust.",
+    "effects": [
+      {
+        "target": [
+          "left"
+        ],
+        "op": "setFace",
+        "face": "burnExhaust"
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "kiln-latch",
+    "name": "Kiln Latch",
+    "rewardCharacter": "moth",
+    "rarity": "uncommon",
+    "description": "Deal 4 damage and apply 1 Burn to yourself on the left. Gain 2 Block, plus 4 if you spend 2 Frenzy, on the bottom face.",
+    "effects": [
+      {
+        "target": [
+          "left"
+        ],
+        "op": "setFace",
+        "face": "dmgSelfBurn",
+        "pips": 4
+      },
+      {
+        "target": [
+          "bottom"
+        ],
+        "op": "setFace",
+        "face": "blockSpendFrenzy",
+        "pips": 2
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "hush-bell",
+    "name": "Hush Bell",
+    "rewardCharacter": "moth",
+    "rarity": "uncommon",
+    "description": "Gain 3 Block, plus 3 if you exhausted a face this turn.",
+    "effects": [
+      {
+        "target": [
+          "rightmost"
+        ],
+        "op": "setFace",
+        "face": "blockAfterExhaust",
+        "pips": 3
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "rattle-comb",
+    "name": "Rattle Comb",
+    "rewardCharacter": "moth",
+    "rarity": "uncommon",
+    "description": "Deal 3 damage, plus 3 at 3 or more Frenzy.",
+    "effects": [
+      {
+        "target": [
+          "top"
+        ],
+        "op": "setFace",
+        "face": "dmgFrenzyThreshold",
+        "pips": 3
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "empty-lantern",
+    "name": "Empty Lantern",
+    "rewardCharacter": "moth",
+    "rarity": "rare",
+    "description": "Deal 2 damage plus 1 per blank across your dice, up to +6.",
+    "effects": [
+      {
+        "target": [
+          "middle"
+        ],
+        "op": "setFace",
+        "face": "dmgKitBlanks",
+        "pips": 2
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "backdraft",
+    "name": "Backdraft",
+    "rewardCharacter": "moth",
+    "rarity": "rare",
+    "description": "Spend all Frenzy. Deal 2 damage plus 2 per stack spent.",
+    "effects": [
+      {
+        "target": [
+          "left"
+        ],
+        "op": "setFace",
+        "face": "dmgSpendAllFrenzy",
+        "pips": 2
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "nectar-flask",
+    "name": "Nectar Flask",
+    "rewardCharacter": "moth",
+    "rarity": "rare",
+    "description": "Heal 4 HP, then Exhaust.",
+    "effects": [
+      {
+        "target": [
+          "right"
+        ],
+        "op": "setFace",
+        "face": "healExhaust",
+        "pips": 4
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "hollow-crown",
+    "name": "Hollow Crown",
+    "rewardCharacter": "moth",
+    "rarity": "rare",
+    "description": "Gain 2 Block plus 1 per blank across your dice, up to +5, on the bottom face. Deal 7 damage, then Exhaust, on the top face.",
+    "effects": [
+      {
+        "target": [
+          "bottom"
+        ],
+        "op": "setFace",
+        "face": "blockKitBlanks",
+        "pips": 2
+      },
+      {
+        "target": [
+          "top"
+        ],
+        "op": "setFace",
+        "face": "dmgExhaust",
+        "pips": 7
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "cinder-veil",
+    "name": "Cinder Veil",
+    "rewardCharacter": "moth",
+    "rarity": "rare",
+    "description": "Apply 3 Burn to all enemies on the rightmost face. Gain 5 Block and apply 2 Burn to yourself on the top face.",
+    "effects": [
+      {
+        "target": [
+          "rightmost"
+        ],
+        "op": "setFace",
+        "face": "burnAll"
+      },
+      {
+        "target": [
+          "top"
+        ],
+        "op": "setFace",
+        "face": "blockSelfBurnTwo",
+        "pips": 5
+      }
+    ],
+    "implemented": "implemented"
   }
 ]

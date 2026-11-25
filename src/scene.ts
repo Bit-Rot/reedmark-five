@@ -1,10 +1,8 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { DICE } from './content.ts';
-import { EFFECTS, effectImage, faceImage } from './effects.ts';
+import { EFFECTS, effectImage, faceImage, showsEffectAmount } from './effects.ts';
 import type { EffectKey } from './effects.ts';
-import { BLANK_FACE, facesFor } from './game.ts';
-import { FLAG_KINDS } from './model.ts';
 import type { Die, Enemy, Face, Intent, Kind, Slot } from './model.ts';
 
 const urls = import.meta.glob('./art/*.webp', { eager: true, import: 'default', query: '?url' }) as Record<string, string>;
@@ -219,6 +217,7 @@ export class Battlefield {
       ctx.fillText(main, main.length > 1 ? 39 : 27, 102);
     }
     const riders: { kind: EffectKey; value: number }[] = [...rest];
+    if (face.target === 'all') riders.push({ kind: 'cleave', value: 0 });
     if (face.salvage) riders.push({ kind: 'salvage', value: face.salvage });
     for (const [index, part] of riders.entries()) {
       const top = 89 - index * 25;
@@ -233,7 +232,7 @@ export class Battlefield {
         ctx.font = 'bold 14px sans-serif';
         ctx.fillText(EFFECTS[part.kind].symbol, 86, top + 13);
       }
-      if (!FLAG_KINDS.includes(part.kind as Kind)) {
+      if (showsEffectAmount(part.kind)) {
         ctx.fillStyle = '#fff4da';
         ctx.font = 'bold 18px Georgia';
         ctx.fillText('' + part.value, 106, top + 13);
@@ -251,7 +250,7 @@ export class Battlefield {
     return new THREE.Vector3((index - 2) * (this.compact ? 1.68 : 1.66), .5, this.compact ? 2.38 : 2.35);
   }
 
-  syncDice(dice: readonly { die: Die; slot: Slot; shown: boolean; exerted?: boolean }[], animate: ReadonlySet<string> = new Set(), lead = 0): void {
+  syncDice(dice: readonly { die: Die; faces: Record<Slot, Face>; slot: Slot; shown: boolean }[], animate: ReadonlySet<string> = new Set(), lead = 0): void {
     const active = new Set(dice.map(entry => entry.die.id));
     for (const [id, cube] of this.cubes) {
       if (active.has(id)) continue;
@@ -261,10 +260,7 @@ export class Battlefield {
     }
     for (const [index, entry] of dice.entries()) {
       const template = DICE[entry.die.template];
-      const resolved = entry.exerted
-        ? Object.fromEntries(faceOrder.map(slot => [slot, BLANK_FACE])) as Record<Slot, Face>
-        : facesFor(entry.die);
-      const style = JSON.stringify([entry.die.template, entry.die.imprints, !!entry.exerted]);
+      const style = JSON.stringify([template.tone, entry.faces]);
       let cube = this.cubes.get(entry.die.id);
       if (!cube) {
         const mesh = new THREE.Mesh(this.geometry);
@@ -275,7 +271,7 @@ export class Battlefield {
         this.cubes.set(entry.die.id, cube);
       }
       if (cube.style !== style) {
-        cube.mesh.material = faceOrder.map(slot => this.faceMaterial(resolved[slot], template.tone));
+        cube.mesh.material = faceOrder.map(slot => this.faceMaterial(entry.faces[slot], template.tone));
         cube.style = style;
       }
       cube.index = index;

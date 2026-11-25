@@ -26,5 +26,20 @@
     "items": [],
     "unlocks": [],
     "notes": ""
+  },
+  {
+    "id": "moth",
+    "name": "Moth",
+    "starterDice": [
+      "die_moth_strike",
+      "die_moth_strike",
+      "die_moth_guard",
+      "die_moth_guard",
+      "die_moth_lantern"
+    ],
+    "starterRelic": "lampheart",
+    "items": [],
+    "unlocks": [],
+    "notes": ""
   }
 ]
