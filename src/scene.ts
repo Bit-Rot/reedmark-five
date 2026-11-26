@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { DICE } from './content.ts';
-import { EFFECTS, effectImage, faceImage, showsEffectAmount } from './effects.ts';
+import { EFFECTS, effectImage, faceImage, modifierAmount, showsEffectAmount } from './effects.ts';
 import type { EffectKey } from './effects.ts';
-import type { Die, Enemy, Face, Intent, Kind, Slot } from './model.ts';
+import type { Die, Enemy, Face, Intent, Kind, Part, Slot } from './model.ts';
 
 const largeSprites = new Set(['bellroot', 'floodgate-keeper', 'stormwing-matriarch']);
 const eliteSprites = new Set(['kilnback', 'ford-matron', 'tidehook', 'husk-herald', 'furnace-stag']);
@@ -219,14 +219,14 @@ export class Battlefield {
       ctx.fillStyle = '#fff4da';
       ctx.fillText(main, main.length > 1 ? 39 : 27, 102);
     }
-    const riders: { kind: EffectKey; value: number }[] = [...rest];
+    const riders: (Omit<Part, 'kind'> & { kind: EffectKey })[] = [...rest];
     if (face.target === 'all') riders.push({ kind: 'cleave', value: 0 });
     if (face.salvage) riders.push({ kind: 'salvage', value: face.salvage });
     for (const [index, part] of riders.entries()) {
       const top = 89 - index * 25;
       ctx.beginPath();
       ctx.roundRect(73, top, 44, 26, 5);
-      ctx.fillStyle = '#142024ef';
+      ctx.fillStyle = part.active ? '#765429' : '#142024ef';
       ctx.fill();
       const badge = effectImage(part.kind);
       if (badge) ctx.drawImage(badge, 76, top + 3, 20, 20);
@@ -235,10 +235,12 @@ export class Battlefield {
         ctx.font = 'bold 14px sans-serif';
         ctx.fillText(EFFECTS[part.kind].symbol, 86, top + 13);
       }
-      if (showsEffectAmount(part.kind)) {
+      const amount = part.kind === 'pair' || part.kind === 'trio' ? modifierAmount({ ...part, kind: part.kind })
+        : showsEffectAmount(part.kind) ? String(part.value) : '';
+      if (amount) {
         ctx.fillStyle = '#fff4da';
-        ctx.font = 'bold 18px Georgia';
-        ctx.fillText('' + part.value, 106, top + 13);
+        ctx.font = 'bold 17px Georgia';
+        ctx.fillText(amount, 106, top + 13);
       }
     }
     const texture = new THREE.CanvasTexture(canvas);

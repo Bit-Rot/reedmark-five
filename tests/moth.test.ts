@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ITEMS } from '../src/content.ts';
-import { actionPreview, advance, combatFaceFor, commitRoll, endTurn, isSave, mainPips, newLinearRun as newRun, play, rollFace, starterRelicFor } from '../src/game.ts';
+import { actionPreview, advance, combatFaceFor, commitRoll, endTurn, isSave, mainPips, newLinearRun as newRun, play, reroll, rollFace, starterRelicFor } from '../src/game.ts';
 import type { Slot } from '../src/model.ts';
 
 const self = { kind: 'self' } as const;
@@ -139,4 +139,118 @@ test('Nectar Flask heals up to maximum once per fight and previews without mutat
   combat.rolls[0].slot = 'right';
   assert(commitRoll(state));
   assert.equal(play(state, 'd0', self), false);
+});
+
+test('Burn sequencing counts earlier manual applications, including Self Burn, and resets each turn', () => {
+  const { state, combat } = mothFight(['far', 'right', 'top', 'center', 'center']);
+  state.dice[0].imprints.far = 'cinder-needle';
+  state.dice[1].imprints.right = 'flashwing';
+  state.dice[2].imprints.top = 'wick-wrap';
+  state.dice[3].imprints.center = 'molt-plate';
+  state.dice[4].imprints.center = 'hush-bell';
+  const pips = (index: number) => mainPips(rollFace(state, combat.rolls[index]));
+
+  assert.equal(rollFace(state, combat.rolls[0]).parts[0].value, 3);
+  assert.equal(pips(1), 3);
+  assert.equal(pips(3), 3);
+  const forecast = actionPreview(state, 'd0', enemy)!;
+  assert.equal(forecast.enemies[0].burn, 3);
+  assert.equal(forecast.sequence?.burnPlays, 1);
+  assert.equal(combat.sequence?.burnPlays ?? 0, 0);
+  assert(play(state, 'd0', enemy));
+  assert.equal(pips(3), 5);
+  assert(play(state, 'd2', self));
+  assert.equal(combat.burn, 1);
+  assert.equal(combat.sequence?.burnPlays, 2);
+  assert.equal(pips(1), 5);
+  assert.equal(pips(4), 4);
+  assert(play(state, 'd4', self));
+  assert.equal(pips(3), 3);
+  assert.equal(combat.sequence?.burnPlays, 2);
+  assert(endTurn(state));
+  assert.equal(combat.sequence, undefined);
+});
+
+test('Burn from a Cantrip leaves the manual first-Burn bonus available', () => {
+  const state = newRun('fixed', 231, 'moth');
+  const combat = state.combat!;
+  state.dice[0].imprints.far = 'cinder-needle';
+  state.dice[0].upgrades = { far: [{ keyword: 'cantrip' }] };
+  combat.rolls.forEach(roll => { roll.held = roll.dieId !== 'd0'; });
+  state.combatRng = 750;
+  assert(reroll(state));
+  assert.equal(combat.rolls[0].slot, 'far');
+  const burn = () => combat.enemies.reduce((total, foe) => total + (foe.burn ?? 0), 0);
+  assert.equal(burn(), 2);
+  assert.equal(combat.sequence?.burnPlays ?? 0, 0);
+  assert.equal(rollFace(state, combat.rolls[0]).parts[0].value, 3);
+  assert(commitRoll(state));
+  assert(play(state, 'd0', enemy));
+  assert.equal(burn(), 5);
+  assert.equal(combat.sequence?.burnPlays, 1);
+});
+
+test('a wide Burn counts once and a lethal hit that skips Burn breaks adjacency', () => {
+  const { state, combat } = mothFight(['far', 'center', 'top']);
+  state.dice[0].imprints.far = 'cinder-veil';
+  state.dice[1].imprints.center = 'soot-stitch';
+  state.dice[2].imprints.top = 'cinder-clamp';
+  assert(play(state, 'd0', all));
+  assert.deepEqual(combat.enemies.map(foe => foe.burn), [3, 3]);
+  assert.equal(combat.sequence?.burnPlays, 1);
+  assert.equal(rollFace(state, combat.rolls[2]).parts[0].value, 1);
+  combat.enemies[0].hp = 2;
+  assert(play(state, 'd1', enemy));
+  assert.equal(combat.sequence?.burnPlays, 1);
+  assert.equal(combat.sequence?.lastBurn, false);
+});
+
+test('Pair and Trio share unmultiplied history with Echo, and full HP is checked per target', () => {
+  const { state, combat } = mothFight(['center', 'right', 'right', 'bottom', 'left']);
+  state.dice[1].imprints.right = 'reed-splint';
+  state.dice[2].imprints.right = 'rattle-comb';
+  state.dice[3].imprints.bottom = 'kiln-latch';
+  state.dice[4].imprints.left = 'scorch-husk';
+  const ready = (index: number, kind: string) => !!rollFace(state, combat.rolls[index]).parts.find(part => part.kind === kind)?.active;
+  assert.equal(ready(1, 'pair'), false);
+  assert.equal(mainPips(rollFace(state, combat.rolls[3])), 2);
+  assert(play(state, 'd0', enemy));
+  assert.equal(ready(1, 'pair'), true);
+  assert.equal(ready(2, 'trio'), false);
+  assert(play(state, 'd1', enemy));
+  assert.equal(combat.enemies[0].hp, 44);
+  assert.deepEqual(combat.sequence?.pips, [2, 2]);
+  assert.equal(ready(2, 'trio'), true);
+  assert(play(state, 'd2', enemy));
+  assert.equal(combat.enemies[0].hp, 38);
+  assert.equal(mainPips(rollFace(state, combat.rolls[3])), 2);
+
+  const fresh = { kind: 'enemy', id: 'gnat-b' } as const;
+  const foe = combat.enemies[1];
+  foe.guard = 2;
+  foe.burn = 2;
+  assert.equal(actionPreview(state, 'd4', enemy)?.enemies[0].hp, 34);
+  assert.equal(actionPreview(state, 'd4', fresh)?.enemies[1].hp, 44);
+  assert(play(state, 'd4', fresh));
+  assert.equal(foe.hp, 44);
+  assert.equal(mainPips(rollFace(state, combat.rolls[3])), 4);
+  assert(play(state, 'd3', self));
+  assert.equal(combat.guard, 4);
+});
+
+test('the Self Burn finisher previews the cash-out and removes it from later faces', () => {
+  const { state, combat } = mothFight(['far', 'center']);
+  state.dice[0].imprints.far = 'smolderglass';
+  state.dice[1].imprints.center = 'flashwing';
+  combat.burn = 3;
+  assert.equal(mainPips(rollFace(state, combat.rolls[1])), 5);
+  const forecast = actionPreview(state, 'd0', enemy)!;
+  assert.equal(forecast.enemies[0].hp, 45);
+  assert.equal(forecast.burn, 0);
+  assert.equal(combat.burn, 3);
+  assert(play(state, 'd1', enemy));
+  assert(play(state, 'd0', enemy));
+  assert.equal(combat.enemies[0].hp, 40);
+  assert.equal(combat.burn, 0);
+  assert.equal(mainPips(rollFace(state, combat.rolls[1])), 2);
 });

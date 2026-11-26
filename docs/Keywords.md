@@ -2,7 +2,7 @@
 
 # Keywords
 
-**95 keywords.** `N` in rule text is the pip value of the face the keyword sits on. `X` is a number written on the keyword itself (e.g. `pain 2`).
+**100 keywords.** `N` in rule text is the pip value of the face the keyword sits on. `X` is a number written on the keyword itself (e.g. `pain 2`).
 
 ## Effect-type keywords
 
@@ -34,14 +34,14 @@
 
 ## Straights and of-a-kind (multipliers from previous dice)
 
-| Keyword  | Rule text                                                                       | Applies to | Implemented | Notes                         |
-| -------- | ------------------------------------------------------------------------------- | ---------- | ----------- | ----------------------------- |
-| `step`   | x2 if this forms a straight of length 2+ with the dice used before it this turn | PIPS_ONLY  | planned     | Extra text: "eg 12, 65"       |
-| `run`    | x3 if this forms a straight of length 3+ with the dice used before it this turn | PIPS_ONLY  | planned     | Extra text: "eg 123, 654"     |
-| `sprint` | x5 if this forms a straight of length 5+ with the dice used before it this turn | PIPS_ONLY  | planned     | Extra text: "eg 12345, 65432" |
-| `pair`   | x2 if this has the same pips as the previous dice this turn                     | PIPS_ONLY  | planned     |                               |
-| `trio`   | x3 if this has the same pips as the 2 previous dice this turn                   | PIPS_ONLY  | planned     |                               |
-| `quin`   | x5 if this has the same pips as the 4 previous dice this turn                   | PIPS_ONLY  | planned     |                               |
+| Keyword  | Rule text                                                                           | Applies to | Implemented | Notes                         |
+| -------- | ----------------------------------------------------------------------------------- | ---------- | ----------- | ----------------------------- |
+| `step`   | x2 if this forms a straight of length 2+ with the dice used before it this turn     | PIPS_ONLY  | planned     | Extra text: "eg 12, 65"       |
+| `run`    | x3 if this forms a straight of length 3+ with the dice used before it this turn     | PIPS_ONLY  | planned     | Extra text: "eg 123, 654"     |
+| `sprint` | x5 if this forms a straight of length 5+ with the dice used before it this turn     | PIPS_ONLY  | planned     | Extra text: "eg 12345, 65432" |
+| `pair`   | Double damage or Block if the die you just played had the same unmultiplied pips.   | PIPS_ONLY  | implemented |                               |
+| `trio`   | Triple damage or Block if both dice you just played had the same unmultiplied pips. | PIPS_ONLY  | implemented |                               |
+| `quin`   | x5 if this has the same pips as the 4 previous dice this turn                       | PIPS_ONLY  | planned     |                               |
 
 ## Death checks
 
@@ -128,7 +128,7 @@
 | `dogma`      | Only pips change when the face is replaced                                                                       | YES         | planned     | Only pips change on replacement. Cannot be used with `k<keyword>` generated items.                                                                                                                                                                                |
 | `resilient`  | pips remain when the face is replaced (if possible)                                                              | YES         | planned     | Pips survive face replacement where possible. Cannot be used with `k<keyword>` generated items.                                                                                                                                                                   |
 | `dejavu`     | copy the keywords from the faces I used last turn                                                                | NONBLANK    | planned     |                                                                                                                                                                                                                                                                   |
-| `echo`       | copy the pips of the previous dice this turn                                                                     | PIPS_ONLY   | planned     | Cannot be used with `k<keyword>` generated items.                                                                                                                                                                                                                 |
+| `echo`       | Use the unmultiplied pips of the die you just played this turn. Use your own pips when played first.             | PIPS_ONLY   | implemented | Cannot be used with `k<keyword>` generated items.                                                                                                                                                                                                                 |
 | `copycat`    | copy the keywords from the previous dice this turn                                                               | NONBLANK    | planned     | Cannot be used with `k<keyword>` generated items.                                                                                                                                                                                                                 |
 | `resonate`   | copy the effect of the previous dice this turn, retaining this face's pips and the resonate keyword              | YES         | planned     |                                                                                                                                                                                                                                                                   |
 | `annul`      | targets lose all keywords this turn                                                                              | TARGET_ONLY | planned     | Removes all keywords from targets this turn.                                                                                                                                                                                                                      |
@@ -163,3 +163,13 @@
 | `deplete`    | costs +1 mana each time it is cast             | SPELL      | planned     | Spell-only.   |
 | `channel`    | costs -1 mana each time it is cast (minimum 1) | SPELL      | planned     | Spell-only.   |
 | `future`     | effect is delayed until the start of next turn | SPELL      | planned     | Ability-only. |
+
+## Turn sequencing
+
+| Keyword       | Rule text                                                                | Applies to | Implemented | Notes |
+| ------------- | ------------------------------------------------------------------------ | ---------- | ----------- | ----- |
+| `burnPlays`   | Gain +1 pip for each earlier die you played that applied Burn this turn. | PIPS_ONLY  | implemented |       |
+| `afterBurn X` | Gain X pips if the die you just played applied Burn.                     | PIPS_ONLY  | implemented |       |
+| `firstBurn X` | Apply X additional Burn if this is your first Burn play this turn.       | NONBLANK   | implemented |       |
+| `fullHealth`  | Double damage against a target at full HP.                               | DAMAGE     | implemented |       |
+| `clearBurn`   | Deal +1 damage per Burn on you, then clear all your Burn.                | DAMAGE     | implemented |       |

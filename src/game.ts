@@ -3,7 +3,7 @@ import { BOSS_IDS, CAMPAIGN_FIGHTS, EVENTS, nextEncounter, nextEvent } from './c
 import { BOSS_TURNS, CENTER, RADIUS, TILE_TYPES, bossDue, createCampaign, cycleAt, distance, frontier, revealTreasureWave } from './campaign-map.ts';
 import type { EventChoice } from './campaign-content.ts';
 import { addKeywordToFace } from './data/runtime.ts';
-import { SLOTS } from './model.ts';
+import { SEQUENCE_KEYWORDS, SLOTS, matchMultiplier } from './model.ts';
 import { afterRelicFace, claimTurnRelic, commitRelics, compassTarget, endRelicTurn, relicPips, relicsOnHpDamage, startRelicTurn } from './relics.ts';
 import type { Combat, CopiedFace, Die, Encounter, Enemy, Face, FaceCopyOffer, Intent, Offer, Part, Rarity, Roll, Room, Slot, State, Target, Variant } from './model.ts';
 
@@ -236,6 +236,7 @@ function drawDice(state: State, combat: Combat): string[] {
 function startTurn(state: State, room: Encounter, combat: Combat): void {
   combat.turn++;
   combat.previous = null;
+  delete combat.sequence;
   combat.phase = 'roll';
   combat.rerolls = BASE_REROLLS;
   combat.guard = combat.ward;
@@ -267,7 +268,7 @@ function describe(face: Face): string {
 function fireCantrips(state: State, combat: Combat, rolls: Roll[]): void {
   combat.events = [];
   for (const roll of rolls) {
-    const face = rollFace(state, roll);
+    const face = rollFace(state, roll, { automatic: true });
     if (!face.parts.some(part => part.kind === 'cantrip')) continue;
     const parts = face.parts.filter(part => part.kind !== 'exert' && part.kind !== 'cantrip');
     let enemy: Enemy | undefined;
@@ -311,8 +312,10 @@ const withPips = (face: Face, change: (value: number) => number): Face =>
 /** The pips of a face: the value of its first damage or block part. */
 export const mainPips = (face: Pick<Face, 'parts'>): number => face.parts.find(part => PIPS.includes(part.kind))?.value ?? 0;
 
-export function rollFace(state: State, roll: Roll): Face {
-  return combatFaceFor(state, state.dice.find(die => die.id === roll.dieId)!, roll.slot);
+type FaceResolution = { automatic?: boolean };
+
+export function rollFace(state: State, roll: Roll, resolution?: FaceResolution): Face {
+  return combatFaceFor(state, state.dice.find(die => die.id === roll.dieId)!, roll.slot, resolution);
 }
 
 const slotKey = (dieId: string, slot: Slot): string => `${dieId}:${slot}`;
@@ -345,8 +348,48 @@ function synergyPips(state: State, combat: Combat, die: Die, face: Face, base: n
   }, base);
 }
 
+function recentPips(combat: Combat): readonly number[] {
+  return combat.sequence?.pips ?? (combat.previous === null ? [] : [combat.previous]);
+}
+
+function sequenceFace(face: Face, combat: Combat, boost: number): Face {
+  const history = recentPips(combat);
+  const last = history.at(-1);
+  const burnPlays = combat.sequence?.burnPlays ?? 0;
+  const primary = face.parts[0];
+  const ready = new Set<Part['kind']>();
+  let pips = primary.value;
+  if (last !== undefined && face.parts.some(part => part.kind === 'echo')) {
+    pips = last;
+    ready.add('echo');
+  }
+  for (const part of face.parts) {
+    let bonus = 0;
+    switch (part.kind) {
+      case 'burnPlays': bonus = burnPlays; break;
+      case 'afterBurn': bonus = combat.sequence?.lastBurn ? part.value : 0; break;
+      case 'firstBurn': bonus = burnPlays === 0 ? part.value : 0; break;
+      case 'clearBurn': bonus = combat.burn ?? 0; break;
+    }
+    if (bonus) {
+      pips += bonus;
+      ready.add(part.kind);
+    }
+  }
+  const matchingPips = pips + boost;
+  for (const part of face.parts) {
+    if (matchingPips !== last) continue;
+    if (part.kind === 'pair' || (part.kind === 'trio' && history.at(-2) === last)) ready.add(part.kind);
+  }
+  if (!ready.size) return face;
+  return { ...face, parts: face.parts.map((part, index) => {
+    if (index === 0 && pips !== part.value) return { ...part, value: pips };
+    return ready.has(part.kind) ? { ...part, active: true } : part;
+  }) };
+}
+
 /** The current face, including temporary blanks and the pips the player will get for using it. */
-export function combatFaceFor(state: State, die: Die, slot: Slot): Face {
+export function combatFaceFor(state: State, die: Die, slot: Slot, resolution?: FaceResolution): Face {
   const combat = state.combat;
   if (!combat) return faceFor(die, slot);
   const key = slotKey(die.id, slot);
@@ -362,9 +405,13 @@ export function combatFaceFor(state: State, die: Die, slot: Slot): Face {
     face = withPips(face, value => value * 2);
   }
   const main = face.parts.find(part => PIPS.includes(part.kind));
-  if (!main) return face;
-  const value = synergyPips(state, combat, die, face, main.value) + relicPips(state, slot);
-  return value === main.value ? face : { ...face, parts: face.parts.map(part => part === main ? { ...part, value } : part) };
+  if (main) {
+    const value = synergyPips(state, combat, die, face, main.value) + relicPips(state, slot);
+    if (value !== main.value) face = { ...face, parts: face.parts.map(part => part === main ? { ...part, value } : part) };
+  }
+  if (resolution?.automatic || !face.parts.some(part => SEQUENCE_KEYWORDS.some(keyword => keyword !== 'fullHealth' && keyword === part.kind))) return face;
+  const boost = combat.rolls.find(roll => roll.dieId === die.id && roll.slot === slot)?.boost ?? 0;
+  return sequenceFace(face, combat, boost);
 }
 
 /** An exerted die shows blank faces until the end of the turn after the one it was used on. */
@@ -448,10 +495,14 @@ function applyFace(state: State, roll: Roll, target: Target): void {
   const die = combat.rolls.find(r => target.kind === 'die' && r.dieId === target.id);
   const face = rollFace(state, roll);
   roll.used = true;
-  const parts = effectiveParts(face, roll.boost);
+  const unmultiplied = effectiveParts(face, roll.boost);
+  const primaryPips = unmultiplied[0].value;
+  const multiplier = Math.max(...unmultiplied.map(matchMultiplier));
+  const parts = multiplier === 1 ? unmultiplied
+    : unmultiplied.map(part => PIPS.includes(part.kind) ? { ...part, value: part.value * multiplier } : part);
   const guarded = combat.relicTurn ? combat.enemies.filter(enemy => enemy.guard > 0) : [];
-  if (target.kind === 'all') applyToAll(state, roll, parts);
-  else applyParts(state, roll, parts, enemy, die);
+  const burned = target.kind === 'all' ? applyToAll(state, roll, parts) : applyParts(state, roll, parts, enemy, die);
+  if (parts.some(part => part.kind === 'clearBurn')) combat.burn = 0;
   const frenzy = combat.frenzy;
   if (frenzy) {
     const spender = parts.find(part => part.kind === 'frenzySpend' || part.kind === 'frenzyAll');
@@ -462,6 +513,11 @@ function applyFace(state: State, roll: Roll, target: Target): void {
   }
   const pips = mainPips({ parts });
   afterRelicFace(state, roll.slot, pips, parts, guarded);
+  combat.sequence = {
+    pips: [...recentPips(combat).slice(-1), primaryPips],
+    burnPlays: (combat.sequence?.burnPlays ?? 0) + Number(burned),
+    lastBurn: burned,
+  };
   combat.previous = pips;
   const growth = face.parts.find(part => part.kind === 'growth');
   if (growth) {
@@ -470,15 +526,16 @@ function applyFace(state: State, roll: Roll, target: Target): void {
   }
 }
 
-const AIMED = ['hit', 'seep', 'vulnerable', 'weak', 'burn'];
+const AIMED = ['hit', 'seep', 'vulnerable', 'weak', 'burn', 'fullHealth'];
 
 /** An all-enemies face hits every living enemy; its self effects (block, exert...) apply once. */
-function applyToAll(state: State, roll: Roll, parts: readonly Part[]): void {
+function applyToAll(state: State, roll: Roll, parts: readonly Part[]): boolean {
   const aimed = parts.filter(part => AIMED.includes(part.kind));
+  let burned = false;
   for (const enemy of state.combat!.enemies) {
-    if (enemy.hp > 0) applyParts(state, roll, aimed, enemy, undefined);
+    if (enemy.hp > 0) burned = applyParts(state, roll, aimed, enemy, undefined) || burned;
   }
-  applyParts(state, roll, parts.filter(part => !AIMED.includes(part.kind)), undefined, undefined);
+  return applyParts(state, roll, parts.filter(part => !AIMED.includes(part.kind)), undefined, undefined) || burned;
 }
 
 function damageAfterBlock(target: { guard: number }, damage: number): number {
@@ -487,12 +544,15 @@ function damageAfterBlock(target: { guard: number }, damage: number): number {
   return damage - blocked;
 }
 
-function applyParts(state: State, roll: Roll, parts: readonly Part[], enemy: Enemy | undefined, die: Roll | undefined): void {
+function applyParts(state: State, roll: Roll, parts: readonly Part[], enemy: Enemy | undefined, die: Roll | undefined): boolean {
   const combat = state.combat!;
+  const fullHealth = enemy && enemy.hp === enemy.maxHp && parts.some(part => part.kind === 'fullHealth');
+  let burned = false;
   for (const part of parts) {
     if (part.kind === 'hit' && enemy) {
+      const pips = fullHealth ? part.value * 2 : part.value;
       // Vulnerable: +50% damage, rounded down.
-      const damage = enemy.vulnerable > 0 ? Math.floor(part.value * 1.5) : part.value;
+      const damage = enemy.vulnerable > 0 ? Math.floor(pips * 1.5) : pips;
       for (let i = 0; i < (part.count ?? 1); i++) {
         enemy.hp = Math.max(0, enemy.hp - damageAfterBlock(enemy, damage));
       }
@@ -500,10 +560,12 @@ function applyParts(state: State, roll: Roll, parts: readonly Part[], enemy: Ene
       combat.guard += part.value;
     } else if (part.kind === 'heal') {
       state.hp = Math.min(state.maxHp, state.hp + part.value);
-    } else if (part.kind === 'selfBurn') {
+    } else if (part.kind === 'selfBurn' && part.value > 0) {
       combat.burn = (combat.burn ?? 0) + part.value;
-    } else if (part.kind === 'burn' && enemy && enemy.hp > 0) {
+      burned = true;
+    } else if (part.kind === 'burn' && part.value > 0 && enemy && enemy.hp > 0) {
       enemy.burn = (enemy.burn ?? 0) + part.value;
+      burned = true;
     } else if (part.kind === 'seep' && enemy && enemy.hp > 0) {
       enemy.seep += part.value;
     } else if (part.kind === 'vulnerable' && enemy && enemy.hp > 0) {
@@ -518,6 +580,7 @@ function applyParts(state: State, roll: Roll, parts: readonly Part[], enemy: Ene
       combat.ward = Math.min(8, combat.ward + part.value);
     }
   }
+  return burned;
 }
 
 export function actionPreview(state: State, dieId: string, target: Target): (Combat & { playerHp: number }) | null {

@@ -29,6 +29,10 @@
   .placement-detail .face-net { max-width: 265px; }
   .offer-card .face-net { max-width: 196px; align-self: center; }
   .net-tile[data-face-help] { cursor: help; }
+  .chip.is-ready, .face-extra .chip.is-ready { background: #765429; box-shadow: inset 0 0 0 1px #e5bb6b; }
+  .actor-target[data-full-health-bonus] .actor-caption::after {
+    content: '×2 damage'; display: block; color: #ffe4a7; font-size: .7rem; font-weight: 750;
+  }
   .stage-cube { height: clamp(65px, 15vh, 140px); }
   .seated { padding: 3px 2px; }
   .seated .effect-icon { width: 1.4em; height: 1.4em; }
@@ -58,21 +62,9 @@
   .inspect-heading h2 { font: 700 1.34rem/1.1 var(--serif); margin: 0; }
 
   .die-inspection.reward-inspection {
-    inset: 0; margin: auto; width: min(480px, calc(100% - 24px)); max-width: none;
-    max-height: calc(100% - 24px); padding: 0; overflow: auto; overscroll-behavior: contain;
+    inset: 0; margin: auto; max-height: calc(100% - 24px); overscroll-behavior: contain;
   }
   .reward-inspection::backdrop { background: #061215bd; backdrop-filter: blur(3px); }
-  .reward-inspection-content { padding: 15px; }
-  .reward-inspection .inspect-heading { position: sticky; top: -15px; z-index: 1; padding-block: 6px; background: #243438; }
-  .inspection-face-list { display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; }
-  .inspection-face { display: flex; align-items: flex-start; gap: 9px; padding-block: 7px; border-bottom: 1px solid #b39f6948; }
-  .inspection-face-icon { width: 40px; height: 40px; border-radius: 5px; overflow: hidden; flex: none; }
-  .inspection-face strong { display: block; margin-top: 3px; color: #ffe6b8; font-size: .92rem; }
-  .inspection-face p { margin: 4px 0 0; color: #e4dbce; font-size: .83rem; line-height: 1.4; }
-  .inspection-kit { margin-top: 13px; }
-  .inspection-kit h3 { margin: 0 0 8px; font: 700 1.04rem/1.2 var(--serif); }
-  .inspection-dice { display: flex; flex-wrap: wrap; gap: 5px; }
-  .inspection-dice [aria-pressed='true'] { border-color: #f2cb78; color: #ffe6b8; }
   .reward-inspection-hint { display: none; }
   [data-inspect-item], .overlay [data-inspect-die] { -webkit-touch-callout: none; user-select: none; }
   .boss-spoils { width: 100%; }

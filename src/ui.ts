@@ -1,9 +1,9 @@
 import { DICE, ITEMS } from './content.ts';
-import { EFFECTS, effectDescription, effectUrl, faceEffects, faceImageUrl, showsEffectAmount } from './effects.ts';
+import { EFFECTS, effectDescription, effectUrl, faceEffects, faceImageUrl, modifierAmount, showsEffectAmount } from './effects.ts';
 import type { EffectKey } from './effects.ts';
 import { combatFaceFor, effectiveParts, faceFor } from './game.ts';
 import { SLOTS } from './model.ts';
-import type { Die, Face, Part, Slot, State } from './model.ts';
+import type { Die, Face, Part, State } from './model.ts';
 
 type Child = HTMLElement | string | null | undefined;
 
@@ -28,7 +28,7 @@ export function caption(value: string): HTMLElement {
 }
 
 function amount(part: Part): string {
-  if (!showsEffectAmount(part.kind)) return '';
+  if (!showsEffectAmount(part.kind)) return modifierAmount(part);
   return `${part.value}${part.count && part.count > 1 ? `×${part.count}` : ''}`;
 }
 
@@ -77,9 +77,15 @@ export function effectChip(kind: EffectKey, value: number | string, image?: stri
   return element('span', `chip chip--${kind}`, effectIcon(kind, image), '' + value);
 }
 
+function faceChip(part: Part, image?: string): HTMLElement {
+  const chip = effectChip(part.kind, amount(part), image);
+  if (part.active) chip.classList.add('is-ready');
+  return chip;
+}
+
 export function chips(face: Face, boost = 0): HTMLElement {
   const row = element('span', 'chips');
-  effectiveParts(face, boost).forEach((part, i) => row.append(effectChip(part.kind, amount(part), i === 0 ? face.image : undefined)));
+  effectiveParts(face, boost).forEach((part, i) => row.append(faceChip(part, i === 0 ? face.image : undefined)));
   if (face.target === 'all') row.append(effectChip('cleave', ''));
   if (face.salvage) row.append(effectChip('salvage', face.salvage));
   row.setAttribute('aria-hidden', 'true');
@@ -90,7 +96,7 @@ export function faceEmblem(face: Face): HTMLElement {
   const [primary, ...rest] = face.parts;
   const emblem = element('span', 'face-emblem', effectIcon(primary.kind, face.image), element('span', 'face-amount', amount(primary)));
   const extra = element('span', 'face-extra');
-  for (const part of rest) extra.append(effectChip(part.kind, amount(part)));
+  for (const part of rest) extra.append(faceChip(part));
   if (face.target === 'all') extra.append(effectChip('cleave', ''));
   if (face.salvage) extra.append(effectChip('salvage', face.salvage));
   if (extra.childElementCount) emblem.append(extra);
@@ -130,7 +136,7 @@ export function faceNet(die: Die, result?: Die, interactive = false, battle?: St
   return grid;
 }
 
-export function itemNet(itemId: string): HTMLElement {
+export function itemNet(itemId: string, interactive = false): HTMLElement {
   const item = ITEMS[itemId];
   const grid = element('div', 'face-net item-net');
   for (const slot of SLOTS) {
@@ -139,19 +145,12 @@ export function itemNet(itemId: string): HTMLElement {
     tile.dataset.slot = slot;
     if (face) {
       tile.setAttribute('aria-label', `${slotNames[slot]}, ${faceText(face)}`);
+      if (interactive) tile.tabIndex = 0;
       helpOn(tile, face);
     } else tile.setAttribute('aria-hidden', 'true');
     grid.append(tile);
   }
   return grid;
-}
-
-export function readableFace(slot: Slot, face: Face): HTMLElement {
-  const rules = faceEffects(face).filter(kind => !['hit', 'guard', 'blank', 'cleave'].includes(kind));
-  return element('li', 'inspection-face',
-    element('span', 'inspection-face-icon', faceEmblem(face)),
-    element('div', '', caption(slotNames[slot]), element('strong', '', faceText(face)),
-      ...rules.map(kind => element('p', '', effectDescription(kind, face.parts.find(part => part.kind === kind))))));
 }
 
 function hintAt(target: EventTarget | null): HTMLElement | null {
@@ -165,6 +164,12 @@ export class FaceTooltips {
   constructor(private root: HTMLElement, private suppressed: () => boolean) {
     this.panel.id = 'reedmark-face-tooltip';
     this.panel.setAttribute('role', 'tooltip');
+    let touchInput = false;
+    root.addEventListener('pointerdown', event => {
+      touchInput = event.pointerType === 'touch';
+      if (touchInput && hintAt(event.target)?.hasAttribute('data-die')) this.hide();
+    }, true);
+    document.addEventListener('keydown', () => { touchInput = false; }, true);
     root.addEventListener('pointerover', event => {
       if (event.pointerType !== 'touch') this.show(hintAt(event.target));
     });
@@ -173,9 +178,13 @@ export class FaceTooltips {
         this.show(hintAt(event.relatedTarget));
       }
     });
-    root.addEventListener('focusin', event => this.show(hintAt(event.target)));
+    const showFocusHint = (target: EventTarget | null) => {
+      const anchor = hintAt(target);
+      if (!touchInput || !anchor?.hasAttribute('data-die')) this.show(anchor);
+    };
+    root.addEventListener('focusin', event => showFocusHint(event.target));
     root.addEventListener('focusout', event => {
-      if (hintAt(event.target) !== hintAt(event.relatedTarget)) this.show(hintAt(event.relatedTarget));
+      if (hintAt(event.target) !== hintAt(event.relatedTarget)) showFocusHint(event.relatedTarget);
     });
     root.addEventListener('click', event => {
       const focus = hintAt(event.target);
@@ -213,10 +222,11 @@ export class FaceTooltips {
       ...(before ? [element('p', 'face-tooltip-before', `Before · ${faceText(before)}`)] : []),
       definitions,
     );
-    this.root.append(this.panel);
+    const layout = anchor.closest('.die-inspection');
+    const host = layout instanceof HTMLDialogElement ? layout : this.root;
+    host.append(this.panel);
     this.active = anchor;
     anchor.setAttribute('aria-describedby', this.panel.id);
-    const layout = anchor.closest('.die-inspection');
     if (layout) {
       const card = layout.getBoundingClientRect();
       const { width, height } = this.panel.getBoundingClientRect();

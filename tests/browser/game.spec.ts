@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 import { distance, explorationDistance, frontier } from '../../src/campaign-map.ts';
-import { ROOMS } from '../../src/content.ts';
+import { ITEMS, ROOMS } from '../../src/content.ts';
 import { advance, commitRoll, currentRoom, endTurn, explore, newLinearRun as newRun, newRun as newCampaignRun, rollFace } from '../../src/game.ts';
 import type { State, Variant } from '../../src/model.ts';
 import { act, takeMapTurn, takeReward } from '../../scripts/policy.ts';
@@ -55,7 +55,7 @@ test('desktop holds a 3D die, rejects an invalid drop, and plays a valid drop', 
   await expect(actor(page, 'gnat-a')).not.toContainText('7/7');
 });
 
-test('narrow touch layout exposes ten pool dice and supports tap targeting', async ({ browser }) => {
+test('narrow touch layout supports holding and targeting dice without hover tooltips', async ({ browser }) => {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce',
   });
@@ -67,9 +67,17 @@ test('narrow touch layout exposes ten pool dice and supports tap targeting', asy
   await expect(page.locator('[data-action="inspect"]')).toHaveCount(10);
   await expect(page.getByText('5 remaining')).toBeVisible();
   await page.getByRole('button', { name: 'Close dice' }).tap();
+  const tooltip = page.getByRole('tooltip');
+  await die(page, attacker).tap();
+  await expect(die(page, attacker)).toHaveClass(/seated/);
+  await expect(tooltip).toHaveCount(0);
+  await die(page, attacker).tap();
+  await expect(die(page, attacker)).toHaveClass(/stage-cube/);
+  await expect(tooltip).toHaveCount(0);
   await action(page, 'commit').tap();
   await die(page, attacker).tap();
   await expect(actor(page, 'gnat-a')).toHaveClass(/is-legal/);
+  await expect(tooltip).toHaveCount(0);
   await actor(page, 'gnat-a').tap();
   await expect(actor(page, 'gnat-a')).not.toContainText('7/7');
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
@@ -109,6 +117,7 @@ test('hover and right click show illustrated faces and their in-game definitions
   await expect(layout).toHaveCount(0);
   await expect(page.locator('.stage-cube')).toHaveCount(5);
   await die(page, 'd4').focus();
+  await expect(tooltip).toContainText('2 Damage, 1 Vulnerable, Exert');
   await page.keyboard.press('Shift+F10');
   await expect(page.getByRole('dialog', { name: 'Die 5 layout' })).toBeVisible();
 });
@@ -503,6 +512,39 @@ test('Moth shows Lampheart, changes live face values, and shows exhausted slots 
   await expect(layout.locator('[data-slot="top"]')).toHaveAttribute('aria-label', 'Top, Blank');
 });
 
+test('sequencing badges and target bonuses follow the plays made in combat', async ({ page }) => {
+  const state = newRun('fixed', 231, 'moth');
+  const combat = state.combat!;
+  for (const enemy of combat.enemies) enemy.hp = enemy.maxHp = 24;
+  const slots = ['center', 'right', 'right', 'bottom', 'left'] as const;
+  slots.forEach((slot, index) => { combat.rolls[index].slot = slot; });
+  state.dice[1].imprints.right = 'reed-splint';
+  state.dice[2].imprints.right = 'rattle-comb';
+  state.dice[3].imprints.bottom = 'kiln-latch';
+  state.dice[4].imprints.left = 'scorch-husk';
+  await saveFixture(page, state);
+  await action(page, 'commit').click();
+
+  const pair = die(page, 'd1').locator('.chip--pair');
+  await expect(pair).not.toHaveClass(/is-ready/);
+  await die(page, 'd0').click();
+  await actor(page, 'gnat-a').click();
+  await expect(pair).toHaveClass(/is-ready/);
+  await expect(pair).toContainText('×2');
+  await die(page, 'd1').click();
+  await actor(page, 'gnat-a').click();
+  const trio = die(page, 'd2').locator('.chip--trio');
+  await expect(trio).toHaveClass(/is-ready/);
+  await expect(trio).toContainText('×3');
+
+  await die(page, 'd4').click();
+  await expect(actor(page, 'gnat-b')).toHaveAttribute('data-full-health-bonus', '');
+  await expect(actor(page, 'gnat-a')).not.toHaveAttribute('data-full-health-bonus');
+  await actor(page, 'gnat-b').click();
+  await expect(actor(page, 'gnat-b')).toContainText('16/24');
+  await expect(die(page, 'd3')).toHaveAccessibleName(/4 Block, Echo/);
+});
+
 test('the shop sells relics and previews a face copy without ending the visit', async ({ page }) => {
   const state = newRun('fixed', 231, 'moth');
   state.phase = 'reward';
@@ -540,7 +582,7 @@ test('the shop sells relics and previews a face copy without ending the visit', 
   await expect(page.locator('.stage-cube .cube-tag')).toHaveCount(5);
 });
 
-test('mobile long press explains reward faces and owned dice without taking the item', async ({ browser }) => {
+test('mobile long press opens one face layout for the reward item or owned die', async ({ browser }) => {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce',
   });
@@ -562,22 +604,32 @@ test('mobile long press explains reward faces and owned dice without taking the 
     await expect(dialog).toBeVisible();
   }
 
+  const net = dialog.locator('.face-net');
+  const tooltip = dialog.getByRole('tooltip');
   await longPress(item);
   await expect(dialog).toHaveAccessibleName('Molt Plate');
-  await expect(dialog).toContainText('Add 1 damage or Block for each blank on this die');
-  await expect(dialog).toContainText('if you have already exhausted a face this turn');
-  await dialog.getByRole('button', { name: 'Inspect Die 5' }).tap();
-  await expect(dialog).toHaveAccessibleName('Die 5 faces');
-  await expect(dialog.locator('.inspection-face')).toHaveCount(6);
-  await dialog.getByRole('button', { name: 'Back to item' }).tap();
-  await expect(dialog).toHaveAccessibleName('Molt Plate');
+  await expect(net).toHaveCount(1);
+  await expect(net.locator('.net-tile')).toHaveCount(6);
+  await expect(net.locator('.net-tile.is-changed')).toHaveCount(2);
+  await expect(dialog.getByRole('button')).toHaveCount(1);
+  await net.locator('[data-slot="bottom"]').tap();
+  await expect(tooltip).toContainText('Add 1 damage or Block for each blank on this die');
+  await net.locator('[data-slot="center"]').tap();
+  await expect(tooltip).toContainText('if the die you just played this turn applied Burn');
   await dialog.getByRole('button', { name: 'Close inspection' }).tap();
   await expect(item).toHaveAttribute('aria-pressed', 'false');
 
+  const currentFaces = await target.locator('.net-tile').evaluateAll(tiles => tiles.map(tile => tile.getAttribute('aria-label')));
   await item.tap();
   await expect(item).toHaveAttribute('aria-pressed', 'true');
   await longPress(target);
-  await expect(dialog).toHaveAccessibleName('Die 5 faces');
+  await expect(dialog).toHaveAccessibleName('Die 5 layout');
+  await expect(net).toHaveCount(1);
+  await expect(net.locator('.net-tile')).toHaveCount(6);
+  await expect(dialog.getByRole('button')).toHaveCount(1);
+  expect(await net.locator('.net-tile').evaluateAll(tiles => tiles.map(tile => tile.getAttribute('aria-label')))).toEqual(currentFaces);
+  await net.locator('[data-slot="left"]').tap();
+  await expect(tooltip).toBeVisible();
   await dialog.getByRole('button', { name: 'Close inspection' }).tap();
   await expect(item).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('#interface')).toHaveAttribute('data-phase', 'reward');
@@ -676,6 +728,68 @@ test('touching a chest detour preserves the revealed map and payout across reloa
     await context.close();
   }
 });
+
+for (const [event, hero, hpCost, goldCost, confirmLabel] of [
+  ['satchel', 'moth', 0, 0, 'Imprint'],
+  ['bargain', 'thief', 6, 0, 'Imprint for 6 HP'],
+  ['marker', 'barbarian', 0, 12, 'Imprint for 12 gold'],
+] as const) {
+  test(`mobile can preview and confirm the ${event} event imprint`, async ({ browser }) => {
+    const context = await browser.newContext({
+      viewport: { width: 320, height: 568 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce',
+    });
+    await using cleanup = { [Symbol.asyncDispose]: () => context.close() };
+    const page = await context.newPage();
+    const state = newCampaignRun('fixed', 19, hero);
+    state.gold = 12;
+    const map = state.map!;
+    map.eventBag = [event];
+    const tile = map.tiles.find(tile => tile.kind === 'event' && frontier(map).has(tile.id))!;
+    expect(explore(state, tile.id)).toBe(true);
+    const index = state.offers.findIndex(offer => offer.kind === 'item');
+    const offer = state.offers[index];
+    if (offer?.kind !== 'item') throw new Error('Expected an item reward');
+    const item = ITEMS[offer.id];
+    const readSave = () => page.evaluate(() => JSON.parse(localStorage.getItem('reedmark:fixed:v1')!) as State);
+    await page.addInitScript(save => {
+      if (!localStorage.getItem('reedmark:fixed:v1')) localStorage.setItem('reedmark:fixed:v1', JSON.stringify(save));
+    }, state);
+    await page.goto('/');
+    const eventOffer = page.locator(`[data-action="offer"][data-index="${index}"]`);
+    const dieCard = page.getByRole('button', { name: 'Die 2', exact: true });
+    const imprint = page.getByRole('button', { name: confirmLabel, exact: true });
+    await eventOffer.tap();
+    await expect(imprint).toBeDisabled();
+    await expect(dieCard.locator('.net-tile')).toHaveCount(6);
+    await page.getByRole('button', { name: 'Inspect ' + item.name }).tap();
+    const inspection = page.getByRole('dialog', { name: item.name });
+    await expect(inspection.locator('.face-net')).toHaveCount(1);
+    await inspection.getByRole('button', { name: 'Close inspection' }).tap();
+    await dieCard.tap();
+    await expect(dieCard).toHaveAttribute('aria-pressed', 'true');
+    await expect(dieCard.locator('.is-changed').first()).toBeVisible();
+    await expect(imprint).toBeEnabled();
+
+    await page.getByRole('button', { name: 'Back to event' }).tap();
+    const before = await readSave();
+    expect(before.hp).toBe(state.hp);
+    expect(before.gold).toBe(state.gold);
+    expect(before.dice[1].imprints).toEqual({});
+    await eventOffer.tap();
+    await expect(imprint).toBeDisabled();
+    await dieCard.tap();
+    await imprint.tap();
+    await expect(page.locator('#interface')).toHaveAttribute('data-phase', 'map');
+
+    await page.reload();
+    await expect(page.locator('#interface')).toHaveAttribute('data-phase', 'map');
+    const after = await readSave();
+    expect(after.hp).toBe(state.hp - hpCost);
+    expect(after.gold).toBe(state.gold - goldCost);
+    expect(after.dice[1].imprints).toEqual(Object.fromEntries(Object.keys(item.edits).map(slot => [slot, offer.id])));
+    expect(after.dice[0].imprints).toEqual({});
+  });
+}
 
 test('plays a complete Fixed Five campaign through the browser and all three bosses', async ({ page }) => {
   test.setTimeout(360_000);

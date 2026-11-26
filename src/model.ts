@@ -4,11 +4,13 @@ import type { RelicEffect } from './relic-data.ts';
 export const SLOTS = ['left', 'center', 'right', 'far', 'top', 'bottom'] as const;
 export type Slot = typeof SLOTS[number];
 export type Variant = 'fixed' | 'pool';
+export const SEQUENCE_KEYWORDS = ['burnPlays', 'afterBurn', 'firstBurn', 'echo', 'fullHealth', 'pair', 'trio', 'clearBurn'] as const;
+export type SequenceKeyword = typeof SEQUENCE_KEYWORDS[number];
 export type Kind = 'hit' | 'guard' | 'seep' | 'boost' | 'ward' | 'vulnerable' | 'weak' | 'exert' | 'cantrip' | 'blank' | 'growth' | 'inspired'
   | 'burn' | 'selfBurn' | 'heal' | 'exhaust' | 'burnDamage' | 'burnDouble' | 'afterExhaust'
-  | 'dieBlanks' | 'kitBlanks' | 'frenzyThreshold' | 'frenzySpend' | 'frenzyAll';
+  | 'dieBlanks' | 'kitBlanks' | 'frenzyThreshold' | 'frenzySpend' | 'frenzyAll' | SequenceKeyword;
 /** Kinds that carry no number (they are either present or not). */
-export const FLAG_KINDS: readonly Kind[] = ['exert', 'cantrip', 'blank', 'inspired', 'exhaust', 'burnDamage', 'burnDouble', 'dieBlanks'];
+export const FLAG_KINDS: readonly Kind[] = ['exert', 'cantrip', 'blank', 'inspired', 'exhaust', 'burnDamage', 'burnDouble', 'dieBlanks', ...SEQUENCE_KEYWORDS.filter(kind => kind !== 'afterBurn' && kind !== 'firstBurn')];
 export type TargetKind = 'enemy' | 'self' | 'die' | 'none' | 'all';
 export type Target = { kind: TargetKind; id?: string };
 
@@ -16,6 +18,14 @@ export interface Part {
   kind: Kind;
   value: number;
   count?: number;
+  /** Combat-only display state for a ready sequencing effect. */
+  active?: boolean;
+}
+
+export function matchMultiplier(part: Part): number {
+  if (!part.active) return 1;
+  if (part.kind === 'pair') return 2;
+  return part.kind === 'trio' ? 3 : 1;
 }
 
 export interface Face {
@@ -142,6 +152,8 @@ export interface Combat {
   grown: Record<string, number>;
   /** Pips of the die played just before, this turn (inspired); null before the first one. */
   previous: number | null;
+  /** Last two primary pip values before match multipliers, plus manual Burn plays this turn. */
+  sequence?: { pips: number[]; burnPlays: number; lastBurn: boolean };
   /** What happened on the last roll that the player did not click (cantrips). */
   events: string[];
   relicTurn?: RelicTurn;

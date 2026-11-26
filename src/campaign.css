@@ -91,6 +91,8 @@
   .event-offers .offer-card { width:100%; font-size:.91rem; }
   .event-offers .offer-card:disabled { opacity:.55; }
   .event-preview { color:#e0c89f; font-size:.79rem; }
+  .event-imprint-item { width: min(148px, 100%); margin-inline: auto; padding: 5px; }
+  .event-imprint .sheet-footer { margin-top: 10px; }
   .campaign-spoils { display:grid; gap:8px; margin:0 0 9px; }
   @media (max-width:600px) {
     .campaign-overlay { padding:83px 8px 9px; }

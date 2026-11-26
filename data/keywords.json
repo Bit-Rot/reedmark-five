@@ -182,19 +182,19 @@
   {
     "id": "pair",
     "valueKind": "none",
-    "ruleText": "x2 if this has the same pips as the previous dice this turn",
+    "ruleText": "Double damage or Block if the die you just played had the same unmultiplied pips.",
     "category": "Straights and of-a-kind (multipliers from previous dice)",
     "appliesTo": "PIPS_ONLY",
-    "implemented": "planned",
+    "implemented": "implemented",
     "notes": ""
   },
   {
     "id": "trio",
     "valueKind": "none",
-    "ruleText": "x3 if this has the same pips as the 2 previous dice this turn",
+    "ruleText": "Triple damage or Block if both dice you just played had the same unmultiplied pips.",
     "category": "Straights and of-a-kind (multipliers from previous dice)",
     "appliesTo": "PIPS_ONLY",
-    "implemented": "planned",
+    "implemented": "implemented",
     "notes": ""
   },
   {
@@ -587,10 +587,10 @@
   {
     "id": "echo",
     "valueKind": "none",
-    "ruleText": "copy the pips of the previous dice this turn",
+    "ruleText": "Use the unmultiplied pips of the die you just played this turn. Use your own pips when played first.",
     "category": "Face behaviour, copying and randomness",
     "appliesTo": "PIPS_ONLY",
-    "implemented": "planned",
+    "implemented": "implemented",
     "notes": "Cannot be used with `k<keyword>` generated items."
   },
   {
@@ -851,6 +851,51 @@
     "ruleText": "Spend all Frenzy to gain X pips per stack spent.",
     "category": "Costs, drawbacks and usage limits",
     "appliesTo": "PIPS_ONLY",
+    "implemented": "implemented",
+    "notes": ""
+  },
+  {
+    "id": "burnPlays",
+    "valueKind": "none",
+    "ruleText": "Gain +1 pip for each earlier die you played that applied Burn this turn.",
+    "category": "Turn sequencing",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "implemented",
+    "notes": ""
+  },
+  {
+    "id": "afterBurn",
+    "valueKind": "x",
+    "ruleText": "Gain X pips if the die you just played applied Burn.",
+    "category": "Turn sequencing",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "implemented",
+    "notes": ""
+  },
+  {
+    "id": "firstBurn",
+    "valueKind": "x",
+    "ruleText": "Apply X additional Burn if this is your first Burn play this turn.",
+    "category": "Turn sequencing",
+    "appliesTo": "NONBLANK",
+    "implemented": "implemented",
+    "notes": ""
+  },
+  {
+    "id": "fullHealth",
+    "valueKind": "none",
+    "ruleText": "Double damage against a target at full HP.",
+    "category": "Turn sequencing",
+    "appliesTo": "DAMAGE",
+    "implemented": "implemented",
+    "notes": ""
+  },
+  {
+    "id": "clearBurn",
+    "valueKind": "none",
+    "ruleText": "Deal +1 damage per Burn on you, then clear all your Burn.",
+    "category": "Turn sequencing",
+    "appliesTo": "DAMAGE",
     "implemented": "implemented",
     "notes": ""
   }

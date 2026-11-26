@@ -11,7 +11,7 @@ import { SLOTS } from './model.ts';
 import type { Die, Face, Offer, Relic, Roll, Slot, State, Target, Variant } from './model.ts';
 import { EFFECTS, faceImageUrl, loadEffectImages, loadFaceImages } from './effects.ts';
 import { art, Battlefield } from './scene.ts';
-import { UPGRADE_INFO, button, caption, chips, effectChip, effectIcon, element, faceEmblem, FaceTooltips, faceNet, faceText, helpOn, itemNet, positionFloater, readableFace, upgradeLabel } from './ui.ts';
+import { UPGRADE_INFO, button, caption, chips, effectChip, effectIcon, element, faceEmblem, FaceTooltips, faceNet, faceText, helpOn, itemNet, positionFloater, upgradeLabel } from './ui.ts';
 
 declare const __VARIANT__: Variant;
 
@@ -65,7 +65,7 @@ let confirmingAbandon = false;
 let ledgerDie: string | null = null;
 let rolling = false;
 let animTimer = 0;
-let suppressedClick: { x: number; y: number; until: number } | null = null;
+let suppressClickUntil = 0;
 let board: Battlefield | undefined;
 
 interface Drag {
@@ -452,6 +452,12 @@ function goldBanner(): HTMLElement | null {
   return banner;
 }
 
+function imprintCard(die: Die, action: 'imprint-die' | 'reward-die', label: string, after?: Die): HTMLButtonElement {
+  const card = button('imprint-die', action, label, faceNet(die, after));
+  card.dataset.inspectDie = die.id;
+  return card;
+}
+
 function fixedOfferSheet(): HTMLElement {
   const chosen = selectedUpgrade();
   if (chosen) return renderUpgradePicker(chosen);
@@ -476,11 +482,9 @@ function fixedOfferSheet(): HTMLElement {
   const kit = element('div', 'imprint-kit');
   for (const die of state.dice) {
     const name = dieLabel(die.id);
-    const card = button('imprint-die', 'imprint-die', name, faceNet(die));
+    const card = imprintCard(die, 'imprint-die', offerIndex === null ? name : `Imprint on ${name}`);
     card.dataset.imprintTarget = die.id;
-    card.dataset.inspectDie = die.id;
     card.dataset.focus = `imprint-${die.id}`;
-    card.setAttribute('aria-label', offerIndex === null ? name : `Imprint on ${name}`);
     kit.append(card);
   }
   pane.append(element('p', 'reward-inspection-hint', 'Press and hold an item or die to inspect it.'),
@@ -504,11 +508,49 @@ function renderEvent(): HTMLElement {
     card.dataset.focus = 'event-' + index;
     if (offer.kind === 'item') {
       card.dataset.inspectItem = offer.id;
-      if (!canTakeEventOffer(state, index)) card.setAttribute('aria-disabled', 'true');
+      if (!canTakeEventOffer(state, index)) {
+        card.setAttribute('aria-disabled', 'true');
+        const reason = (choice.gold ?? 0) > state.gold ? `You have ${state.gold} gold.`
+          : (choice.hp ?? 0) >= state.hp ? `You have ${state.hp} HP. You must survive the cost.`
+            : 'No die can take this imprint.';
+        card.append(element('span', 'event-preview', reason));
+      }
     } else card.disabled = !canTakeEventOffer(state, index);
     grid.append(card);
   }
   pane.append(element('p', 'event-copy', event.description), grid);
+  return element('div', 'overlay', pane);
+}
+
+function renderEventImprint(index: number, offer: Extract<Offer, { kind: 'item' }>): HTMLElement {
+  const choice = eventChoiceFor(state, index)!;
+  const name = describeOffer(offer);
+  const pane = sheet(name, button('subtle', 'back', 'Back to event', 'Back'));
+  const item = button('offer-card event-imprint-item', 'inspect-reward', 'Inspect ' + name, itemNet(offer.id));
+  item.dataset.inspectItem = offer.id;
+
+  const candidates = offerTargets(state, offer);
+  const chosen = candidates.find(die => die.id === rewardDie);
+  const kit = element('div', 'imprint-kit');
+  for (const die of candidates) {
+    const label = dieLabel(die.id);
+    const selected = die === chosen;
+    const after = selected ? previewDie(state, offer, die) : null;
+    const card = imprintCard(die, 'reward-die', label, after ?? undefined);
+    card.prepend(element('strong', '', label));
+    card.dataset.id = die.id;
+    card.dataset.focus = 'reward-' + die.id;
+    card.setAttribute('aria-pressed', String(selected));
+    card.classList.toggle('is-previewing', selected);
+    kit.append(card);
+  }
+
+  const label = choice.hp ? `Imprint for ${choice.hp} HP` : choice.gold ? `Imprint for ${choice.gold} gold` : 'Imprint';
+  const confirm = button('control control--primary', 'take', label, label);
+  confirm.disabled = !chosen || !canTakeEventOffer(state, index);
+  pane.append(item, element('div', 'imprint-heading', caption('Imprint onto a die')), kit,
+    element('div', 'sheet-footer', confirm));
+  pane.classList.add('event-imprint');
   return element('div', 'overlay', pane);
 }
 
@@ -531,7 +573,10 @@ function renderOffers(): HTMLElement {
   const offer = offerIndex === null ? undefined : state.offers[offerIndex];
   if (shopping && !offer) return renderShop();
   if (room.type === 'treasure') return renderTreasure();
-  if (room.type === 'event' && !offer) return renderEvent();
+  if (room.type === 'event') {
+    if (offerIndex === null || !offer) return renderEvent();
+    if (offer.kind === 'item') return renderEventImprint(offerIndex, offer);
+  }
   if (!shopping && room.type !== 'event' && variant === 'fixed') return fixedOfferSheet();
   const chosen = selectedUpgrade();
   if (chosen) return renderUpgradePicker(chosen);
@@ -729,8 +774,17 @@ function paintedClear(): void {
 
 function paintTargets(id: string | null, pointed?: HTMLElement): void {
   paintedClear();
+  const roll = id ? current(id) : undefined;
+  const fullHealthStrike = roll && rollFace(state, roll).parts.some(part => part.kind === 'fullHealth');
   for (const node of view.querySelectorAll<HTMLElement>('[data-target-kind]')) {
-    node.classList.toggle('is-legal', !!id && !ledger && !menu && canPlay(state, id, targetFor(node)));
+    const target = targetFor(node);
+    const legal = !!id && !ledger && !menu && canPlay(state, id, target);
+    node.classList.toggle('is-legal', legal);
+    const doubled = legal && fullHealthStrike && target.kind === 'enemy'
+      && state.combat?.enemies.some(enemy => enemy.id === target.id && enemy.hp === enemy.maxHp);
+    node.toggleAttribute('data-full-health-bonus', !!doubled);
+    if (doubled) node.setAttribute('aria-description', 'Double damage against this target');
+    else node.removeAttribute('aria-description');
   }
   for (const node of view.querySelectorAll<HTMLElement>('[data-die]')) {
     node.classList.toggle('is-selected', !!id && node.dataset.die === id);
@@ -759,7 +813,8 @@ function paintTargets(id: string | null, pointed?: HTMLElement): void {
   }
   if (existing.guard !== playResult.guard) labels.push(`⬟ +${playResult.guard - existing.guard}`);
   if (existing.ward !== playResult.ward) labels.push(`◒ +${playResult.ward - existing.ward}`);
-  if (existing.burn !== playResult.burn) labels.push(`♨ +${(playResult.burn ?? 0) - (existing.burn ?? 0)} Self Burn`);
+  const burnChange = (playResult.burn ?? 0) - (existing.burn ?? 0);
+  if (burnChange) labels.push(`♨ ${burnChange > 0 ? '+' : '−'}${Math.abs(burnChange)} Self Burn`);
   if (existing.frenzy !== playResult.frenzy) labels.push(`ϟ −${(existing.frenzy ?? 0) - (playResult.frenzy ?? 0)} Frenzy`);
   if (state.hp !== playResult.playerHp) labels.push(`♥ +${playResult.playerHp - state.hp}`);
   const swing = incoming(existing) - incoming(playResult);
@@ -873,84 +928,46 @@ function inspectAnchor(target: EventTarget | null): HTMLElement | null {
   return target instanceof Element ? target.closest<HTMLElement>(INSPECT_TARGET) : null;
 }
 
-function openRewardInspection(anchor: HTMLElement): void {
-  const item = anchor.dataset.inspectItem ? ITEMS[anchor.dataset.inspectItem] : undefined;
-  const initialDie = state.dice.find(die => die.id === anchor.dataset.inspectDie);
-  if (!item && !initialDie) return;
-  closeInspection();
-  tooltips.hide();
-
-  const heading = element('h2');
-  heading.id = 'reward-inspection-title';
-  const close = button('subtle', 'close-inspection', 'Close inspection', 'Close');
-  const faces = element('ul', 'inspection-face-list');
-  const dice = element('div', 'inspection-dice', item ? button('subtle', 'view-inspected-item', 'Back to item', 'Item') : null);
-  const panel = element('dialog', 'die-inspection reward-inspection', element('div', 'reward-inspection-content',
-    element('header', 'inspect-heading', heading, close), faces,
-    element('div', 'inspection-kit', element('h3', '', 'Owned dice'), dice)));
-  panel.setAttribute('aria-labelledby', heading.id);
-  panel.addEventListener('cancel', event => {
-    event.preventDefault();
-    closeInspection(true);
-  });
-  panel.addEventListener('click', event => {
-    if (event.target === panel && !wasSuppressedClick(event)) closeInspection(true);
-  });
-  close.addEventListener('click', () => closeInspection(true));
-
-  function showContent(die?: Die): void {
-    if (die) {
-      heading.textContent = `${dieLabel(die.id)} faces`;
-      faces.replaceChildren(...SLOTS.map(slot => readableFace(slot, faceFor(die, slot))));
-    } else if (item) {
-      heading.textContent = item.name;
-      faces.replaceChildren(...SLOTS.flatMap(slot => item.edits[slot] ? [readableFace(slot, item.edits[slot]!)] : []));
-    }
-    for (const pick of dice.querySelectorAll('button')) {
-      pick.setAttribute('aria-pressed', String(pick.dataset.id === die?.id));
-    }
-    panel.scrollTop = 0;
-  }
-
-  dice.firstElementChild?.addEventListener('click', () => showContent());
-  for (const die of state.dice) {
-    const label = dieLabel(die.id);
-    const pick = button('subtle', 'inspect-owned-die', `Inspect ${label}`, label);
-    pick.dataset.id = die.id;
-    pick.addEventListener('click', () => showContent(die));
-    dice.append(pick);
-  }
-  showContent(initialDie);
-  root.append(panel);
-  inspection = { node: panel, anchor };
-  anchor.setAttribute('aria-expanded', 'true');
-  panel.showModal();
-  close.focus({ preventScroll: true });
-}
-
 function openInspection(anchor: HTMLElement, keyboard = false): void {
-  if (state.phase !== 'battle' || anchor.dataset.inspectItem) {
-    openRewardInspection(anchor);
-    return;
-  }
-  const id = anchor.dataset.inspectDie;
-  if (!id) return;
-  const die = state.dice.find(die => die.id === id);
-  if (!die) return;
+  const itemId = anchor.dataset.inspectItem;
+  const die = state.dice.find(entry => entry.id === anchor.dataset.inspectDie);
+  const battle = state.phase === 'battle' && !itemId;
+  let title: string;
+  let heading: string;
+  let net: HTMLElement;
+  if (itemId) {
+    title = heading = ITEMS[itemId].name;
+    net = itemNet(itemId, true);
+  } else if (die) {
+    title = dieLabel(die.id) + ' layout';
+    heading = battle ? 'Die faces' : dieLabel(die.id) + ' faces';
+    net = faceNet(die, undefined, true, battle ? state : undefined);
+  } else return;
+
   closeInspection();
   tooltips.hide();
-  const close = button('subtle', 'close-inspection', 'Close die layout', 'Close');
+  const close = button('subtle', 'close-inspection', battle ? 'Close die layout' : 'Close inspection', 'Close');
   close.addEventListener('click', () => closeInspection(true));
-  const panel = element('section', 'die-inspection',
-    element('div', 'inspect-heading', element('h2', '', 'Die faces'), close),
-    faceNet(die, undefined, true, state.phase === 'battle' ? state : undefined),
-  );
+  const dialog = battle ? null : element('dialog', 'die-inspection reward-inspection');
+  const panel = dialog ?? element('section', 'die-inspection');
+  panel.append(element('div', 'inspect-heading', element('h2', '', heading), close), net);
   panel.setAttribute('role', 'dialog');
-  panel.setAttribute('aria-label', `${dieLabel(die.id)} layout`);
+  panel.setAttribute('aria-label', title);
   root.append(panel);
-  positionFloater(panel, anchor.getBoundingClientRect(), true);
   inspection = { node: panel, anchor };
   anchor.setAttribute('aria-expanded', 'true');
+
+  if (dialog) {
+    dialog.addEventListener('cancel', event => {
+      event.preventDefault();
+      closeInspection(true);
+    });
+    dialog.addEventListener('click', event => {
+      if (event.target === dialog) closeInspection(true);
+    });
+    dialog.showModal();
+    close.focus({ preventScroll: true });
+  } else positionFloater(panel, anchor.getBoundingClientRect(), true);
   if (keyboard) panel.querySelector<HTMLElement>('[data-face-help]')?.focus({ preventScroll: true });
 }
 
@@ -986,7 +1003,7 @@ function endInspectionPress(event: PointerEvent): void {
   const press = inspectionPress;
   if (press?.pointer !== event.pointerId) return;
   cancelInspectionPress();
-  if (press.opened) suppressedClick = { x: event.clientX, y: event.clientY, until: performance.now() + 400 };
+  if (press.opened) suppressClickUntil = performance.now() + 400;
 }
 document.addEventListener('pointerup', endInspectionPress, true);
 document.addEventListener('pointercancel', endInspectionPress, true);
@@ -1000,6 +1017,7 @@ root.addEventListener('contextmenu', event => {
 });
 
 document.addEventListener('pointerdown', event => {
+  if (event.isPrimary && event.button === 0) suppressClickUntil = 0;
   if (event.button === 0 && inspection && !inspection.node.contains(event.target as Node)) closeInspection();
 });
 window.addEventListener('resize', () => {
@@ -1084,13 +1102,14 @@ function abandonRun(): void {
   restart();
 }
 
-function wasSuppressedClick(event: MouseEvent): boolean {
-  return !!suppressedClick && performance.now() < suppressedClick.until && event.detail > 0
-    && Math.hypot(event.clientX - suppressedClick.x, event.clientY - suppressedClick.y) < 3;
-}
+// Touch can retarget the release click when a long press opens the preview.
+document.addEventListener('click', event => {
+  if (event.detail === 0 || performance.now() >= suppressClickUntil) return;
+  event.preventDefault();
+  event.stopPropagation();
+}, true);
 
 view.addEventListener('click', event => {
-  if (wasSuppressedClick(event)) return;
   const node = (event.target as HTMLElement).closest<HTMLButtonElement>('button[data-action]');
   if (!node || node.disabled || node.getAttribute('aria-disabled') === 'true') return;
   const action = node.dataset.action;
@@ -1188,7 +1207,7 @@ view.addEventListener('click', event => {
       offerIndex = index;
       rewardDie = null;
       render();
-      view.querySelector<HTMLButtonElement>('[data-action="reward-die"]')?.focus();
+      view.querySelector<HTMLButtonElement>('[data-action="reward-die"]')?.focus({ preventScroll: true });
     }
   } else if (action === 'imprint-die') {
     if (offerIndex !== null) finishImprint(offerIndex, node.dataset.imprintTarget!);
@@ -1283,7 +1302,7 @@ document.addEventListener('pointerup', event => {
   if (drag?.pointer !== event.pointerId) return;
   const ready = clearDrag();
   if (!ready?.started) return;
-  suppressedClick = { x: event.clientX, y: event.clientY, until: performance.now() + 100 };
+  suppressClickUntil = performance.now() + 100;
   if (ready.source.kind === 'item') {
     const id = imprintAt(event.clientX, event.clientY);
     if (id) finishImprint(ready.source.index, id);

@@ -527,5 +527,191 @@
     "image": "face-art/library/shield_flame.webp",
     "notes": "",
     "status": "active"
+  },
+  {
+    "id": "dmgBurnPlays",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "burnPlays"
+      }
+    ],
+    "image": "face-art/library/sword_flame.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "blockBurnPlays",
+    "targeting": "self",
+    "keywords": [
+      {
+        "keyword": "block"
+      },
+      {
+        "keyword": "burnPlays"
+      }
+    ],
+    "image": "face-art/library/shield_flame.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "dmgAfterBurn",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "afterBurn",
+        "x": 2
+      }
+    ],
+    "image": "face-art/library/sword_flame.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "blockAfterBurn",
+    "targeting": "self",
+    "keywords": [
+      {
+        "keyword": "block"
+      },
+      {
+        "keyword": "afterBurn",
+        "x": 2
+      }
+    ],
+    "image": "face-art/library/shield_flame.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "burnOpen",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "burn",
+        "x": 2
+      },
+      {
+        "keyword": "firstBurn",
+        "x": 1
+      }
+    ],
+    "image": "face-art/library/flame.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "burnOpenStrong",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "burn",
+        "x": 1
+      },
+      {
+        "keyword": "firstBurn",
+        "x": 2
+      }
+    ],
+    "image": "face-art/library/flame.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "blockEcho",
+    "targeting": "self",
+    "keywords": [
+      {
+        "keyword": "block"
+      },
+      {
+        "keyword": "echo"
+      }
+    ],
+    "image": "face-art/library/buckler.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "dmgFullHealth",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "fullHealth"
+      }
+    ],
+    "image": "face-art/library/stinger.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "dmgPair",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "pair"
+      }
+    ],
+    "image": "face-art/library/sword.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "blockPair",
+    "targeting": "self",
+    "keywords": [
+      {
+        "keyword": "block"
+      },
+      {
+        "keyword": "pair"
+      }
+    ],
+    "image": "face-art/library/shield.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "dmgTrio",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "trio"
+      }
+    ],
+    "image": "face-art/library/claw.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "dmgClearBurn",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "clearBurn"
+      }
+    ],
+    "image": "face-art/library/sword_flame.webp",
+    "notes": "",
+    "status": "active"
   }
 ]

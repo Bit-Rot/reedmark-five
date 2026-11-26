@@ -4,17 +4,19 @@
  */
 import { RELIC_EFFECTS } from '../relic-data.ts';
 import type { DieDefinition, Face as GameFace, Item as GameItem, Part, Relic, Slot, TargetKind } from '../model.ts';
-import { SLOTS } from '../model.ts';
+import { SEQUENCE_KEYWORDS, SLOTS } from '../model.ts';
 import type { Collections, Die, Face, Item, Keyword, SlotName, Targeting } from './types.ts';
 import { SLOT_NAMES } from './types.ts';
 
 /** Keywords the game engine can execute. Anything else on a face is reported by `compileDb`. */
 export const IMPLEMENTED_KEYWORDS = ['damage', 'block', 'selfShield', 'poison', 'vulnerable', 'weak', 'exert', 'cantrip', 'growth', 'inspired', 'cleave',
   'heal', 'burn', 'selfBurn', 'exhaust', 'burnDamage', 'burnDouble', 'afterExhaust',
-  'dieBlanks', 'kitBlanks', 'frenzyThreshold', 'frenzySpend', 'frenzyAll'] as const;
+  'dieBlanks', 'kitBlanks', 'frenzyThreshold', 'frenzySpend', 'frenzyAll', ...SEQUENCE_KEYWORDS] as const;
 const MODIFIERS = {
   burnDamage: 'none', burnDouble: 'none', afterExhaust: 'x', dieBlanks: 'none', kitBlanks: 'x',
   frenzyThreshold: 'x', frenzySpend: 'x', frenzyAll: 'x',
+  burnPlays: 'none', afterBurn: 'x', firstBurn: 'x', echo: 'none', fullHealth: 'none',
+  pair: 'none', trio: 'none', clearBurn: 'none',
 } as const;
 
 export const TARGETINGS_SUPPORTED: readonly Targeting[] = ['none', 'self', 'singleEnemy', 'allEnemies'];
@@ -51,7 +53,8 @@ export function addKeywordToFace(face: GameFace, keyword: string, x?: number): G
     case 'cantrip':
       // These effects and their costs are tied to deliberately playing the face.
       if (face.target === 'none' || parts.some(part =>
-        part.kind === 'cantrip' || part.kind === 'exhaust' || part.kind === 'frenzySpend' || part.kind === 'frenzyAll')) return undefined;
+        part.kind === 'cantrip' || part.kind === 'exhaust' || part.kind === 'frenzySpend' || part.kind === 'frenzyAll'
+        || part.kind === 'clearBurn')) return undefined;
       parts.push({ kind: 'cantrip', value: 0 });
       break;
     case 'selfShield':
@@ -125,13 +128,18 @@ export function compileFace(face: Face, pips: number | undefined, issues: Diagno
   if (uses.has('exhaust')) merged.push({ kind: 'exhaust', value: 0 });
   for (const kind of Object.keys(MODIFIERS) as (keyof typeof MODIFIERS)[]) {
     if (!uses.has(kind)) continue;
-    const damageOnly = kind === 'burnDamage' || kind === 'burnDouble';
-    if (!(damageOnly ? uses.has('damage') : needsPips)) {
+    const damageOnly = kind === 'burnDamage' || kind === 'burnDouble' || kind === 'fullHealth' || kind === 'clearBurn';
+    if (kind === 'firstBurn') {
+      if ((merged[0].kind !== 'burn' && merged[0].kind !== 'selfBurn') || uses.has('burn') === uses.has('selfBurn')) {
+        issues.push({ where, message: 'firstBurn needs a face whose only primary effect is Burn or Self Burn' });
+      }
+    } else if (!(damageOnly ? uses.has('damage') : needsPips)) {
       issues.push({ where, message: `keyword "${kind}" needs a ${damageOnly ? 'damage' : 'damage or block'} effect` });
     }
     merged.push({ kind, value: MODIFIERS[kind] === 'x' ? xOf(kind, true) : 0 });
   }
   if (uses.has('frenzySpend') && uses.has('frenzyAll')) issues.push({ where, message: 'a face can have only one Frenzy cost' });
+  if (uses.has('pair') && uses.has('trio')) issues.push({ where, message: 'a face can have only one pip match' });
   const defaultTarget: TargetKind = merged.some(p =>
     p.kind === 'hit' || p.kind === 'seep' || p.kind === 'vulnerable' || p.kind === 'weak' || p.kind === 'burn') ? 'enemy' : 'self';
   const actualTarget = target && target !== 'none' ? target : defaultTarget;

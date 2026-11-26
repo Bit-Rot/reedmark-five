@@ -1,4 +1,4 @@
-import { FLAG_KINDS } from './model.ts';
+import { FLAG_KINDS, matchMultiplier } from './model.ts';
 import type { Face, Kind, Part } from './model.ts';
 
 export type EffectKey = Kind | 'salvage' | 'cleave' | 'frenzy';
@@ -39,6 +39,38 @@ export const EFFECTS: Record<EffectKey, { name: string; color: string; symbol: s
   burnDouble: {
     name: 'Double while burning', color: '#a85529', symbol: '×2',
     description: 'Deal double damage while you have any Burn.',
+  },
+  burnPlays: {
+    name: 'Burn plays', color: '#a85529', symbol: '+♨',
+    description: 'Add 1 pip for each earlier die you played that applied Burn this turn. Self Burn counts.',
+  },
+  afterBurn: {
+    name: 'After Burn', color: '#9a5435', symbol: '↪',
+    description: 'Add X pips if the die you just played this turn applied Burn. Self Burn counts.',
+  },
+  firstBurn: {
+    name: 'First Burn', color: '#9a5435', symbol: '1ˢᵗ',
+    description: 'Apply X more Burn if this is your first Burn play this turn.',
+  },
+  echo: {
+    name: 'Echo', color: '#356b75', symbol: '≈',
+    description: 'Use the previous die’s primary pips this turn, before Pair, Trio, or target modifiers. Use this face’s own pips if played first.',
+  },
+  fullHealth: {
+    name: 'Full-HP strike', color: '#9d5840', symbol: '✷',
+    description: 'Double this face’s damage against a target at full HP when it is hit.',
+  },
+  pair: {
+    name: 'Pair', color: '#655d82', symbol: 'Ⅱ',
+    description: 'Double this face’s damage or Block if the previous die had the same primary pips this turn. Use pips before match multipliers.',
+  },
+  trio: {
+    name: 'Trio', color: '#655d82', symbol: 'Ⅲ',
+    description: 'Triple this face’s damage or Block if the previous two dice both had the same primary pips this turn. Use pips before match multipliers.',
+  },
+  clearBurn: {
+    name: 'Clear Self Burn', color: '#a85529', symbol: '♨',
+    description: 'Deal 1 extra damage per Burn on you, then clear all your Burn.',
   },
   afterExhaust: {
     name: 'After Exhaust', color: '#806345', symbol: '◌',
@@ -121,6 +153,8 @@ const EFFECT_ART: Partial<Record<EffectKey, string>> = {
   heal: 'face-art/library/cross_plus.webp',
   exhaust: 'face-art/library/arrow_down.webp',
   burnDamage: 'face-art/library/flame.webp',
+  fullHealth: 'face-art/library/stinger.webp',
+  clearBurn: 'face-art/library/bomb_spark.webp',
   afterExhaust: 'face-art/library/arrow_up.webp',
   dieBlanks: 'face-art/library/blank.webp',
   kitBlanks: 'face-art/library/dice.webp',
@@ -180,7 +214,12 @@ export async function loadEffectImages(): Promise<void> {
 /** Conditions use a small icon on the die. Their thresholds and costs are in the tooltip. */
 export function showsEffectAmount(kind: EffectKey): boolean {
   return !FLAG_KINDS.includes(kind as Kind)
-    && !['cleave', 'afterExhaust', 'kitBlanks', 'frenzyThreshold', 'frenzySpend', 'frenzyAll'].includes(kind);
+    && !['cleave', 'afterExhaust', 'afterBurn', 'firstBurn', 'kitBlanks', 'frenzyThreshold', 'frenzySpend', 'frenzyAll'].includes(kind);
+}
+
+export function modifierAmount(part: Part): string {
+  const multiplier = matchMultiplier(part);
+  return multiplier > 1 ? '×' + multiplier : '';
 }
 
 export function effectDescription(kind: EffectKey, part?: Part): string {

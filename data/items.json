@@ -356,7 +356,7 @@
     "name": "Wick Wrap",
     "rewardCharacter": "moth",
     "rarity": "common",
-    "description": "Gain 4 Block and apply 1 Burn to yourself.",
+    "description": "Gain 4 Block and apply 1 Self Burn on top. Gain 2 Block with Pair on the bottom.",
     "effects": [
       {
         "target": [
@@ -365,6 +365,14 @@
         "op": "setFace",
         "face": "blockSelfBurn",
         "pips": 4
+      },
+      {
+        "target": [
+          "bottom"
+        ],
+        "op": "setFace",
+        "face": "blockPair",
+        "pips": 2
       }
     ],
     "implemented": "implemented"
@@ -374,14 +382,22 @@
     "name": "Cinder Needle",
     "rewardCharacter": "moth",
     "rarity": "common",
-    "description": "Apply 2 Burn to an enemy.",
+    "description": "Apply 2 Burn on the rightmost face, or 3 on your first Burn play. Gain 2 Block on top, plus 2 immediately after a Burn play.",
     "effects": [
       {
         "target": [
           "rightmost"
         ],
         "op": "setFace",
-        "face": "burnEnemy"
+        "face": "burnOpen"
+      },
+      {
+        "target": [
+          "top"
+        ],
+        "op": "setFace",
+        "face": "blockAfterBurn",
+        "pips": 2
       }
     ],
     "implemented": "implemented"
@@ -391,15 +407,15 @@
     "name": "Scorch Husk",
     "rewardCharacter": "moth",
     "rarity": "common",
-    "description": "Deal 6 damage, then Exhaust.",
+    "description": "Deal 4 damage on the left, doubled against a target at full HP.",
     "effects": [
       {
         "target": [
           "left"
         ],
         "op": "setFace",
-        "face": "dmgExhaust",
-        "pips": 6
+        "face": "dmgFullHealth",
+        "pips": 4
       }
     ],
     "implemented": "implemented"
@@ -409,7 +425,7 @@
     "name": "Soot Stitch",
     "rewardCharacter": "moth",
     "rarity": "common",
-    "description": "Deal 2 damage and apply 1 Burn to the target.",
+    "description": "Deal 2 damage and apply 1 Burn in the middle. Deal 2 damage on top, plus 2 immediately after a Burn play.",
     "effects": [
       {
         "target": [
@@ -417,6 +433,14 @@
         ],
         "op": "setFace",
         "face": "dmgApplyBurn",
+        "pips": 2
+      },
+      {
+        "target": [
+          "top"
+        ],
+        "op": "setFace",
+        "face": "dmgAfterBurn",
         "pips": 2
       }
     ],
@@ -463,15 +487,15 @@
     "name": "Reed Splint",
     "rewardCharacter": "moth",
     "rarity": "common",
-    "description": "Deal 3 damage on the right and gain 3 Block on the rightmost face.",
+    "description": "Deal 2 damage with Pair on the right. Gain 3 Block on the rightmost face.",
     "effects": [
       {
         "target": [
           "right"
         ],
         "op": "setFace",
-        "face": "dmg",
-        "pips": 3
+        "face": "dmgPair",
+        "pips": 2
       },
       {
         "target": [
@@ -489,7 +513,7 @@
     "name": "Flashwing",
     "rewardCharacter": "moth",
     "rarity": "uncommon",
-    "description": "Deal 2 damage plus 1 per Burn on you on the middle face. Deal 3 damage, doubled while burning, on the right.",
+    "description": "Deal 2 damage plus 1 per Self Burn in the middle. Deal 3 damage plus 1 per earlier Burn play on the right.",
     "effects": [
       {
         "target": [
@@ -504,7 +528,7 @@
           "right"
         ],
         "op": "setFace",
-        "face": "dmgWhileBurning",
+        "face": "dmgBurnPlays",
         "pips": 3
       }
     ],
@@ -515,7 +539,7 @@
     "name": "Molt Plate",
     "rewardCharacter": "moth",
     "rarity": "uncommon",
-    "description": "Gain 2 Block plus 1 per blank on this die on the bottom face. Deal 3 damage, plus 3 after Exhaust this turn, on the middle face.",
+    "description": "Gain 2 Block plus 1 per blank on this die on the bottom. Deal 3 damage in the middle, plus 2 immediately after a Burn play.",
     "effects": [
       {
         "target": [
@@ -530,7 +554,7 @@
           "middle"
         ],
         "op": "setFace",
-        "face": "dmgAfterExhaust",
+        "face": "dmgAfterBurn",
         "pips": 3
       }
     ],
@@ -567,7 +591,7 @@
     "name": "Smolderglass",
     "rewardCharacter": "moth",
     "rarity": "uncommon",
-    "description": "Deal 2 damage to all enemies, doubled while you are burning.",
+    "description": "Deal 2 damage to all enemies on the right, doubled while burning. Deal 2 damage plus 1 per Self Burn on the rightmost face, then clear your Burn.",
     "effects": [
       {
         "target": [
@@ -575,6 +599,14 @@
         ],
         "op": "setFace",
         "face": "dmgAllWhileBurning",
+        "pips": 2
+      },
+      {
+        "target": [
+          "rightmost"
+        ],
+        "op": "setFace",
+        "face": "dmgClearBurn",
         "pips": 2
       }
     ],
@@ -585,7 +617,7 @@
     "name": "Cinder Clamp",
     "rewardCharacter": "moth",
     "rarity": "uncommon",
-    "description": "Apply 4 Burn to an enemy, then Exhaust.",
+    "description": "Apply 4 Burn and Exhaust on the left. Apply 1 Burn on top, or 3 on your first Burn play.",
     "effects": [
       {
         "target": [
@@ -593,6 +625,13 @@
         ],
         "op": "setFace",
         "face": "burnExhaust"
+      },
+      {
+        "target": [
+          "top"
+        ],
+        "op": "setFace",
+        "face": "burnOpenStrong"
       }
     ],
     "implemented": "implemented"
@@ -602,7 +641,7 @@
     "name": "Kiln Latch",
     "rewardCharacter": "moth",
     "rarity": "uncommon",
-    "description": "Deal 4 damage and apply 1 Burn to yourself on the left. Gain 2 Block, plus 4 if you spend 2 Frenzy, on the bottom face.",
+    "description": "Deal 4 damage and apply 1 Self Burn on the left. Gain 2 Block with Echo on the bottom.",
     "effects": [
       {
         "target": [
@@ -617,7 +656,7 @@
           "bottom"
         ],
         "op": "setFace",
-        "face": "blockSpendFrenzy",
+        "face": "blockEcho",
         "pips": 2
       }
     ],
@@ -628,7 +667,7 @@
     "name": "Hush Bell",
     "rewardCharacter": "moth",
     "rarity": "uncommon",
-    "description": "Gain 3 Block, plus 3 if you exhausted a face this turn.",
+    "description": "Gain 3 Block on the rightmost face, plus 3 after Exhaust. Gain 2 Block plus 1 per earlier Burn play in the middle.",
     "effects": [
       {
         "target": [
@@ -637,6 +676,14 @@
         "op": "setFace",
         "face": "blockAfterExhaust",
         "pips": 3
+      },
+      {
+        "target": [
+          "middle"
+        ],
+        "op": "setFace",
+        "face": "blockBurnPlays",
+        "pips": 2
       }
     ],
     "implemented": "implemented"
@@ -646,7 +693,7 @@
     "name": "Rattle Comb",
     "rewardCharacter": "moth",
     "rarity": "uncommon",
-    "description": "Deal 3 damage, plus 3 at 3 or more Frenzy.",
+    "description": "Deal 3 damage on top, plus 3 at 3 or more Frenzy. Deal 2 damage with Trio on the right.",
     "effects": [
       {
         "target": [
@@ -655,6 +702,14 @@
         "op": "setFace",
         "face": "dmgFrenzyThreshold",
         "pips": 3
+      },
+      {
+        "target": [
+          "right"
+        ],
+        "op": "setFace",
+        "face": "dmgTrio",
+        "pips": 2
       }
     ],
     "implemented": "implemented"
