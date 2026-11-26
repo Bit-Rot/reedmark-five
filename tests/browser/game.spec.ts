@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
-import { distance, explorationDistance, frontier } from '../../src/campaign-map.ts';
+import { explorationDistance, frontier } from '../../src/campaign-map.ts';
 import { ITEMS, ROOMS } from '../../src/content.ts';
 import { advance, commitRoll, currentRoom, endTurn, explore, newLinearRun as newRun, newRun as newCampaignRun, rollFace } from '../../src/game.ts';
 import type { State, Variant } from '../../src/model.ts';
@@ -702,18 +702,24 @@ test('touching a chest detour preserves the revealed map and payout across reloa
       expect(explore(state, [...frontier(map)][0])).toBe(true);
       resolveFixtureRoom();
     }
-    while (!map.tiles.some(tile => frontier(map).has(tile.id) && tile.chest !== undefined)) {
-      const reachable = frontier(map);
-      const costs = explorationDistance(map);
-      const chest = map.tiles.filter(tile => tile.chest !== undefined).sort((a, b) => costs.get(a.id)! - costs.get(b.id)!)[0];
-      const step = map.tiles.find(tile => reachable.has(tile.id) && distance(tile, chest) === costs.get(chest.id)! - 1)!;
-      expect(explore(state, step.id)).toBe(true);
-      resolveFixtureRoom();
-    }
     await page.addInitScript(save => {
       if (!localStorage.getItem('reedmark:fixed:v1')) localStorage.setItem('reedmark:fixed:v1', JSON.stringify(save));
     }, state);
     await page.goto('/');
+    await expect(page.locator('[data-kind="treasure"]')).toHaveCount(3);
+    await expect(page.locator('button[data-kind="treasure"]')).toHaveCount(0);
+
+    while (!map.tiles.some(tile => frontier(map).has(tile.id) && tile.chest !== undefined)) {
+      const reachable = frontier(map);
+      const costs = explorationDistance(map);
+      const chest = map.tiles.filter(tile => tile.chest !== undefined).sort((a, b) => costs.get(a.id)! - costs.get(b.id)!)[0];
+      const toChest = explorationDistance({ ...map, tiles: map.tiles.map(tile => ({ ...tile, visited: tile.id === chest.id })) });
+      const step = map.tiles.find(tile => reachable.has(tile.id) && toChest.get(tile.id) === costs.get(chest.id)! - 1)!;
+      expect(explore(state, step.id)).toBe(true);
+      resolveFixtureRoom();
+    }
+    await page.evaluate(save => localStorage.setItem('reedmark:fixed:v1', JSON.stringify(save)), state);
+    await page.reload();
     await expect(page.locator('[data-kind="treasure"]')).toHaveCount(3);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
     await page.getByRole('button', { name: 'Zoom out' }).tap();

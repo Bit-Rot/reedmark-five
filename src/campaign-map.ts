@@ -163,33 +163,27 @@ export function revealTreasureWave(map: CampaignMap): void {
   const index = CHEST_TURNS.findIndex(turn => turn === map.turn + 1);
   if (index < 0 || map.wave > index) return;
   const random = seededRandom(map.dropRng);
-  const candidates = shuffle(map.tiles.filter(t => !t.visited && t.chest === undefined && (t.kind === 'normal' || t.kind === 'event')), random);
-  const last = map.tiles.find(tile => tile.id === map.last)!;
+  const explored = map.tiles.filter(tile => tile.visited);
   const paths = explorationDistance(map);
-  const reachable = candidates.filter(tile => paths.has(tile.id));
-  const near = reachable.filter(tile => paths.get(tile.id)! <= 5).sort((a, b) => {
-    const priority = (tile: Tile) => {
-      const d = distance(tile, last);
-      return d >= 2 && d <= 4 ? 0 : d <= 5 ? 1 : 2;
-    };
-    return priority(a) - priority(b) || paths.get(a.id)! - paths.get(b.id)! || distance(a, last) - distance(b, last);
-  })[0] ?? reachable.sort((a, b) => paths.get(a.id)! - paths.get(b.id)!)[0];
-  if (!near) throw new Error('Campaign has no reachable treasure location');
-  const chosen = [near];
-  for (let i = 0; i < 2; i++) {
-    const spacing = (tile: Tile) => Math.min(...chosen.map(other => distance(tile, other)));
-    const available = candidates.filter(tile => !chosen.includes(tile)).sort((a, b) => {
-      const shared = (tile: Tile) => Number(chosen.some(other => other.sector === tile.sector));
-      return shared(a) - shared(b)
-        || Number(spacing(a) < 3) - Number(spacing(b) < 3)
-        || map.sectorDrops[a.sector] - map.sectorDrops[b.sector];
-    });
-    if (!available.length) throw new Error('Campaign has too few treasure locations');
-    chosen.push(available[0]);
-  }
-  for (const tile of chosen) {
+  const candidates = shuffle(map.tiles.filter(tile => {
+    const moves = paths.get(tile.id) ?? Infinity;
+    return moves >= 3 && moves <= 5 && tile.chest === undefined && (tile.kind === 'normal' || tile.kind === 'event')
+      && explored.every(other => distance(tile, other) >= 3);
+  }), random);
+
+  // Keep the distance rule even when a wide exploration pattern leaves fewer legal sites.
+  const placed = map.tiles.filter(tile => tile.chest !== undefined);
+  for (let i = 0; i < 3 && candidates.length; i++) {
+    const spacing = (tile: Tile) => placed.length ? Math.min(...placed.map(other => distance(tile, other))) : 0;
+    const sharedSector = (tile: Tile) => Number(placed.some(other => other.sector === tile.sector));
+    candidates.sort((a, b) => spacing(b) - spacing(a)
+      || sharedSector(a) - sharedSector(b)
+      || map.sectorDrops[a.sector] - map.sectorDrops[b.sector]);
+
+    const tile = candidates.shift()!;
     tile.chest = index;
     map.sectorDrops[tile.sector]++;
+    placed.push(tile);
   }
   map.wave = index + 1;
   map.dropRng = random.seed;

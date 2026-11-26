@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { test } from 'node:test';
 import { BOSS_IDS, CAMPAIGN_FIGHTS, ENCOUNTER_POOLS, EVENTS, nextEncounter, nextEvent } from '../src/campaign-content.ts';
-import { BOSS_TURNS, CENTER, CHEST_TURNS, MOUNTAIN_COUNT, bossDue, createCampaign, distance, explorationDistance, frontier, neighbors, visibleTile } from '../src/campaign-map.ts';
+import { BOSS_TURNS, CENTER, CHEST_TURNS, MOUNTAIN_COUNT, bossDue, createCampaign, distance, explorationDistance, frontier, neighbors, revealTreasureWave, visibleTile } from '../src/campaign-map.ts';
 import { ITEMS, RELICS } from '../src/content.ts';
 import { advance, canTakeEventOffer, chooseOffer, commitRoll, currentRoom, endTurn, explore, isSave, newLinearRun, newRun, restoreSave, startBoss } from '../src/game.ts';
 import type { State } from '../src/model.ts';
@@ -88,9 +88,11 @@ test('a complete route uses 45 hexes, drops three waves, and fully heals after t
     if (CHEST_TURNS.some(t => t === turn)) {
       const drops = map.tiles.filter(tile => tile.chest !== undefined);
       assert.equal(drops.length, 3);
-      assert.equal(new Set(drops.map(tile => tile.sector)).size, 3);
       const paths = explorationDistance(map);
-      assert(drops.some(tile => paths.get(tile.id)! <= 5));
+      const explored = map.tiles.filter(tile => tile.visited);
+      assert(drops.every(tile => paths.get(tile.id)! >= 3 && paths.get(tile.id)! <= 5
+        && explored.every(other => distance(tile, other) >= 3)));
+      assert(drops.every((tile, i) => drops.slice(i + 1).every(other => distance(tile, other) >= 3)));
     }
     const reachable = frontier(map);
     const target = map.tiles.find(tile => reachable.has(tile.id))!;
@@ -137,6 +139,26 @@ test('a complete route uses 45 hexes, drops three waves, and fully heals after t
   assert.equal(isSave(JSON.parse(JSON.stringify(state)), 'fixed'), true);
 });
 
+test('a chest wave uses only legal tiles when fewer than three fit', () => {
+  const map = createCampaign(231);
+  map.turn = 4;
+  const paths = explorationDistance(map);
+  const legal = map.tiles.filter(tile => distance(tile) === 3 && paths.get(tile.id) === 3).slice(0, 2);
+  assert.equal(legal.length, 2);
+  const tooClose = map.tiles.find(tile => paths.get(tile.id) === 1)!;
+  const tooFar = map.tiles.find(tile => paths.get(tile.id) === 6)!;
+  for (const tile of map.tiles) {
+    if (!tile.visited && (tile.kind === 'normal' || tile.kind === 'event')) tile.kind = 'camp';
+  }
+  for (const tile of [...legal, tooClose, tooFar]) tile.kind = 'normal';
+
+  revealTreasureWave(map);
+  assert.deepEqual(map.tiles.filter(tile => tile.chest !== undefined), legal);
+  assert.equal(map.wave, 1);
+  revealTreasureWave(map);
+  assert.equal(map.tiles.filter(tile => tile.chest !== undefined).length, 2);
+});
+
 test('treasure stays put through reload and grants gold and an unowned relic once', () => {
   let state = newRun('fixed', 31);
   while (state.map!.turn < 4) {
@@ -151,8 +173,8 @@ test('treasure stays put through reload and grants gold and an unowned relic onc
     const currentFrontier = frontier(map);
     const costs = explorationDistance(map);
     const chest = map.tiles.filter(tile => tile.chest !== undefined).sort((a, b) => costs.get(a.id)! - costs.get(b.id)!)[0];
-    const candidate = map.tiles.find(tile => currentFrontier.has(tile.id)
-      && Math.max(Math.abs(tile.q - chest.q), Math.abs(tile.r - chest.r), Math.abs(tile.q + tile.r - chest.q - chest.r)) === costs.get(chest.id)! - 1);
+    const toChest = explorationDistance({ ...map, tiles: map.tiles.map(tile => ({ ...tile, visited: tile.id === chest.id })) });
+    const candidate = map.tiles.find(tile => currentFrontier.has(tile.id) && toChest.get(tile.id) === costs.get(chest.id)! - 1);
     assert(candidate);
     const gold = state.gold;
     assert(explore(state, candidate.id));
