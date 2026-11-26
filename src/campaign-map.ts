@@ -2,7 +2,8 @@ export const RADIUS = 6;
 export const BOSS_TURNS = [16, 32, 48] as const;
 export const CHEST_TURNS = [5, 21, 37] as const;
 export const CENTER = '0,0';
-export const TILE_TYPES = ['normal', 'event', 'elite', 'camp', 'shop'] as const;
+export const MOUNTAIN_COUNT = 6;
+export const TILE_TYPES = ['normal', 'event', 'elite', 'camp', 'shop', 'mountain'] as const;
 export type TileType = (typeof TILE_TYPES)[number];
 export type VisibleTile = TileType | 'treasure' | 'unknown' | 'cleared';
 
@@ -72,70 +73,84 @@ export function shuffle<T>(values: readonly T[], random: ReturnType<typeof seede
 
 export function createCampaign(seed: number): CampaignMap {
   const random = seededRandom(seed ^ 0x369dea0f);
-  const sectorOrder = shuffle([0, 1, 2, 3, 4, 5], random);
-  const parity = random.pick(2);
   const tiles: Tile[] = [{ q: 0, r: 0, id: CENTER, kind: 'normal', sector: -1, visited: true }];
   for (let sector = 0; sector < 6; sector++) {
     const a = directions[sector];
     const b = directions[(sector + 1) % 6];
-    const region: Tile[] = [];
     for (let ring = 1; ring <= RADIUS; ring++) {
       for (let j = 0; j < ring; j++) {
         const q = a.q * (ring - j) + b.q * j;
         const r = a.r * (ring - j) + b.r * j;
-        region.push({ id: key(q, r), q, r, sector, kind: 'normal', visited: false });
+        tiles.push({ id: key(q, r), q, r, sector, kind: 'normal', visited: false });
       }
     }
-    const order = shuffle(region, random);
-    // One color of the hex grid provides an evenly spaced, nonadjacent set of locations.
-    const special = order.filter(tile => (tile.q - tile.r) % 3 === 0);
-    const place = (kind: TileType, min: number, max: number, candidates = special) => {
-      const tile = candidates.find(t => t.kind === 'normal' && distance(t) >= min && distance(t) <= max);
-      if (!tile) throw new Error('Sector cannot fit ' + kind);
-      tile.kind = kind;
-    };
-    place('camp', 2, 3);
-    place('shop', 3, RADIUS);
-    if (sectorOrder.indexOf(sector) < 4) place('camp', 4, RADIUS);
-    place('elite', 2, RADIUS);
-    place('elite', 2, RADIUS);
-    const openingEvent = sector % 2 === parity ? 1 : 0;
-    if (openingEvent) region[0].kind = 'event';
-    for (let i = 0; i < 2; i++) place('event', 2, 3, order);
-    const extras = sectorOrder.indexOf(sector) < 2 ? 1 : 0;
-    for (let i = 0; i < 4 + extras - openingEvent; i++) place('event', 4, RADIUS, order);
-    tiles.push(...region);
   }
-  return {
+  const map: CampaignMap = {
     tiles, turn: 0, last: CENTER, active: null, wave: 0, sectorDrops: Array(6).fill(0),
     dropRng: (seed ^ 0xab13ef47) >>> 0,
     encounterRng: (seed ^ 0x66cd2701) >>> 0,
     eventRng: (seed ^ 0x2534cd38) >>> 0,
     encounterBags: {}, eventBag: [], eventVisits: 0,
   };
+
+  // Keep the opening ring clear. Interior mountains can shape routes across the board.
+  const interior = tiles.filter(tile => distance(tile) >= 2 && distance(tile) < RADIUS);
+  let mountains = 0;
+  for (const tile of shuffle(interior, random)) {
+    tile.kind = 'mountain';
+    if (explorationDistance(map).size !== tiles.length - mountains - 1) {
+      tile.kind = 'normal';
+      continue;
+    }
+    if (++mountains === MOUNTAIN_COUNT) break;
+  }
+  if (mountains !== MOUNTAIN_COUNT) throw new Error('Campaign cannot fit all mountains');
+
+  const opening = shuffle(tiles.filter(tile => distance(tile) === 1), random);
+  const openingEvents = 2 + random.pick(3);
+  for (const tile of opening.slice(0, openingEvents)) tile.kind = 'event';
+
+  const roomOrder = shuffle(tiles.filter(tile => tile.kind === 'normal' && distance(tile) >= 2), random);
+  const paths = explorationDistance(map);
+  const place = (kind: TileType, count: number, early = false) => {
+    for (const tile of roomOrder) {
+      if (tile.kind !== 'normal' || (early && paths.get(tile.id)! > 3)) continue;
+      tile.kind = kind;
+      if (--count === 0) return;
+    }
+    throw new Error('Campaign cannot fit ' + kind);
+  };
+  // A few early services give the player options. The rest draw from one board-wide pool.
+  place('camp', 2, true);
+  place('shop', 1, true);
+  place('elite', 1, true);
+  place('camp', 8);
+  place('shop', 5);
+  place('elite', 11);
+  place('event', 38 - openingEvents);
+  return map;
 }
 
 export function frontier(map: CampaignMap): Set<string> {
   const visited = new Set(map.tiles.filter(tile => tile.visited).map(tile => tile.id));
   const adjacent = new Set(map.tiles.filter(tile => tile.visited).flatMap(neighbors));
-  return new Set(map.tiles.filter(tile => adjacent.has(tile.id) && !visited.has(tile.id)).map(tile => tile.id));
+  return new Set(map.tiles.filter(tile => adjacent.has(tile.id) && tile.kind !== 'mountain' && !visited.has(tile.id)).map(tile => tile.id));
 }
 
 export function visibleTile(tile: Tile, reachable: ReadonlySet<string>): VisibleTile {
   if (tile.visited) return 'cleared';
   if (tile.chest !== undefined) return 'treasure';
-  return tile.kind === 'elite' || tile.kind === 'camp' || tile.kind === 'shop' || reachable.has(tile.id) ? tile.kind : 'unknown';
+  return tile.kind === 'elite' || tile.kind === 'camp' || tile.kind === 'shop' || tile.kind === 'mountain' || reachable.has(tile.id) ? tile.kind : 'unknown';
 }
 
 export function explorationDistance(map: CampaignMap): Map<string, number> {
-  const ids = new Set(map.tiles.map(tile => tile.id));
-  const queue = map.tiles.filter(tile => tile.visited).map(tile => tile.id);
+  const byId = new Map(map.tiles.filter(tile => tile.kind !== 'mountain').map(tile => [tile.id, tile]));
+  const queue = [...byId.values()].filter(tile => tile.visited).map(tile => tile.id);
   const result = new Map(queue.map(id => [id, 0]));
-  const byId = new Map(map.tiles.map(tile => [tile.id, tile]));
   for (let i = 0; i < queue.length; i++) {
     const id = queue[i];
     for (const adjacent of neighbors(byId.get(id)!)) {
-      if (!ids.has(adjacent) || result.has(adjacent)) continue;
+      if (!byId.has(adjacent) || result.has(adjacent)) continue;
       result.set(adjacent, result.get(id)! + 1);
       queue.push(adjacent);
     }
@@ -151,13 +166,14 @@ export function revealTreasureWave(map: CampaignMap): void {
   const candidates = shuffle(map.tiles.filter(t => !t.visited && t.chest === undefined && (t.kind === 'normal' || t.kind === 'event')), random);
   const last = map.tiles.find(tile => tile.id === map.last)!;
   const paths = explorationDistance(map);
-  const near = candidates.filter(tile => (paths.get(tile.id) ?? Infinity) <= 5).sort((a, b) => {
+  const reachable = candidates.filter(tile => paths.has(tile.id));
+  const near = reachable.filter(tile => paths.get(tile.id)! <= 5).sort((a, b) => {
     const priority = (tile: Tile) => {
       const d = distance(tile, last);
       return d >= 2 && d <= 4 ? 0 : d <= 5 ? 1 : 2;
     };
     return priority(a) - priority(b) || paths.get(a.id)! - paths.get(b.id)! || distance(a, last) - distance(b, last);
-  })[0];
+  })[0] ?? reachable.sort((a, b) => paths.get(a.id)! - paths.get(b.id)!)[0];
   if (!near) throw new Error('Campaign has no reachable treasure location');
   const chosen = [near];
   for (let i = 0; i < 2; i++) {

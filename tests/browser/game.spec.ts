@@ -670,6 +670,10 @@ test('the campaign map supports keyboard exploration and discards an old Fixed F
   await expect(start.getByText('Start', { exact: true })).toBeVisible();
   await expect(start.getByText('Cleared', { exact: true })).toBeVisible();
   await start.click();
+  const mountains = page.getByRole('img', { name: /^Mountain, impassable/ });
+  await expect(mountains).toHaveCount(6);
+  await mountains.first().click();
+  await expect(page.locator('.campaign-hex[data-kind="event"] .map-question').first()).toHaveText('?');
   await expect(page.locator('.map-track')).toContainText('0/48');
   await expect(page.locator('.campaign-timer')).toHaveText('Boss in 16 turns');
   await expect(page.locator('.campaign-hex[data-kind="unknown"]').first()).toHaveAccessibleName(/Unrevealed/);

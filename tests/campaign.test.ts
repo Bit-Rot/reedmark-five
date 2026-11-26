@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { test } from 'node:test';
 import { BOSS_IDS, CAMPAIGN_FIGHTS, ENCOUNTER_POOLS, EVENTS, nextEncounter, nextEvent } from '../src/campaign-content.ts';
-import { BOSS_TURNS, CENTER, CHEST_TURNS, bossDue, createCampaign, explorationDistance, frontier, neighbors, visibleTile } from '../src/campaign-map.ts';
+import { BOSS_TURNS, CENTER, CHEST_TURNS, MOUNTAIN_COUNT, bossDue, createCampaign, distance, explorationDistance, frontier, neighbors, visibleTile } from '../src/campaign-map.ts';
 import { ITEMS, RELICS } from '../src/content.ts';
 import { advance, canTakeEventOffer, chooseOffer, commitRoll, currentRoom, endTurn, explore, isSave, newLinearRun, newRun, restoreSave, startBoss } from '../src/game.ts';
 import type { State } from '../src/model.ts';
@@ -19,27 +19,62 @@ function skipRoom(state: State): void {
   if (state.phase === 'reward') assert(advance(state));
 }
 
-test('radius six has exact quotas, spaced services, and only six starter choices across seeds', () => {
+test('radius six varies its opening and service placement while keeping the board connected', () => {
+  let sawAdjacentServices = false;
+  let sawUnevenShops = false;
+  let sawMountainDetour = false;
+  const openingCounts = new Set<number>();
   for (let seed = 0; seed < 64; seed++) {
     const map = createCampaign(Math.imul(seed, 0x9e3779b1));
     const reachable = frontier(map);
+    const paths = explorationDistance(map);
     const tiles = map.tiles.filter(tile => tile.id !== CENTER);
     assert.equal(tiles.length, 126);
     assert.equal(new Set(tiles.map(tile => tile.id)).size, 126);
     const count = (kind: string) => tiles.filter(tile => tile.kind === kind).length;
-    assert.deepEqual(['normal', 'event', 'elite', 'camp', 'shop'].map(count), [60, 38, 12, 10, 6]);
+    assert.deepEqual(['normal', 'event', 'elite', 'camp', 'shop', 'mountain'].map(count), [54, 38, 12, 10, 6, MOUNTAIN_COUNT]);
     assert.equal(reachable.size, 6);
-    assert.equal(tiles.filter(tile => reachable.has(tile.id) && tile.kind === 'event').length, 3);
-    for (let sector = 0; sector < 6; sector++) {
-      assert.equal(tiles.filter(tile => tile.sector === sector && tile.kind === 'shop').length, 1);
-    }
+    const events = tiles.filter(tile => reachable.has(tile.id) && tile.kind === 'event').length;
+    assert(events >= 2 && events <= 4);
+    openingCounts.add(events);
+    assert.equal(paths.size, map.tiles.length - MOUNTAIN_COUNT);
+    const earlyServices = tiles.filter(tile => (paths.get(tile.id) ?? Infinity) <= 3);
+    assert(earlyServices.filter(tile => tile.kind === 'camp').length >= 2);
+    assert(earlyServices.some(tile => tile.kind === 'shop'));
+    assert(earlyServices.some(tile => tile.kind === 'elite'));
+    const shopsBySector = Array.from({ length: 6 }, (_, sector) =>
+      tiles.filter(tile => tile.sector === sector && tile.kind === 'shop').length);
+    sawUnevenShops ||= shopsBySector.includes(0) && shopsBySector.some(n => n >= 2);
     const services = new Set(tiles.filter(tile => ['shop', 'camp', 'elite'].includes(tile.kind)).map(tile => tile.id));
     for (const tile of tiles) {
       const shown = visibleTile(tile, reachable);
       if (!reachable.has(tile.id) && (tile.kind === 'normal' || tile.kind === 'event')) assert.equal(shown, 'unknown');
-      if (services.has(tile.id)) assert(neighbors(tile).every(neighbor => !services.has(neighbor)));
+      if (tile.kind === 'mountain') {
+        assert.equal(shown, 'mountain');
+        assert(!reachable.has(tile.id) && !paths.has(tile.id));
+      } else {
+        sawMountainDetour ||= paths.get(tile.id)! > distance(tile);
+      }
+      if (services.has(tile.id)) sawAdjacentServices ||= neighbors(tile).some(neighbor => services.has(neighbor));
     }
   }
+  assert.deepEqual([...openingCounts].sort(), [2, 3, 4]);
+  assert(sawAdjacentServices && sawUnevenShops && sawMountainDetour);
+});
+
+test('a mountain stays impassable after exploring next to it and reloading', () => {
+  const state = newRun('fixed', 31);
+  const map = state.map!;
+  const mountain = map.tiles.find(tile => tile.kind === 'mountain' && distance(tile) === 2);
+  assert(mountain);
+  const step = neighbors(mountain).find(id => frontier(map).has(id));
+  assert(step && explore(state, step));
+  skipRoom(state);
+  const restored = restoreSave(JSON.parse(JSON.stringify(state)), 'fixed')!;
+  assert(!frontier(restored.map!).has(mountain.id));
+  assert(!explorationDistance(restored.map!).has(mountain.id));
+  assert.equal(explore(restored, mountain.id), false);
+  assert.equal(restored.map!.turn, 1);
 });
 
 test('a complete route uses 45 hexes, drops three waves, and fully heals after the first two bosses', () => {

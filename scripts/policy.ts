@@ -40,7 +40,7 @@ export function takeMapTurn(state: State, policy: MapPolicy, commands?: Command[
     shop: state.gold >= 50 ? 6.4 : 3,
     event: hp > .5 ? 6 : 7,
     elite: hp > .7 ? 5.5 : 1,
-    treasure: 8, unknown: 0, cleared: 0,
+    treasure: 8, mountain: 0, unknown: 0, cleared: 0,
   };
   const eventsThisCycle = map.eventVisits;
   values.event += eventsThisCycle < 4 ? .7 : -.9;
@@ -49,7 +49,7 @@ export function takeMapTurn(state: State, policy: MapPolicy, commands?: Command[
   const position = map.tiles.find(tile => tile.id === map.last)!;
   const options = known.filter(({ tile }) => reachable.has(tile.id)).map(({ tile, kind }) => {
     const nearbyInterest = known.reduce((best, other) => {
-      if (other.kind === 'unknown' || other.kind === 'cleared' || reachable.has(other.tile.id)) return best;
+      if (other.kind === 'unknown' || other.kind === 'cleared' || other.kind === 'mountain' || reachable.has(other.tile.id)) return best;
       const d = distance(tile, other.tile);
       if (d > 5) return best;
       return Math.max(best, (values[other.kind] - 4) / (1 + d * .8));

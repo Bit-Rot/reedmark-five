@@ -5,23 +5,27 @@ import { button, element } from './ui.ts';
 import campArt from './art/map/camp.webp';
 import chestArt from './art/map/chest.webp';
 import eliteArt from './art/map/elite.webp';
-import eventArt from './art/map/event.webp';
 import fightArt from './art/map/fight.webp';
 import shopArt from './art/map/shop.webp';
-import startArt from './art/map/start.webp';
+import mountainArt from './art/map/mountain.webp';
 
 const labels: Record<VisibleTile, string> = {
   normal: 'Combat', elite: 'Elite', camp: 'Campfire', shop: 'Shop', event: 'Event',
-  treasure: 'Treasure', unknown: 'Unrevealed', cleared: 'Cleared',
+  treasure: 'Treasure', mountain: 'Mountain', unknown: 'Unrevealed', cleared: 'Cleared',
 };
 const landmarks = {
-  normal: fightArt, elite: eliteArt, event: eventArt,
-  camp: campArt, shop: shopArt, treasure: chestArt,
+  normal: fightArt, elite: eliteArt,
+  camp: campArt, shop: shopArt, treasure: chestArt, mountain: mountainArt,
 };
 
-function landmark(src: string): HTMLImageElement {
+function landmark(kind: keyof typeof landmarks | 'event'): HTMLElement {
+  if (kind === 'event') {
+    const mark = element('span', 'map-landmark map-question', '?');
+    mark.setAttribute('aria-hidden', 'true');
+    return mark;
+  }
   const image = element('img', 'map-landmark');
-  image.src = src;
+  image.src = landmarks[kind];
   image.alt = '';
   image.draggable = false;
   return image;
@@ -55,14 +59,14 @@ export function campaignScreen(map: CampaignMap): HTMLElement {
     const marker = element('span', 'hex-marker');
     marker.setAttribute('aria-hidden', 'true');
     if (start) {
-      marker.append(landmark(startArt), element('span', 'hex-start-name', 'Start'),
+      marker.append(element('span', 'hex-start-name', 'Start'),
         element('span', 'hex-start-state', 'Cleared'));
     } else if (kind === 'cleared') {
       marker.textContent = '✓';
     } else if (kind !== 'unknown') {
-      marker.append(landmark(landmarks[kind]));
+      marker.append(landmark(kind));
     }
-    const name = start ? 'Start, already explored' : labels[kind];
+    const name = start ? 'Start, already explored' : kind === 'mountain' ? 'Mountain, impassable' : labels[kind];
     const label = name + ' at ' + tile.q + ', ' + tile.r + (current ? ', your position' : '');
     const active = !due && reachable.has(tile.id);
     const cell = active
@@ -146,8 +150,8 @@ export function campaignScreen(map: CampaignMap): HTMLElement {
   }, true);
 
   const legend = element('div', 'campaign-legend');
-  for (const kind of ['normal', 'elite', 'event', 'camp', 'shop', 'treasure'] as const) {
-    legend.append(element('span', '', landmark(landmarks[kind]), labels[kind]));
+  for (const kind of ['normal', 'elite', 'event', 'camp', 'shop', 'treasure', 'mountain'] as const) {
+    legend.append(element('span', '', landmark(kind), labels[kind]));
   }
   const panel = element('section', 'campaign-panel',
     element('div', 'campaign-heading', element('div', '', heading, timer,

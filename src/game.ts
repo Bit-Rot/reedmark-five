@@ -80,8 +80,9 @@ export function currentRoom(state: State): Room {
 
 export function explore(state: State, id: string): boolean {
   const map = state.map;
-  if (state.phase !== 'map' || !map || map.turn >= 48 || bossDue(map) || !frontier(map).has(id)) return false;
-  const tile = map.tiles.find(tile => tile.id === id)!;
+  if (state.phase !== 'map' || !map || map.turn >= 48 || bossDue(map)) return false;
+  const tile = map.tiles.find(tile => tile.id === id);
+  if (!tile || tile.kind === 'mountain' || !frontier(map).has(id)) return false;
   tile.visited = true;
   map.last = id;
   map.turn++;
@@ -165,6 +166,7 @@ function validCampaignSave(state: State): boolean {
     || new Set(map.tiles.map(tile => tile.id)).size !== 127
     || !map.tiles.every(tile => Number.isInteger(tile.q) && Number.isInteger(tile.r) && tile.id === tile.q + ',' + tile.r
       && distance(tile) <= RADIUS && TILE_TYPES.includes(tile.kind) && typeof tile.visited === 'boolean'
+      && (tile.kind !== 'mountain' || !tile.visited)
       && (tile.chest === undefined || (Number.isInteger(tile.chest) && tile.chest >= 0 && tile.chest < 3
         && !tile.visited && (tile.kind === 'normal' || tile.kind === 'event'))))
     || ![map.dropRng, map.encounterRng, map.eventRng, map.eventVisits, map.wave].every(Number.isInteger)

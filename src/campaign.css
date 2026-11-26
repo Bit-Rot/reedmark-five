@@ -16,76 +16,68 @@
   .campaign-controls .subtle { min-height: 34px; padding: 4px 8px; }
   .campaign-viewport {
     overflow: auto; min-width: 0; min-height: 0; overscroll-behavior: contain; touch-action: pan-x pan-y;
-    background: #172521; border-block: 1px solid #9d815580; scrollbar-color: #837051 #1b2824;
+    background: #d9be8c; border-block: 1px solid #997041; scrollbar-color: #8c6135 #ddc69b;
   }
   .campaign-board {
     position: relative; user-select: none; min-width: 100%; min-height: 100%; width: max-content;
     background:
-      radial-gradient(ellipse at center, transparent 22%, #0b17157d 88%, #0b1715d0),
-      url('./art/map/marsh.webp') center / cover no-repeat;
+      radial-gradient(ellipse at center, #efdfc160 35%, #af86502b),
+      url('./art/map/parchment.webp') center / cover no-repeat;
   }
   .campaign-hex {
+    --hex-rim: .75px;
+    --hex-outline: #6c4b2e8c;
     --hex-shape: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
-    position: absolute; width: calc(var(--hex-size) * .85); height: var(--hex-size); transform: translate(-50%, -50%);
+    position: absolute; width: calc(var(--hex-size) * .8660254); height: var(--hex-size); transform: translate(-50%, -50%);
     clip-path: var(--hex-shape); display: grid; place-items: center; border: 0; padding: 0;
-    background: linear-gradient(155deg, #737f68bb, #202f27d6 73%);
-    color: #deecd0; font: 700 calc(var(--hex-size) * .34)/1 var(--serif);
+    background: var(--hex-fill, transparent); color: #4b321e;
+    font: 700 calc(var(--hex-size) * .34)/1 var(--serif);
   }
   .campaign-hex::before {
-    content: ''; position: absolute; inset: 1px; z-index: -1; clip-path: var(--hex-shape);
-    background: var(--hex-fill, #1e2a24);
+    --inner-top: calc(var(--hex-rim) * 1.15);
+    --inner-shoulder: calc(var(--inner-top) * .5);
+    content: ''; position: absolute; inset: 0; pointer-events: none; background: var(--hex-outline);
+    clip-path: polygon(evenodd,
+      50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%, 50% 0,
+      50% var(--inner-top),
+      calc(100% - var(--hex-rim)) calc(25% + var(--inner-shoulder)),
+      calc(100% - var(--hex-rim)) calc(75% - var(--inner-shoulder)),
+      50% calc(100% - var(--inner-top)),
+      var(--hex-rim) calc(75% - var(--inner-shoulder)),
+      var(--hex-rim) calc(25% + var(--inner-shoulder)),
+      50% var(--inner-top));
   }
-  .campaign-hex[data-kind='unknown'] {
-    background: #101b153f;
-    --hex-fill: #8b9d8c14;
+  .campaign-hex[data-kind='unknown'] { --hex-fill: #6243260f; }
+  .campaign-hex[data-kind='cleared'] { --hex-fill: #79563742; }
+  .campaign-hex[data-kind='mountain'] {
+    --hex-fill: repeating-linear-gradient(135deg, #74513326 0 1px, transparent 1px 5px), #80604436;
+    --hex-outline: #765237;
   }
-  .campaign-hex[data-kind='cleared'] {
-    background: #7b9b8499;
-    --hex-fill: #243b32;
-  }
-  .campaign-hex[data-kind='normal'] { --hex-fill: #3b2f25; }
-  .campaign-hex[data-kind='elite'] { --hex-fill: #422b28; }
-  .campaign-hex[data-kind='event'] { --hex-fill: #352c3b; }
-  .campaign-hex[data-kind='camp'] { --hex-fill: #403624; }
-  .campaign-hex[data-kind='shop'] { --hex-fill: #263c32; }
-  .campaign-hex[data-kind='treasure'] { --hex-fill: #48391d; }
-  .hex-marker {
-    display: grid; place-items: center; width: 100%; height: 100%; pointer-events: none;
-    text-shadow: 0 1px 2px #0c1713;
-  }
+  .hex-marker { display: grid; place-items: center; width: 100%; height: 100%; pointer-events: none; }
   .map-landmark { display: block; object-fit: contain; pointer-events: none; }
-  .hex-marker .map-landmark {
-    width: calc(var(--hex-size) * .71); height: calc(var(--hex-size) * .66);
-    filter: drop-shadow(0 2px 2px #090f0cb0);
-  }
-  .campaign-hex[data-start] {
-    background: #638277;
-    --hex-fill: #162a25;
-  }
-  .campaign-hex[data-start] .hex-marker { align-content: center; }
-  .campaign-hex[data-start] .map-landmark {
-    width: calc(var(--hex-size) * .5); height: calc(var(--hex-size) * .28);
-  }
+  .hex-marker .map-landmark { width: 57%; height: 50%; }
+  .hex-marker .map-question { display: grid; place-items: center; font-size: calc(var(--hex-size) * .45); }
+  .campaign-hex[data-start] { --hex-fill: #9a795044; --hex-outline: #765237; }
+  .campaign-hex[data-start] .hex-marker { align-content: center; gap: 1px; }
   .hex-start-name { font: 700 calc(var(--hex-size) * .19)/1.05 var(--serif); }
-  .hex-start-state { color: #c7decd; font: 650 calc(var(--hex-size) * .17)/1.08 system-ui, sans-serif; }
+  .hex-start-state { color: #553d29; font: 650 calc(var(--hex-size) * .17)/1.08 system-ui, sans-serif; }
   .campaign-hex[data-current]::after {
-    content: ''; position: absolute; top: 8%; left: 50%; translate: -50%;
-    width: 11%; aspect-ratio: 1; background: #a9d7c2; rotate: 45deg;
-    box-shadow: 0 0 4px #a9d7c274; pointer-events: none;
+    content: ''; position: absolute; top: 13%; left: 50%; translate: -50%;
+    width: 9%; aspect-ratio: 1; background: #5e4529; rotate: 45deg; pointer-events: none;
   }
   .campaign-hex[data-reachable] {
-    background: linear-gradient(155deg, #ffe3a6, #cda356 55%, #805323);
-    cursor: pointer;
+    --hex-rim: 2px; --hex-outline: #a0662a; --hex-fill: #fff1c5a8; cursor: pointer;
   }
-  .campaign-hex[data-reachable]::before { inset: 2px; }
-  .campaign-hex[data-reachable]:is(:hover, :focus-visible) { background: #ffebba; }
-  .campaign-hex[data-reachable]:focus-visible::before { inset: 4px; }
+  .campaign-hex[data-reachable]:is(:hover, :focus-visible) { --hex-outline: #6b421b; --hex-fill: #fff4d6cb; }
+  .campaign-hex[data-reachable]:focus-visible { --hex-rim: 3px; }
   .campaign-legend {
     display: flex; gap: 4px 16px; flex-wrap: wrap; padding: 7px 14px;
     font-size: .74rem; color: #decdb1;
   }
-  .campaign-legend span { display: inline-flex; align-items: center; gap: 4px; }
-  .campaign-legend .map-landmark { width: 23px; height: 21px; }
+  .campaign-legend > span { display: inline-flex; align-items: center; gap: 4px; }
+  .campaign-legend .map-landmark { width: 18px; height: 18px; }
+  .campaign-legend img.map-landmark { filter: brightness(0) invert(.83) sepia(.35); }
+  .campaign-legend .map-question { font: 700 1.05rem/18px var(--serif); text-align: center; }
   .event-copy { color:#efdebc; margin:0 0 12px; }
   .event-offers { display:grid; gap:8px; }
   .event-offers .offer-card { width:100%; font-size:.91rem; }
