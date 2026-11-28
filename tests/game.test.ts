@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { DATA, ITEMS, RELICS, ROOMS } from '../src/content.ts';
-import { actionPreview, advance, canPlay, chooseOffer, commitRoll, endTurn, faceFor, incoming, newLinearRun as newRun, offerTargets, play, reroll, setHold } from '../src/game.ts';
+import { actionPreview, advance, canPlay, chooseOffer, commitRoll, endTurn, faceFor, incoming, newLinearRun as newRun, offerTargets, play, reroll, restoreSave, setHold } from '../src/game.ts';
 
-test('fixed rolls five, holds through three rerolls, and commits once', () => {
+test('fixed rolls five, holds through two rerolls, and commits once', () => {
   const s = newRun('fixed', 231);
   const c = s.combat!;
   assert.equal(s.dice.length, 5);
@@ -13,13 +13,35 @@ test('fixed rolls five, holds through three rerolls, and commits once', () => {
   assert(setHold(s, first.dieId, true));
   assert(reroll(s));
   assert(reroll(s));
-  assert(reroll(s));
   assert.equal(first.slot, slot);
   assert.equal(reroll(s), false);
   assert(commitRoll(s));
   assert(c.rolls.every(roll => roll.held));
   assert.equal(setHold(s, first.dieId, false), false);
   assert.equal(commitRoll(s), false);
+});
+
+test('Dice Pool still starts each turn with three rerolls', () => {
+  const state = newRun('pool', 231);
+  assert.equal(state.combat?.rerolls, 3);
+  assert(reroll(state) && reroll(state) && reroll(state));
+  assert.equal(reroll(state), false);
+});
+
+test('Fixed Five saves preserve spent rerolls, holds, and an earned Pocket Spring reroll', () => {
+  const state = newRun('fixed', 231);
+  const combat = state.combat!;
+  state.relics = ['pocket-spring'];
+  combat.turn = 3;
+  combat.rerolls = 3; // The old three base rerolls plus one bonus, after spending one.
+  delete combat.baseRerolls;
+  assert(setHold(state, combat.rolls[0].dieId, true));
+
+  const migrated = restoreSave(state, 'fixed', true)!;
+  assert.equal(migrated.combat?.rerolls, 2);
+  assert.deepEqual(migrated.combat?.rolls, combat.rolls);
+  assert.equal(combat.rerolls, 3);
+  assert.equal(restoreSave(structuredClone(migrated), 'fixed', true)?.combat?.rerolls, 2);
 });
 
 test('invalid targets preserve state and killing an enemy cancels its intents', () => {

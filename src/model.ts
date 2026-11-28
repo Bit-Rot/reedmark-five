@@ -135,6 +135,8 @@ export interface Combat {
   turn: number;
   phase: 'roll' | 'play';
   rerolls: number;
+  /** Starting allowance before relic bonuses. Older Fixed Five saves used three. */
+  baseRerolls?: number;
   enemies: Enemy[];
   intents: Intent[];
   rolls: Roll[];

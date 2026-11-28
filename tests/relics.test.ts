@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { BASE_REROLLS, actionPreview, advance, commitRoll, endTurn, faceFor, incoming, mainPips, newLinearRun as newRun, play, reroll, rollFace } from '../src/game.ts';
+import { actionPreview, baseRerolls, advance, commitRoll, endTurn, faceFor, incoming, mainPips, newLinearRun as newRun, play, reroll, rollFace } from '../src/game.ts';
 import type { Slot } from '../src/model.ts';
 
 const foe = { kind: 'enemy', id: 'gnat-a' } as const;
@@ -79,7 +79,7 @@ test('turn and fight triggers apply Weak and Ward at the right time and grant ev
   c.intents = [attack];
   assert(commitRoll(state) && endTurn(state));
   assert.equal(state.hp, state.maxHp - 3);
-  assert.equal(c.guard, BASE_REROLLS + 4);
+  assert.equal(c.guard, baseRerolls('fixed') + 4);
   c.guard = 0;
   c.intents = [attack];
   assert.equal(incoming(c), 3);
@@ -88,8 +88,8 @@ test('turn and fight triggers apply Weak and Ward at the right time and grant ev
   assert.equal(incoming(middlePlayed), 6);
   assert(commitRoll(state) && endTurn(state));
   assert.equal(state.hp, state.maxHp - 6);
-  assert.equal(c.guard, BASE_REROLLS);
-  assert.equal(c.rerolls, BASE_REROLLS + 1);
+  assert.equal(c.guard, baseRerolls('fixed'));
+  assert.equal(c.rerolls, baseRerolls('fixed') + 1);
   c.rolls[0].slot = 'left';
   assert(commitRoll(state));
   assert.equal(pips(0), 6);
@@ -133,7 +133,7 @@ test('a blank reroll pays Block and Hinge Pin retries one landed blank for free'
     assert(reroll(baseline) && reroll(state));
     if (rollFace(baseline, baseline.combat!.rolls[4]).target !== 'none') continue;
     assert.equal(c.guard, 2);
-    assert.equal(c.rerolls, BASE_REROLLS - 1);
+    assert.equal(c.rerolls, baseRerolls('fixed') - 1);
     assert.notEqual(state.combatRng, baseline.combatRng);
     assert(c.relicTurn?.fired.includes('hingePin'));
     assert(reroll(state));

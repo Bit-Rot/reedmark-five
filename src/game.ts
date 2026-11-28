@@ -10,7 +10,7 @@ import type { Combat, CopiedFace, Die, Encounter, Enemy, Face, FaceCopyOffer, In
 /** What an exerted die or exhausted slot shows. */
 export const BLANK_FACE: Face = { target: 'none', parts: [{ kind: 'blank', value: 0 }], ...(BLANK_IMAGE ? { image: BLANK_IMAGE } : {}) };
 const BLANK = BLANK_FACE;
-export const BASE_REROLLS = 3;
+export const baseRerolls = (variant: Variant): number => variant === 'fixed' ? 2 : 3;
 const SHOP_ROOM = ROOMS.findIndex(room => room.type === 'shop');
 const encounterIndex = (room: number) => room > SHOP_ROOM ? room - 1 : room;
 const DISCOVERIES = Object.keys(DICE).filter(id =>
@@ -125,9 +125,20 @@ export function restoreSave(data: unknown, variant: Variant, allowLinearFixed = 
     data = { ...data, version: 5, room: data.room >= SHOP_ROOM ? data.room + 1 : data.room };
   }
   if (!isSave(data, variant)) return null;
-  const room = currentRoom(data);
-  const bossReward = !!data.map && room.type === 'battle' && room.rank === 'boss';
-  return !bossReward && data.phase === 'reward' && data.offers.some(isRareOffer) ? replaceRareOffers(data) : data;
+  let state = data;
+  const combat = state.combat;
+  if (variant === 'fixed' && state.phase === 'battle' && combat) {
+    const limit = baseRerolls(variant);
+    const previousLimit = combat.baseRerolls ?? 3;
+    if (previousLimit !== limit) {
+      // Adjust the starting allowance while preserving spent rerolls and relic bonuses.
+      const rerolls = Math.max(0, combat.rerolls + limit - previousLimit);
+      state = { ...state, combat: { ...combat, baseRerolls: limit, rerolls } };
+    }
+  }
+  const room = currentRoom(state);
+  const bossReward = !!state.map && room.type === 'battle' && room.rank === 'boss';
+  return !bossReward && state.phase === 'reward' && state.offers.some(isRareOffer) ? replaceRareOffers(state) : state;
 }
 
 export function isSave(data: unknown, variant: Variant): data is State {
@@ -196,7 +207,7 @@ function enterRoom(state: State): void {
     state.phase = 'battle';
     state.combatRng = step((state.seed ^ Math.imul(battleNumber(state), 0x90ad)) >>> 0);
     state.combat = {
-      turn: 0, phase: 'roll', rerolls: BASE_REROLLS, enemies, intents: [], rolls: [], bag: [], guard: 0, ward: 0, exerted: {}, grown: {}, previous: null, events: [],
+      turn: 0, phase: 'roll', rerolls: baseRerolls(state.variant), enemies, intents: [], rolls: [], bag: [], guard: 0, ward: 0, exerted: {}, grown: {}, previous: null, events: [],
     };
     if (starterRelicFor(state)?.effect === 'frenzyOnDamage') state.combat.frenzy = 0;
     startTurn(state, room, state.combat);
@@ -240,7 +251,8 @@ function startTurn(state: State, room: Encounter, combat: Combat): void {
   combat.previous = null;
   delete combat.sequence;
   combat.phase = 'roll';
-  combat.rerolls = BASE_REROLLS;
+  combat.rerolls = baseRerolls(state.variant);
+  if (state.variant === 'fixed') combat.baseRerolls = combat.rerolls;
   combat.guard = combat.ward;
   combat.ward = 0;
   startRelicTurn(state, combat);

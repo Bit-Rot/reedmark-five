@@ -370,14 +370,12 @@ test('dice names are never shown or announced; they are code names only', async 
   expect(await page.locator('#interface').innerText()).not.toMatch(names);
 });
 
-test('the roll commits by itself after the third reroll', async ({ page }) => {
+test('the roll commits by itself after the second reroll', async ({ page }) => {
   await page.goto('/?route=linear&seed=231');
-  await expect(action(page, 'reroll')).toHaveAccessibleName('Reroll, 3 left');
-  for (const left of [2, 1]) {
-    await action(page, 'reroll').click();
-    await expect(action(page, 'commit')).toBeVisible();
-    await expect(action(page, 'reroll')).toHaveAccessibleName(`Reroll, ${left} left`);
-  }
+  await expect(action(page, 'reroll')).toHaveAccessibleName('Reroll, 2 left');
+  await action(page, 'reroll').click();
+  await expect(action(page, 'commit')).toBeVisible();
+  await expect(action(page, 'reroll')).toHaveAccessibleName('Reroll, 1 left');
   await action(page, 'reroll').click();
   await expect(action(page, 'end')).toBeVisible();
   await expect(action(page, 'commit')).toHaveCount(0);

@@ -5,7 +5,7 @@ import { EVENTS } from './campaign-content.ts';
 import { campaignScreen } from './campaign-ui.ts';
 import { cycleAt } from './campaign-map.ts';
 import { CHARACTERS, DICE, FACE_IMAGE_PATHS, ITEMS, RELICS, ROOMS } from './content.ts';
-import { BASE_REROLLS, actionPreview, advance, canPlay, canTakeEventOffer, chooseOffer, commitRoll, currentRoom, endTurn, eventChoiceFor, explore, incoming, intentValues, restoreSave,
+import { actionPreview, baseRerolls, advance, canPlay, canTakeEventOffer, chooseOffer, commitRoll, currentRoom, endTurn, eventChoiceFor, explore, incoming, intentValues, restoreSave,
   faceFor, facesFor, newLinearRun, newRun, offerTargets, play, previewDie, previewUpgrade, reroll, rollFace, setHold, startBoss, starterRelicFor } from './game.ts';
 import { SLOTS } from './model.ts';
 import type { Die, Face, Offer, Relic, Roll, Slot, State, Target, Variant } from './model.ts';
@@ -1353,7 +1353,7 @@ document.addEventListener('keydown', event => {
 await Promise.all([loadEffectImages(), loadFaceImages(FACE_IMAGE_PATHS)]);
 board = new Battlefield(stage, positionWorld);
 save();
-if (!choosing && state.phase === 'battle' && state.combat?.phase === 'roll' && state.combat.turn === 1 && state.combat.rerolls === BASE_REROLLS) {
+if (!choosing && state.phase === 'battle' && state.combat?.phase === 'roll' && state.combat.turn === 1 && state.combat.rerolls === baseRerolls(variant)) {
   animateRoll(state.combat.rolls.filter(roll => !roll.held).map(roll => roll.dieId), true);
 } else {
   render();
