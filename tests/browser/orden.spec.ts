@@ -124,13 +124,28 @@ test('tap can hold, release, and play a die on a narrow phone', async ({ browser
     await expect(page.locator('.formation-hint')).toContainText(/Die 5.*Pain/i);
 
     const source = die(page, 'd2');
+    const session = await context.newCDPSession(page);
+    const layout = page.getByRole('dialog', { name: 'Die 3 layout' });
+    async function inspectDie() {
+      const point = await center(source);
+      await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point] });
+      await expect(layout).toBeVisible({ timeout: 1800 });
+      await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await expect(layout.locator('.net-tile')).toHaveCount(6);
+    }
+
+    await inspectDie();
+    await expect(source).toHaveAttribute('data-world-die', 'd2');
+    await layout.getByRole('button', { name: 'Close die layout' }).tap();
     await source.tap();
     await expect(slot(page, 0).locator(source)).toBeVisible();
+    await inspectDie();
+    await expect(slot(page, 0).locator(source)).toBeVisible();
+    await layout.getByRole('button', { name: 'Close die layout' }).tap();
     await source.tap();
     await expect(source).toHaveAttribute('data-world-die', 'd2');
     const start = await center(source);
     const end = await center(slot(page, 2));
-    const session = await context.newCDPSession(page);
     await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [start] });
     for (let step = 1; step <= 6; step++) {
       const x = start.x + (end.x - start.x) * step / 6;
@@ -139,9 +154,13 @@ test('tap can hold, release, and play a die on a narrow phone', async ({ browser
     }
     await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await expect(slot(page, 2).locator(source)).toHaveAccessibleName(/4 Block/);
-    await session.detach();
     await page.getByRole('button', { name: 'Commit dice' }).tap();
     await expect(page.getByRole('button', { name: 'End turn' })).toBeVisible();
+    await inspectDie();
+    await expect(slot(page, 2).locator(source)).toBeVisible();
+    await expect(slot(page, 2).locator('.is-spent')).toHaveCount(0);
+    await layout.getByRole('button', { name: 'Close die layout' }).tap();
+    await session.detach();
     await source.tap();
     await expect(slot(page, 2).locator('.is-spent')).toBeVisible();
     await expect(page.locator('[data-threat]')).toHaveAccessibleName(/4 Block/);

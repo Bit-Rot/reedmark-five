@@ -582,6 +582,44 @@ test('the shop sells relics and previews a face copy without ending the visit', 
   await expect(page.locator('.stage-cube .cube-tag')).toHaveCount(5);
 });
 
+test('mobile long press inspects a battle die without holding or playing it', async ({ browser }) => {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce',
+  });
+  await using cleanup = { [Symbol.asyncDispose]: () => context.close() };
+  const page = await context.newPage();
+  const touch = await context.newCDPSession(page);
+  const state = newRun('fixed', 231, 'barbarian');
+  state.combat!.rolls[2].slot = 'left';
+  await saveFixture(page, state);
+  const source = die(page, 'd2');
+  const dialog = page.getByRole('dialog', { name: 'Die 3 layout' });
+
+  async function inspectDie() {
+    const point = await center(source);
+    await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point] });
+    await expect(dialog).toBeVisible({ timeout: 1800 });
+    await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await expect(dialog.locator('.net-tile')).toHaveCount(6);
+  }
+
+  await inspectDie();
+  await expect(source).toHaveAttribute('data-world-die', 'd2');
+  await dialog.locator('[data-slot="left"]').tap();
+  await expect(dialog.getByRole('tooltip')).toContainText('4 Block');
+  await dialog.getByRole('button', { name: 'Close die layout' }).tap();
+  await source.tap();
+  const slot = page.locator('[data-socket="2"]');
+  await expect(slot.locator(source)).toBeVisible();
+  await action(page, 'commit').tap();
+  await inspectDie();
+  await dialog.getByRole('button', { name: 'Close die layout' }).tap();
+  await expect(slot.locator(source)).toBeVisible();
+  await expect(actor(page, 'courier').locator('.chip--guard')).toHaveCount(0);
+  await source.tap();
+  await expect(actor(page, 'courier').locator('.chip--guard')).toHaveText('4');
+});
+
 test('mobile long press opens one face layout for the reward item or owned die', async ({ browser }) => {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce',

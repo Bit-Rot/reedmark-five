@@ -61,12 +61,12 @@
   .inspect-heading { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 9px; }
   .inspect-heading h2 { font: 700 1.34rem/1.1 var(--serif); margin: 0; }
 
-  .die-inspection:is(.reward-inspection, .enemy-die-inspection) {
+  dialog.die-inspection {
     inset: 0; margin: auto; max-height: calc(100% - 24px); overscroll-behavior: contain;
   }
-  :is(.reward-inspection, .enemy-die-inspection)::backdrop { background: #061215bd; backdrop-filter: blur(3px); }
+  dialog.die-inspection::backdrop { background: #061215bd; backdrop-filter: blur(3px); }
   .reward-inspection-hint { display: none; }
-  [data-inspect-item], .overlay [data-inspect-die] { -webkit-touch-callout: none; user-select: none; }
+  [data-inspect-item], [data-inspect-die] { -webkit-touch-callout: none; user-select: none; }
   .boss-spoils { width: 100%; }
   .boss-spoils h2 { margin: 0 0 7px; font: 700 1.2rem/1.2 var(--serif); }
   .boss-loot { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }

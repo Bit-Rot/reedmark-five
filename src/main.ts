@@ -1016,7 +1016,7 @@ function inspectAnchor(target: EventTarget | null): HTMLElement | null {
   return target instanceof Element ? target.closest<HTMLElement>(INSPECT_TARGET) : null;
 }
 
-function openInspection(anchor: HTMLElement, keyboard = false): void {
+function openInspection(anchor: HTMLElement, options: { keyboard?: boolean; modal?: boolean } = {}): void {
   const itemId = anchor.dataset.inspectItem;
   const die = state.dice.find(entry => entry.id === anchor.dataset.inspectDie);
   const battle = state.phase === 'battle' && !itemId;
@@ -1032,9 +1032,9 @@ function openInspection(anchor: HTMLElement, keyboard = false): void {
     net = faceNet(die, undefined, true, battle ? state : undefined);
   } else return;
 
-  const panel = battle ? element('section', 'die-inspection') : element('dialog', 'die-inspection reward-inspection');
+  const panel = battle && !options.modal ? element('section', 'die-inspection') : element('dialog', 'die-inspection');
   showInspection(panel, anchor, title, heading, net, battle ? 'Close die layout' : 'Close inspection');
-  if (keyboard) panel.querySelector<HTMLElement>('[data-face-help]')?.focus({ preventScroll: true });
+  if (options.keyboard) panel.querySelector<HTMLElement>('[data-face-help]')?.focus({ preventScroll: true });
 }
 
 function openEnemyDie(anchor: HTMLButtonElement): void {
@@ -1089,17 +1089,20 @@ function cancelInspectionPress(): void {
 }
 
 root.addEventListener('pointerdown', event => {
-  if ((state.phase !== 'reward' && state.phase !== 'victory')
-    || !event.isPrimary || event.button !== 0 || (event.pointerType !== 'touch' && event.pointerType !== 'pen')) return;
+  if (!event.isPrimary || event.button !== 0 || (event.pointerType !== 'touch' && event.pointerType !== 'pen')) return;
+  const battle = state.phase === 'battle';
+  if (battle ? rolling || menu || ledger : state.phase !== 'reward' && state.phase !== 'victory') return;
   const anchor = inspectAnchor(event.target);
-  if (!anchor) return;
+  if (!anchor || (battle && !anchor.hasAttribute('data-die'))) return;
   cancelInspectionPress();
   const press = { anchor, pointer: event.pointerId, x: event.clientX, y: event.clientY, timer: 0, opened: false };
   press.timer = window.setTimeout(() => {
     if (!anchor.isConnected || drag?.started) return;
     press.opened = true;
+    // The release belongs to this inspection, including the touch fallback that calls button.click().
+    if (battleTap?.pointer === press.pointer) battleTap = null;
     clearDrag();
-    openInspection(anchor);
+    openInspection(anchor, { modal: true });
   }, 460);
   inspectionPress = press;
 });
@@ -1124,7 +1127,7 @@ root.addEventListener('contextmenu', event => {
   const anchor = inspectAnchor(event.target);
   if (!anchor) return;
   event.preventDefault();
-  if (state.phase !== 'battle' && event.pointerType === 'touch') return;
+  if (event.pointerType === 'touch' || inspectionPress?.anchor === anchor) return;
   if (!rolling && !drag?.started && inspection?.anchor !== anchor) openInspection(anchor);
 });
 
@@ -1259,7 +1262,7 @@ view.addEventListener('click', event => {
     return;
   }
   if (action === 'inspect-reward') {
-    openInspection(node, event.detail === 0);
+    openInspection(node, { keyboard: event.detail === 0 });
     return;
   }
   if (action === 'inspect') {
@@ -1333,7 +1336,7 @@ view.addEventListener('click', event => {
     }
   } else if (action === 'imprint-die') {
     if (offerIndex !== null) finishImprint(offerIndex, node.dataset.imprintTarget!);
-    else openInspection(node, event.detail === 0);
+    else openInspection(node, { keyboard: event.detail === 0 });
   } else if (action === 'upgrade-face') {
     if (offerIndex !== null && chooseOffer(state, offerIndex, node.dataset.upgradeDie, node.dataset.slot as Slot)) {
       offerIndex = null;
@@ -1511,7 +1514,7 @@ document.addEventListener('keydown', event => {
     const anchor = inspectAnchor(event.target);
     if (anchor && !rolling) {
       event.preventDefault();
-      openInspection(anchor, true);
+      openInspection(anchor, { keyboard: true });
     }
     return;
   }
