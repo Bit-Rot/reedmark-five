@@ -4,14 +4,17 @@ import type { RelicEffect } from './relic-data.ts';
 export const SLOTS = ['left', 'center', 'right', 'far', 'top', 'bottom'] as const;
 export type Slot = typeof SLOTS[number];
 export type Variant = 'fixed' | 'pool';
+export const POSITION_KEYWORDS = ['haste', 'brace', 'neighborPair', 'anchor', 'centered', 'flank', 'bypass'] as const;
+export type PositionKeyword = typeof POSITION_KEYWORDS[number];
 export const FORMATION_SIZE = 5;
+
 export const SEQUENCE_KEYWORDS = ['burnPlays', 'afterBurn', 'firstBurn', 'echo', 'fullHealth', 'pair', 'trio', 'clearBurn'] as const;
 export type SequenceKeyword = typeof SEQUENCE_KEYWORDS[number];
 export type Kind = 'hit' | 'guard' | 'seep' | 'boost' | 'ward' | 'vulnerable' | 'weak' | 'exert' | 'cantrip' | 'blank' | 'growth' | 'inspired'
   | 'burn' | 'selfBurn' | 'heal' | 'exhaust' | 'burnDamage' | 'burnDouble' | 'afterExhaust'
-  | 'dieBlanks' | 'kitBlanks' | 'frenzyThreshold' | 'frenzySpend' | 'frenzyAll' | 'petrified' | 'selfDamage' | 'pain' | SequenceKeyword;
+  | 'dieBlanks' | 'kitBlanks' | 'frenzyThreshold' | 'frenzySpend' | 'frenzyAll' | 'petrified' | 'selfDamage' | 'pain' | SequenceKeyword | PositionKeyword;
 /** Kinds that carry no number (they are either present or not). */
-export const FLAG_KINDS: readonly Kind[] = ['exert', 'cantrip', 'blank', 'petrified', 'inspired', 'exhaust', 'burnDamage', 'burnDouble', 'dieBlanks', ...SEQUENCE_KEYWORDS.filter(kind => kind !== 'afterBurn' && kind !== 'firstBurn')];
+export const FLAG_KINDS: readonly Kind[] = ['exert', 'cantrip', 'blank', 'petrified', 'inspired', 'exhaust', 'burnDamage', 'burnDouble', 'dieBlanks', ...POSITION_KEYWORDS, ...SEQUENCE_KEYWORDS.filter(kind => kind !== 'afterBurn' && kind !== 'firstBurn')];
 export type TargetKind = 'enemy' | 'self' | 'die' | 'none' | 'all';
 export type Target = { kind: TargetKind; id?: string };
 
@@ -145,7 +148,18 @@ export interface RelicTurn {
   committedBlank?: boolean;
   drownedCompass?: boolean;
 }
+export interface Placement {
+  dieId: string;
+  /** A reroll or Commit fixed this die in its row position. */
+  locked?: boolean;
+  /** Structural face at commitment, used when checking positional neighbors. */
+  shape?: Face;
+  hasted?: boolean;
+}
 export interface Combat {
+  /** The combat row. Reroll fixes occupied positions and Commit fixes the entire row. */
+  formation?: (Placement | null)[];
+
   turn: number;
   phase: 'roll' | 'play';
   rerolls: number;

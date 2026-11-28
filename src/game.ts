@@ -5,7 +5,8 @@ import { BOSS_IDS, CAMPAIGN_FIGHTS, EVENTS, nextEncounter, nextEvent } from './c
 import { BOSS_TURNS, CENTER, RADIUS, TILE_TYPES, bossDue, createCampaign, cycleAt, distance, frontier, revealTreasureWave } from './campaign-map.ts';
 import type { EventChoice } from './campaign-content.ts';
 import { addKeywordToFace } from './data/runtime.ts';
-import { SEQUENCE_KEYWORDS, SLOTS, matchMultiplier } from './model.ts';
+import { positionFace } from './formation.ts';
+import { FORMATION_SIZE, SEQUENCE_KEYWORDS, SLOTS, matchMultiplier } from './model.ts';
 import { afterRelicFace, claimTurnRelic, commitRelics, compassTarget, endRelicTurn, relicPips, relicsOnHpDamage, startRelicTurn } from './relics.ts';
 import type { Combat, CopiedFace, Die, Encounter, Enemy, Face, FaceCopyOffer, Intent, Offer, Part, Rarity, Roll, Room, Slot, State, Target, Variant } from './model.ts';
 
@@ -13,11 +14,14 @@ import type { Combat, CopiedFace, Die, Encounter, Enemy, Face, FaceCopyOffer, In
 export const BLANK_FACE: Face = { target: 'none', parts: [{ kind: 'blank', value: 0 }], ...(BLANK_IMAGE ? { image: BLANK_IMAGE } : {}) };
 const BLANK = BLANK_FACE;
 export const baseRerolls = (variant: Variant): number => variant === 'fixed' ? 2 : 3;
+export const usesFormation = (state: Pick<State, 'variant' | 'character'>): boolean =>
+  state.variant === 'fixed' && state.character === 'orden';
 const SHOP_ROOM = ROOMS.findIndex(room => room.type === 'shop');
 const encounterIndex = (room: number) => room > SHOP_ROOM ? room - 1 : room;
-const DISCOVERIES = Object.keys(DICE).filter(id =>
-  !CHARACTERS.some(hero => hero.starterRelic && hero.starterDice.includes(id))
-  || CHARACTERS.some(hero => !hero.starterRelic && hero.starterDice.includes(id)));
+const DISCOVERIES = Object.keys(DICE).filter(id => {
+  const heroes = CHARACTERS.filter(hero => hero.starterDice.includes(id));
+  return !heroes.length || heroes.some(hero => hero.id !== 'orden' && !hero.starterRelic);
+});
 
 export const starterRelicFor = (state: Pick<State, 'character'>) =>
   CHARACTERS.find(hero => hero.id === state.character)?.starterRelic;
@@ -43,7 +47,7 @@ function shuffled<T>(values: T[], state: State): T[] {
 const newDie = (template: string, index: number): Die => ({ id: `d${index}`, template, imprints: {} });
 
 function initialState(variant: Variant, seed: number, character: string): State {
-  const hero = CHARACTERS.find(c => c.id === character) ?? CHARACTERS[0];
+  const hero = CHARACTERS.find(c => c.id === character && (variant === 'fixed' || c.id !== 'orden')) ?? CHARACTERS[0];
   // Dice Pool starts with ten dice: the character's five, twice.
   const ids = variant === 'fixed' ? hero.starterDice : [...hero.starterDice, ...hero.starterDice];
   const state: State = {
@@ -163,12 +167,30 @@ export function isSave(data: unknown, variant: Variant): data is State {
         && Object.entries(die.copies ?? {}).every(([slot, face]) => SLOTS.includes(slot as Slot) && DICE[face.template]
           && SLOTS.includes(face.slot) && (!face.item || ITEMS[face.item]?.edits[face.slot])
           && (face.upgrades === undefined || Array.isArray(face.upgrades))))
+      && (variant === 'fixed' || save.character !== 'orden')
       && Array.isArray(save.offers)
       && (save.phase !== 'battle' || (save.combat?.rolls.length === 5 && validEnemyIntents(save.combat)
-        && save.combat.rolls.every(roll => save.dice.some(die => die.id === roll.dieId) && SLOTS.includes(roll.slot))));
+        && save.combat.rolls.every(roll => save.dice.some(die => die.id === roll.dieId) && SLOTS.includes(roll.slot))
+        && (usesFormation(save) ? validFormation(save.combat) : save.combat.formation === undefined)));
   } catch {
     return false;
   }
+}
+
+function validFormation(combat: Combat): boolean {
+  const row = combat.formation;
+  if (!Array.isArray(row) || row.length !== FORMATION_SIZE || (combat.phase !== 'roll' && combat.phase !== 'play')) return false;
+  const placed = new Set<string>();
+  for (const slot of row) {
+    if (slot === null) continue;
+    if (placed.has(slot.dieId) || !combat.rolls.some(roll => roll.dieId === slot.dieId)
+      || (slot.shape !== undefined && !Array.isArray(slot.shape.parts))
+      || (slot.hasted !== undefined && typeof slot.hasted !== 'boolean')
+      || (slot.locked !== undefined && typeof slot.locked !== 'boolean')) return false;
+    placed.add(slot.dieId);
+  }
+  if (combat.phase === 'play' && placed.size !== FORMATION_SIZE) return false;
+  return combat.rolls.every(roll => (combat.phase === 'play' || !roll.used) && roll.held === placed.has(roll.dieId));
 }
 
 function validCampaignSave(state: State): boolean {
@@ -256,6 +278,7 @@ function startTurn(state: State, room: Encounter, combat: Combat): void {
   combat.phase = 'roll';
   combat.rerolls = baseRerolls(state.variant);
   if (state.variant === 'fixed') combat.baseRerolls = combat.rerolls;
+  if (usesFormation(state)) combat.formation = Array.from({ length: FORMATION_SIZE }, () => null);
   combat.guard = combat.ward;
   combat.ward = 0;
   startRelicTurn(state, combat);
@@ -329,16 +352,53 @@ const withPips = (face: Face, change: (value: number) => number): Face =>
 /** The pips of a face: the value of its first damage or block part. */
 export const mainPips = (face: Pick<Face, 'parts'>): number => face.parts.find(part => PIPS.includes(part.kind))?.value ?? 0;
 
-type FaceResolution = { automatic?: boolean };
+type FaceResolution = { automatic?: boolean; skipSequence?: boolean };
+
+function placementIndex(combat: Combat, dieId: string): number {
+  return combat.formation?.findIndex(slot => slot?.dieId === dieId) ?? -1;
+}
+
+export function isHasted(state: State, dieId: string): boolean {
+  const combat = state.combat;
+  return combat?.phase === 'play'
+    && combat.formation?.find(slot => slot?.dieId === dieId)?.hasted === true;
+}
+
+function bareRollFace(state: State, roll: Roll, resolution?: FaceResolution): Face {
+  return combatFaceFor(state, state.dice.find(die => die.id === roll.dieId)!, roll.slot, resolution);
+}
+
+function hazardSlot(combat: Combat, roll: Roll): number {
+  return combat.formation ? placementIndex(combat, roll.dieId) : combat.rolls.indexOf(roll);
+}
+
+function drainFace(face: Face, penalty: number): Face {
+  if (!penalty || face.target === 'none') return face;
+  return { ...face, parts: face.parts.map(part => PIPS.includes(part.kind) || part.kind === 'heal'
+    ? { ...part, value: Math.max(0, part.value - penalty) } : part) };
+}
 
 export function rollFace(state: State, roll: Roll, resolution?: FaceResolution): Face {
-  const face = combatFaceFor(state, state.dice.find(die => die.id === roll.dieId)!, roll.slot, resolution);
   const combat = state.combat;
-  if (resolution?.automatic || !combat || face.target === 'none') return face;
-  const drain = slotPipPenalty(combat, combat.rolls.indexOf(roll));
-  if (!drain) return face;
-  return { ...face, parts: face.parts.map(part => PIPS.includes(part.kind) || part.kind === 'heal'
-    ? { ...part, value: Math.max(0, part.value - drain) } : part) };
+  if (!combat || resolution?.automatic) return bareRollFace(state, roll, resolution);
+  const index = hazardSlot(combat, roll);
+  if (!combat.formation) return drainFace(bareRollFace(state, roll, resolution), slotPipPenalty(combat, index));
+  if (index < 0) return bareRollFace(state, roll, resolution);
+
+  const base = bareRollFace(state, roll, { skipSequence: true });
+  if (base.target === 'none') return base;
+  const row = combat.formation.map(slot => {
+    if (!slot) return null;
+    const candidate = combat.rolls.find(rolled => rolled.dieId === slot.dieId)!;
+    return slot.shape ?? bareRollFace(state, candidate, { skipSequence: true });
+  });
+  const right = combat.formation[index + 1];
+  const canHaste = !!right && !combat.rolls.some(candidate => candidate.dieId === right.dieId && candidate.used);
+  const positioned = positionFace(base, row, index, slotHazards(combat, index).length > 0, canHaste);
+  const penalty = slotPipPenalty(combat, index, positioned);
+  const face = positioned.parts.some(part => SEQUENCE_KEYWORDS.some(keyword => keyword !== 'fullHealth' && keyword === part.kind))
+    ? sequenceFace(positioned, combat, roll.boost, penalty) : positioned;
+  return drainFace(face, penalty);
 }
 
 const slotKey = (dieId: string, slot: Slot): string => `${dieId}:${slot}`;
@@ -376,7 +436,7 @@ function recentPips(combat: Combat): readonly number[] {
   return combat.sequence?.pips ?? (combat.previous === null ? [] : [combat.previous]);
 }
 
-function sequenceFace(face: Face, combat: Combat, boost: number): Face {
+function sequenceFace(face: Face, combat: Combat, boost: number, penalty = 0): Face {
   const history = recentPips(combat);
   const last = history.at(-1);
   const burnPlays = combat.sequence?.burnPlays ?? 0;
@@ -400,7 +460,7 @@ function sequenceFace(face: Face, combat: Combat, boost: number): Face {
       ready.add(part.kind);
     }
   }
-  const matchingPips = pips + boost;
+  const matchingPips = Math.max(0, pips - penalty) + boost;
   for (const part of face.parts) {
     if (matchingPips !== last) continue;
     if (part.kind === 'pair' || (part.kind === 'trio' && history.at(-2) === last)) ready.add(part.kind);
@@ -440,7 +500,7 @@ export function combatFaceFor(state: State, die: Die, slot: Slot, resolution?: F
     const value = synergyPips(state, combat, die, face, main.value) + relicPips(state, slot);
     if (value !== main.value) face = { ...face, parts: face.parts.map(part => part === main ? { ...part, value } : part) };
   }
-  if (resolution?.automatic || !face.parts.some(part => SEQUENCE_KEYWORDS.some(keyword => keyword !== 'fullHealth' && keyword === part.kind))) return face;
+  if (resolution?.automatic || resolution?.skipSequence || !face.parts.some(part => SEQUENCE_KEYWORDS.some(keyword => keyword !== 'fullHealth' && keyword === part.kind))) return face;
   const boost = combat.rolls.find(roll => roll.dieId === die.id && roll.slot === slot)?.boost ?? 0;
   return sequenceFace(face, combat, boost);
 }
@@ -468,6 +528,9 @@ export function setHold(state: State, dieId: string, held: boolean): boolean {
   const combat = state.combat;
   const roll = combat?.rolls.find(r => dieId === r.dieId);
   if (state.phase !== 'battle' || combat?.phase !== 'roll' || !roll || roll.held === held) return false;
+  if (combat.formation) {
+    return held ? placeDie(state, dieId, combat.formation.indexOf(null)) : unplaceDie(state, dieId);
+  }
   roll.held = held;
   return true;
 }
@@ -476,6 +539,9 @@ export function reroll(state: State): boolean {
   const combat = state.combat;
   if (state.phase !== 'battle' || combat?.phase !== 'roll' || !combat.rerolls || combat.rolls.every(roll => roll.held)) return false;
   combat.rerolls--;
+  for (const placement of combat.formation ?? []) {
+    if (placement) placement.locked = true;
+  }
   if (combat.relicTurn) combat.relicTurn.rerollsUsed++;
   for (const roll of combat.rolls) {
     if (roll.held) continue;
@@ -496,26 +562,79 @@ export function reroll(state: State): boolean {
   return true;
 }
 
+export function canPlaceDie(state: State, dieId: string, index: number): boolean {
+  const combat = state.combat;
+  const row = combat?.formation;
+  if (state.phase !== 'battle' || combat?.phase !== 'roll' || !row
+    || !Number.isInteger(index) || index < 0 || index >= row.length || row[index]?.locked) return false;
+  const from = placementIndex(combat, dieId);
+  return from !== index && !row[from]?.locked && combat.rolls.some(roll => roll.dieId === dieId && !roll.used);
+}
+
+export function placeDie(state: State, dieId: string, index: number): boolean {
+  if (!canPlaceDie(state, dieId, index)) return false;
+  const combat = state.combat!;
+  const row = combat.formation!;
+  const from = placementIndex(combat, dieId);
+  const displaced = row[index];
+  if (from >= 0) row[from] = displaced;
+  else if (displaced) combat.rolls.find(roll => roll.dieId === displaced.dieId)!.held = false;
+  row[index] = { dieId };
+  combat.rolls.find(roll => roll.dieId === dieId)!.held = true;
+  return true;
+}
+
+export function unplaceDie(state: State, dieId: string): boolean {
+  const combat = state.combat;
+  if (state.phase !== 'battle' || combat?.phase !== 'roll' || !combat.formation) return false;
+  const index = placementIndex(combat, dieId);
+  if (index < 0 || combat.formation[index]?.locked) return false;
+  combat.formation[index] = null;
+  combat.rolls.find(roll => roll.dieId === dieId)!.held = false;
+  return true;
+}
+
+function lockRoll(state: State, combat: Combat, rolls: Roll[]): void {
+  if (combat.relicTurn) commitRelics(state, rolls.map(roll => ({ roll, face: rollFace(state, roll) })));
+  combat.phase = 'play';
+  for (const roll of rolls) roll.held = true;
+}
+
 export function commitRoll(state: State): boolean {
   const combat = state.combat;
   if (state.phase !== 'battle' || combat?.phase !== 'roll') return false;
-  if (combat.relicTurn) commitRelics(state, combat.rolls.map(roll => ({ roll, face: rollFace(state, roll) })));
-  combat.phase = 'play';
-  for (const roll of combat.rolls) roll.held = true;
+  const row = combat.formation;
+  if (row) {
+    for (const roll of combat.rolls) {
+      if (!roll.held) row[row.indexOf(null)] = { dieId: roll.dieId };
+    }
+  }
+  lockRoll(state, combat, combat.rolls);
+  if (row) {
+    for (const placement of row) {
+      if (!placement) continue;
+      const roll = combat.rolls.find(candidate => candidate.dieId === placement.dieId)!;
+      placement.locked = true;
+      placement.shape = bareRollFace(state, roll, { skipSequence: true });
+    }
+  }
   return true;
 }
 
 export function canPlay(state: State, dieId: string, target: Target): boolean {
   const combat = state.combat;
   const roll = combat?.rolls.find(r => r.dieId === dieId);
-  if (state.phase !== 'battle' || !combat || combat.phase !== 'play' || !roll || roll.used) return false;
+  if (state.phase !== 'battle' || combat?.phase !== 'play' || !roll || roll.used) return false;
   const face = rollFace(state, roll);
-  if (face.target === 'none' || face.target !== target.kind || slotLocked(combat, combat.rolls.indexOf(roll))) return false;
+  if (face.target === 'none' || face.target !== target.kind || slotLocked(combat, hazardSlot(combat, roll), face)) return false;
   if (target.kind === 'all') return combat.enemies.some(enemy => enemy.hp > 0);
   if (target.kind === 'enemy') return combat.enemies.some(enemy => enemy.id === target.id && enemy.hp > 0);
   if (target.kind === 'die') {
-    return combat.rolls.some(other => other.dieId === target.id && other !== roll && !other.used && !slotLocked(combat, combat.rolls.indexOf(other))
-      && rollFace(state, other).parts.some(part => part.kind === 'hit' || part.kind === 'guard'));
+    const other = combat.rolls.find(candidate => candidate.dieId === target.id && candidate !== roll && !candidate.used);
+    if (!other) return false;
+    const otherFace = rollFace(state, other);
+    return !slotLocked(combat, hazardSlot(combat, other), otherFace)
+      && otherFace.parts.some(part => part.kind === 'hit' || part.kind === 'guard');
   }
   return true;
 }
@@ -524,18 +643,24 @@ function applyFace(state: State, roll: Roll, target: Target): void {
   const combat = state.combat!;
   const enemy = combat.enemies.find(e => target.kind === 'enemy' && e.id === target.id);
   const die = combat.rolls.find(r => target.kind === 'die' && r.dieId === target.id);
+  const index = hazardSlot(combat, roll);
+  const times = isHasted(state, roll.dieId) ? 2 : 1;
   const face = rollFace(state, roll);
-  const index = combat.rolls.indexOf(roll);
-  const hazards = slotHazards(combat, index);
+  const hazards = slotHazards(combat, index, face);
   roll.used = true;
-  if (damageSelf(state, combat, playHazardDamage(combat, index, roll.dieId))) return;
+  if (index >= 0 && damageSelf(state, combat, playHazardDamage(combat, index, roll.dieId, face))) return;
   const unmultiplied = effectiveParts(face, roll.boost);
   const primaryPips = unmultiplied[0].value;
   const multiplier = Math.max(...unmultiplied.map(matchMultiplier));
   const parts = multiplier === 1 ? unmultiplied
     : unmultiplied.map(part => PIPS.includes(part.kind) ? { ...part, value: part.value * multiplier } : part);
   const guarded = combat.relicTurn ? combat.enemies.filter(enemy => enemy.guard > 0) : [];
-  const burned = target.kind === 'all' ? applyToAll(state, roll, parts) : applyParts(state, roll, parts, enemy, die);
+  let burned = false;
+  for (let repeat = 0; repeat < times; repeat++) {
+    // The payload repeats on the chosen target. Costs and sequence history count the die once.
+    const applied = target.kind === 'all' ? applyToAll(state, roll, parts) : applyParts(state, roll, parts, enemy, die);
+    burned ||= applied;
+  }
   if (parts.some(part => part.kind === 'clearBurn')) combat.burn = 0;
   const frenzy = combat.frenzy;
   if (frenzy) {
@@ -558,7 +683,11 @@ function applyFace(state: State, roll: Roll, target: Target): void {
     const key = slotKey(roll.dieId, roll.slot);
     combat.grown[key] = (combat.grown[key] ?? 0) + growth.value;
   }
-  applySlotAfterUse(combat, index, roll, hazards);
+  if (index >= 0) {
+    applySlotAfterUse(combat, index, roll, hazards);
+    const next = combat.formation?.[index + 1];
+    if (next && face.parts.some(part => part.kind === 'haste' && part.active)) next.hasted = true;
+  }
 }
 
 const AIMED = ['hit', 'seep', 'vulnerable', 'weak', 'burn', 'fullHealth'];

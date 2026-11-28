@@ -10,7 +10,7 @@ const variant: Variant = process.argv[3] === 'pool' ? 'pool' : 'fixed';
 const selectedPolicy = process.argv[4] as MapPolicy | undefined;
 const policies = variant === 'pool' ? ['cautious' as const] : MAP_POLICIES.filter(policy => !selectedPolicy || selectedPolicy === policy);
 
-for (const hero of CHARACTERS) for (const policy of policies) {
+for (const hero of CHARACTERS.filter(hero => variant === 'fixed' || hero.id !== 'orden')) for (const policy of policies) {
   const reached = [0, 0, 0];
   const bossHp = [0, 0, 0];
   const bossGold = [0, 0, 0];

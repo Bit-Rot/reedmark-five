@@ -713,5 +713,446 @@
     "image": "face-art/library/sword_flame.webp",
     "notes": "",
     "status": "active"
+  },
+  {
+    "id": "orden-haste-cut",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "haste"
+      }
+    ],
+    "image": "face-art/library/lightning.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "orden-brace-block",
+    "targeting": "self",
+    "keywords": [
+      {
+        "keyword": "block"
+      },
+      {
+        "keyword": "brace",
+        "x": 2
+      }
+    ],
+    "image": "face-art/library/shield.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "orden-pair-cut",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "neighborPair",
+        "x": 2
+      }
+    ],
+    "image": "face-art/library/sword.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "orden-pair-block",
+    "targeting": "self",
+    "keywords": [
+      {
+        "keyword": "block"
+      },
+      {
+        "keyword": "neighborPair",
+        "x": 2
+      }
+    ],
+    "image": "face-art/library/buckler.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "orden-anchor-cut",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "anchor",
+        "x": 3
+      }
+    ],
+    "image": "face-art/library/axe.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "orden-anchor-block",
+    "targeting": "self",
+    "keywords": [
+      {
+        "keyword": "block"
+      },
+      {
+        "keyword": "anchor",
+        "x": 3
+      }
+    ],
+    "image": "face-art/library/shield.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "orden-pivot-cut",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "centered",
+        "x": 3
+      }
+    ],
+    "image": "face-art/library/sword.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "orden-pivot-block",
+    "targeting": "self",
+    "keywords": [
+      {
+        "keyword": "block"
+      },
+      {
+        "keyword": "centered",
+        "x": 3
+      }
+    ],
+    "image": "face-art/library/buckler.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "orden-flank-cut",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "flank",
+        "x": 3
+      }
+    ],
+    "image": "face-art/library/stinger.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "orden-flank-block",
+    "targeting": "self",
+    "keywords": [
+      {
+        "keyword": "block"
+      },
+      {
+        "keyword": "flank",
+        "x": 3
+      }
+    ],
+    "image": "face-art/library/shield.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "orden-intercept",
+    "targeting": "self",
+    "keywords": [
+      {
+        "keyword": "block"
+      },
+      {
+        "keyword": "bypass"
+      }
+    ],
+    "image": "face-art/library/buckler.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "orden-riposte",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "selfShield"
+      },
+      {
+        "keyword": "bypass"
+      }
+    ],
+    "image": "face-art/library/cracked_shield.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "orden-kindle",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "burn",
+        "x": 1
+      }
+    ],
+    "image": "face-art/library/bomb_spark.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "orden-follow-cut",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "afterBurn",
+        "x": 3
+      }
+    ],
+    "image": "face-art/library/bomb_spark.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "orden-echo-cut",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "echo"
+      }
+    ],
+    "image": "face-art/library/sword.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "orden-echo-block",
+    "targeting": "self",
+    "keywords": [
+      {
+        "keyword": "block"
+      },
+      {
+        "keyword": "echo"
+      }
+    ],
+    "image": "face-art/library/buckler.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "orden-opening-cut",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "fullHealth"
+      }
+    ],
+    "image": "face-art/library/stinger.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "orden-dampen",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "weak",
+        "x": 1
+      }
+    ],
+    "image": "face-art/library/sad_face.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "orden-rally",
+    "targeting": "self",
+    "keywords": [
+      {
+        "keyword": "block"
+      },
+      {
+        "keyword": "haste"
+      }
+    ],
+    "image": "face-art/library/lightning.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "orden-brace-cut",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "brace",
+        "x": 2
+      }
+    ],
+    "image": "face-art/library/axe.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "orden-signal-fire",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "haste"
+      },
+      {
+        "keyword": "burn",
+        "x": 1
+      }
+    ],
+    "image": "face-art/library/bomb_spark.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "orden-gate",
+    "targeting": "self",
+    "keywords": [
+      {
+        "keyword": "block"
+      },
+      {
+        "keyword": "brace",
+        "x": 2
+      },
+      {
+        "keyword": "bypass"
+      }
+    ],
+    "image": "face-art/library/shield.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "orden-crosscut",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "flank",
+        "x": 4
+      },
+      {
+        "keyword": "neighborPair",
+        "x": 2
+      }
+    ],
+    "image": "face-art/library/stinger.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "orden-keystone",
+    "targeting": "self",
+    "keywords": [
+      {
+        "keyword": "block"
+      },
+      {
+        "keyword": "centered",
+        "x": 3
+      },
+      {
+        "keyword": "brace",
+        "x": 2
+      }
+    ],
+    "image": "face-art/library/buckler.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "orden-heavy-anchor",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "anchor",
+        "x": 3
+      },
+      {
+        "keyword": "exert"
+      }
+    ],
+    "image": "face-art/library/axe.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "orden-field-medic",
+    "targeting": "self",
+    "keywords": [
+      {
+        "keyword": "heal"
+      }
+    ],
+    "image": "face-art/library/leaf.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "orden-signal-anchor",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "anchor",
+        "x": 2
+      }
+    ],
+    "image": "face-art/library/axe.webp",
+    "notes": "Starter positional face.",
+    "status": "active"
   }
 ]

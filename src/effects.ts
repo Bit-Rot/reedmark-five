@@ -84,6 +84,34 @@ export const EFFECTS: Record<EffectKey, { name: string; color: string; symbol: s
     name: 'Clear Self Burn', color: '#a85529', symbol: '♨',
     description: 'Deal 1 extra damage per Burn on you, then clear all your Burn.',
   },
+  haste: {
+    name: 'Haste', color: '#91601e', symbol: '>>',
+    description: 'Play this first. The unspent die immediately to the right resolves twice when you play it.',
+  },
+  brace: {
+    name: 'Brace', color: '#356b9a', symbol: '<>',
+    description: 'Give each adjacent die +X to its Block. Brace works on either side, and two Braces can support the same die.',
+  },
+  neighborPair: {
+    name: 'Pair', color: '#655d82', symbol: '=',
+    description: 'Gain +X to your main effect if either neighbor has the same primary effect type. This bonus applies once.',
+  },
+  anchor: {
+    name: 'Anchor', color: '#806345', symbol: '⊣',
+    description: 'Gain +X to your main effect in slot 1 or 5.',
+  },
+  centered: {
+    name: 'Center', color: '#806345', symbol: '⊙',
+    description: 'Gain +X to your main effect in slot 3.',
+  },
+  flank: {
+    name: 'Flank', color: '#655d82', symbol: '⋈',
+    description: 'Gain +X to your main effect when your two neighbors are a Damage die and a Block die.',
+  },
+  bypass: {
+    name: 'Bypass', color: '#356b9a', symbol: '⤴',
+    description: 'Ignore all hazards in this slot when you play this face.',
+  },
   afterExhaust: {
     name: 'After Exhaust', color: '#806345', symbol: '◌',
     description: 'Add X to the damage or Block shown if you have already exhausted a face this turn.',

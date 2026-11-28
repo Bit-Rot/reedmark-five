@@ -4,19 +4,20 @@
  */
 import { RELIC_EFFECTS } from '../relic-data.ts';
 import type { DieDefinition, Face as GameFace, Item as GameItem, Part, Relic, Slot, TargetKind } from '../model.ts';
-import { SEQUENCE_KEYWORDS, SLOTS } from '../model.ts';
+import { POSITION_KEYWORDS, SEQUENCE_KEYWORDS, SLOTS } from '../model.ts';
 import type { Collections, Die, Face, Item, Keyword, SlotName, Targeting } from './types.ts';
 import { SLOT_NAMES } from './types.ts';
 
 /** Keywords the game engine can execute. Anything else on a face is reported by `compileDb`. */
 export const IMPLEMENTED_KEYWORDS = ['damage', 'block', 'selfShield', 'poison', 'vulnerable', 'weak', 'exert', 'cantrip', 'growth', 'inspired', 'cleave',
   'heal', 'burn', 'selfBurn', 'exhaust', 'burnDamage', 'burnDouble', 'afterExhaust',
-  'dieBlanks', 'kitBlanks', 'frenzyThreshold', 'frenzySpend', 'frenzyAll', ...SEQUENCE_KEYWORDS] as const;
+  'dieBlanks', 'kitBlanks', 'frenzyThreshold', 'frenzySpend', 'frenzyAll', ...SEQUENCE_KEYWORDS, ...POSITION_KEYWORDS] as const;
 const MODIFIERS = {
   burnDamage: 'none', burnDouble: 'none', afterExhaust: 'x', dieBlanks: 'none', kitBlanks: 'x',
   frenzyThreshold: 'x', frenzySpend: 'x', frenzyAll: 'x',
   burnPlays: 'none', afterBurn: 'x', firstBurn: 'x', echo: 'none', fullHealth: 'none',
   pair: 'none', trio: 'none', clearBurn: 'none',
+  haste: 'none', brace: 'x', neighborPair: 'x', anchor: 'x', centered: 'x', flank: 'x', bypass: 'none',
 } as const;
 
 export const TARGETINGS_SUPPORTED: readonly Targeting[] = ['none', 'self', 'singleEnemy', 'allEnemies'];
@@ -133,7 +134,7 @@ export function compileFace(face: Face, pips: number | undefined, issues: Diagno
       if ((merged[0].kind !== 'burn' && merged[0].kind !== 'selfBurn') || uses.has('burn') === uses.has('selfBurn')) {
         issues.push({ where, message: 'firstBurn needs a face whose only primary effect is Burn or Self Burn' });
       }
-    } else if (!(damageOnly ? uses.has('damage') : needsPips)) {
+    } else if (kind !== 'bypass' && !(damageOnly ? uses.has('damage') : needsPips)) {
       issues.push({ where, message: `keyword "${kind}" needs a ${damageOnly ? 'damage' : 'damage or block'} effect` });
     }
     merged.push({ kind, value: MODIFIERS[kind] === 'x' ? xOf(kind, true) : 0 });

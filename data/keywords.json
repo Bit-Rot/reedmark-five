@@ -898,5 +898,68 @@
     "appliesTo": "DAMAGE",
     "implemented": "implemented",
     "notes": ""
+  },
+  {
+    "id": "haste",
+    "valueKind": "none",
+    "ruleText": "When you play this die, the unspent die in the next slot resolves twice when played.",
+    "category": "Row position",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "implemented",
+    "notes": "Orden only."
+  },
+  {
+    "id": "brace",
+    "valueKind": "x",
+    "ruleText": "Give both adjacent dice +X Block if they have Block.",
+    "category": "Row position",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "implemented",
+    "notes": "Orden only."
+  },
+  {
+    "id": "neighborPair",
+    "valueKind": "x",
+    "ruleText": "Pair. Gain +X to the main effect if either adjacent die has the same primary effect type.",
+    "category": "Row position",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "implemented",
+    "notes": "Orden only."
+  },
+  {
+    "id": "anchor",
+    "valueKind": "x",
+    "ruleText": "Gain +X to the main effect in slot 1 or 5.",
+    "category": "Row position",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "implemented",
+    "notes": "Orden only."
+  },
+  {
+    "id": "centered",
+    "valueKind": "x",
+    "ruleText": "Gain +X to the main effect in slot 3.",
+    "category": "Row position",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "implemented",
+    "notes": "Orden only."
+  },
+  {
+    "id": "flank",
+    "valueKind": "x",
+    "ruleText": "Gain +X to the main effect between a Damage die and a Block die.",
+    "category": "Row position",
+    "appliesTo": "PIPS_ONLY",
+    "implemented": "implemented",
+    "notes": "Orden only."
+  },
+  {
+    "id": "bypass",
+    "valueKind": "none",
+    "ruleText": "Ignore all hazards in this slot when you play this face.",
+    "category": "Row position",
+    "appliesTo": "NONBLANK",
+    "implemented": "implemented",
+    "notes": "Orden only."
   }
 ]

@@ -275,5 +275,165 @@
       }
     ],
     "notes": ""
+  },
+  {
+    "id": "die_orden_edge",
+    "name": "Edge",
+    "faces": [
+      {
+        "face": "dmg",
+        "pips": 4
+      },
+      {
+        "face": "dmg",
+        "pips": 3
+      },
+      {
+        "face": "dmg",
+        "pips": 2
+      },
+      {
+        "face": "dmg",
+        "pips": 2
+      },
+      {
+        "face": "dmg",
+        "pips": 1
+      },
+      {
+        "face": "block",
+        "pips": 1
+      }
+    ],
+    "notes": "",
+    "tone": "rust"
+  },
+  {
+    "id": "die_orden_file",
+    "name": "File",
+    "faces": [
+      {
+        "face": "dmg",
+        "pips": 4
+      },
+      {
+        "face": "dmg",
+        "pips": 3
+      },
+      {
+        "face": "dmg",
+        "pips": 2
+      },
+      {
+        "face": "block",
+        "pips": 2
+      },
+      {
+        "face": "dmg",
+        "pips": 1
+      },
+      {
+        "face": "block",
+        "pips": 1
+      }
+    ],
+    "notes": "",
+    "tone": "sand"
+  },
+  {
+    "id": "die_orden_guard",
+    "name": "Guard",
+    "faces": [
+      {
+        "face": "block",
+        "pips": 4
+      },
+      {
+        "face": "block",
+        "pips": 3
+      },
+      {
+        "face": "block",
+        "pips": 2
+      },
+      {
+        "face": "dmg",
+        "pips": 2
+      },
+      {
+        "face": "block",
+        "pips": 1
+      },
+      {
+        "face": "dmg",
+        "pips": 1
+      }
+    ],
+    "notes": "",
+    "tone": "blue"
+  },
+  {
+    "id": "die_orden_shield",
+    "name": "Shield",
+    "faces": [
+      {
+        "face": "block",
+        "pips": 4
+      },
+      {
+        "face": "block",
+        "pips": 3
+      },
+      {
+        "face": "dmg",
+        "pips": 2
+      },
+      {
+        "face": "block",
+        "pips": 2
+      },
+      {
+        "face": "block",
+        "pips": 1
+      },
+      {
+        "face": "block",
+        "pips": 1
+      }
+    ],
+    "notes": "",
+    "tone": "jade"
+  },
+  {
+    "id": "die_orden_signal",
+    "name": "Signal",
+    "faces": [
+      {
+        "face": "dmg",
+        "pips": 4
+      },
+      {
+        "face": "block",
+        "pips": 3
+      },
+      {
+        "face": "orden-signal-anchor",
+        "pips": 2
+      },
+      {
+        "face": "block",
+        "pips": 2
+      },
+      {
+        "face": "block",
+        "pips": 1
+      },
+      {
+        "face": "dmg",
+        "pips": 1
+      }
+    ],
+    "notes": "",
+    "tone": "olive"
   }
 ]

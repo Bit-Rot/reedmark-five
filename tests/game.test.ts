@@ -24,6 +24,7 @@ test('fixed rolls five, holds through two rerolls, and commits once', () => {
 test('Dice Pool still starts each turn with three rerolls', () => {
   const state = newRun('pool', 231);
   assert.equal(state.combat?.rerolls, 3);
+  assert.equal(newRun('pool', 231, 'orden').character, state.character);
   assert(reroll(state) && reroll(state) && reroll(state));
   assert.equal(reroll(state), false);
 });

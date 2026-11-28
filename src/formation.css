@@ -1,0 +1,76 @@
+@layer game {
+  .formation-tray { width: min(510px, calc(100vw - 24px)); }
+  .formation-tray .control { touch-action: manipulation; }
+  .formation-cell { min-width: 0; }
+  .formation-cell-heading {
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+    min-height: 22px; padding: 0 2px 3px;
+  }
+  .formation-index {
+    color: #e8d0a3; font-size: .75rem; font-variant-numeric: tabular-nums;
+  }
+  .formation-rack .socket { height: 61px; }
+  .formation-rack .seated { min-width: 0; overflow: hidden; }
+  .formation-rack .is-slot-locked { border-color: #b97d6c; }
+  .formation-rack .is-position-locked .seated {
+    cursor: default; border-color: #c7ad77;
+  }
+  .formation-die-meta .formation-position-lock { color: #ffe4a8; }
+  .formation-rack .is-slot-locked [aria-disabled="true"] {
+    cursor: default; opacity: .58;
+  }
+  .formation-rack .formation-drop .socket {
+    border-color: #fad182; background: #5c5139; box-shadow: 0 0 0 2px #e9c67544;
+  }
+  .formation-hint { margin: 7px 2px 0; color: #e3d4ba; font-size: .875rem; line-height: 1.25; }
+  .formation-die-tag .chips { flex-wrap: nowrap; }
+  .formation-die-tag small { display: block; text-align: center; }
+  .formation-die-meta, .formation-die-hazards {
+    display: flex; align-items: center; justify-content: center; gap: 4px; min-width: 0;
+  }
+  .formation-die-meta { max-width: 100%; }
+  .formation-die-meta .formation-haste { color: #ffe4a8; font-weight: 800; }
+  .hazard-chip { color: #ffd3bd; }
+  .formation-hazard-button {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 18px; min-height: 19px; padding: 0; border-radius: 3px; background: transparent; touch-action: manipulation;
+  }
+  .formation-hazard-button:hover .hazard-chip { border-color: #ffd3bd; }
+  .formation-die-targets { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 2px 4px; }
+  .formation-die-targets .formation-hazard-button {
+    color: #ffe2d5; background: #482e29; border: 1px solid #aa6959; gap: 3px; padding: 0 4px;
+  }
+  .formation-die-target { font-size: .7rem; }
+  .formation-cell-heading .hazard-chip, .formation-die-hazards .hazard-chip {
+    border: 1px solid #aa6959; border-radius: 3px; background: #482e29; padding: 0 2px;
+  }
+  [data-orden] .intents:empty { display: none; }
+  [data-orden] .actor-target .intent {
+    gap: 4px; padding: 3px 5px; border-color: #c0a883; background: #17252b;
+  }
+  [data-orden] .actor-target .intent--hit {
+    border-color: #eea48e; background: #43261f;
+  }
+  [data-orden] .actor-target .intent--hit .chip { color: #ffcfbd; }
+  [data-orden] .actor-target .intent--hazard {
+    border-color: #b17d9b; background: #3d2a3c;
+  }
+  .actor-hazard-target {
+    padding-right: 4px; border-right: 1px solid #eed0a766; color: #ffe0ac; font-variant-numeric: tabular-nums;
+  }
+  @media (max-width: 500px) {
+    .formation-cell-heading { gap: 2px; }
+    .formation-rack .socket { height: 49px; }
+    [data-orden] .actor-target .intents {
+      width: max-content; max-width: 92px; flex-wrap: wrap; justify-content: center;
+    }
+    [data-orden] .actor-target .intent { gap: 2px; padding: 2px 3px; }
+    [data-orden] .actor-target .intent .chip { font-size: .68rem; }
+    .actor-hazard-target { padding-right: 2px; }
+    .formation-die-tag .chip, .formation-cell-heading .chip { font-size: .7rem; }
+    .formation-hint { font-size: .76rem; }
+  }
+  @media (max-height: 580px) {
+    .formation-rack .socket { height: 43px; }
+  }
+}

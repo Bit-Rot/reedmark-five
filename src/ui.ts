@@ -188,7 +188,8 @@ export class FaceTooltips {
     });
     root.addEventListener('click', event => {
       const focus = hintAt(event.target);
-      if (!focus || focus.classList.contains('net-tile')) this.show(focus);
+      if (!focus || focus.classList.contains('net-tile')
+        || (focus.hasAttribute('data-die') && focus.closest('[data-orden]'))) this.show(focus);
     });
     root.addEventListener('scroll', () => this.hide(), { capture: true, passive: true });
     window.addEventListener('resize', () => this.hide(), { passive: true });

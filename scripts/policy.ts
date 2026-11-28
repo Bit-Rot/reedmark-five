@@ -2,21 +2,25 @@ import { bossDue, distance, frontier, visibleTile } from '../src/campaign-map.ts
 import type { VisibleTile } from '../src/campaign-map.ts';
 import { DICE, RELICS } from '../src/content.ts';
 import { actionPreview, advance, canPlay, canTakeEventOffer, chooseOffer, commitRoll, currentRoom, effectiveParts, endTurn, eventChoiceFor, explore, faceFor, facesFor, incoming,
-  offerTargets, play, previewDie, previewUpgrade, reroll, rollFace, setHold, startBoss, upgradeTargets } from '../src/game.ts';
-import type { Face, Slot, State, Target } from '../src/model.ts';
+  offerTargets, placeDie, play, previewDie, previewUpgrade, reroll, rollFace, setHold, startBoss, upgradeTargets, usesFormation } from '../src/game.ts';
+import { playHazardDamage, slotLocked } from '../src/hazards.ts';
+import { estimateFaceValue } from './face-value.ts';
+import type { Face, Roll, Slot, State, Target } from '../src/model.ts';
 
 function weight(face: Face): number {
   return face.parts.reduce((sum, part) => sum + part.value * (part.count ?? 1)
     * (part.kind === 'hit' ? 1 : part.kind === 'guard' ? .90 : part.kind === 'seep' ? 1.4 : part.kind === 'ward' ? .8 : .96),
   (face.salvage ?? 0) * .35);
 }
-const strength = (faces: Face[]) => faces.reduce((sum, face) => sum + weight(face), 0) / faces.length;
+const strength = (faces: Face[], score: (face: Face) => number) =>
+  faces.reduce((sum, face) => sum + score(face), 0) / faces.length;
 
 
 export type Command =
   | { action: 'reroll' | 'commit' | 'end' | 'skip' | 'boss' }
   | { action: 'explore'; id: string }
   | { action: 'hold'; id: string }
+  | { action: 'place'; id: string; position: number }
   | { action: 'play'; id: string; target: Target }
   | { action: 'take'; index: number; id?: string; slot?: Slot };
 
@@ -66,6 +70,8 @@ export function takeReward(s: State, commands?: Command[]): void {
   const choices: { score: number; index: number; id: string | undefined; slot?: Slot }[] = [];
   const room = currentRoom(s);
   const shopping = room.type === 'shop';
+  const ordered = usesFormation(s);
+  const scoreFace = ordered ? estimateFaceValue : weight;
   for (const [index, offer] of s.offers.entries()) {
     const event = eventChoiceFor(s, index);
     const before = choices.length;
@@ -84,16 +90,17 @@ export function takeReward(s: State, commands?: Command[]): void {
       const bonus: Record<string, number> = { cleave: 1.2, cantrip: 1, inspired: .4, growth: .6 };
       for (const { dieId, slot } of upgradeTargets(s, offer)) {
         const die = s.dice.find(d => d.id === dieId)!;
-        const gain = weight(previewUpgrade(die, slot, offer)!) - weight(faceFor(die, slot)) + (bonus[offer.keyword] ?? 0);
+        const gain = scoreFace(previewUpgrade(die, slot, offer)!) - scoreFace(faceFor(die, slot))
+          + (ordered ? 0 : bonus[offer.keyword] ?? 0);
         choices.push({ score: gain, index, id: dieId, slot });
       }
     } else if (offer.kind === 'add') {
-      choices.push({ score: strength(Object.values(DICE[offer.id].faces)) - 3.5 - Math.max(0,s.dice.length - 10) * .5, index, id: undefined });
+      choices.push({ score: strength(Object.values(DICE[offer.id].faces), scoreFace) - 3.5 - Math.max(0,s.dice.length - 10) * .5, index, id: undefined });
     } else for (const die of offerTargets(s, offer)) {
-      const before = strength(Object.values(facesFor(die)));
+      const before = strength(Object.values(facesFor(die)), scoreFace);
       const after = previewDie(s, offer, die);
       const bonus = room.type === 'battle' && room.rank === 'boss' ? .8 : 0;
-      choices.push({ score: (after ? strength(Object.values(facesFor(after))) - before : 4.9 - before) + bonus, index, id: die.id });
+      choices.push({ score: (after ? strength(Object.values(facesFor(after)), scoreFace) - before : 4.9 - before) + bonus, index, id: die.id });
     }
     if (event) {
       const cost = (event.gold ?? 0) * .045 + (event.hp ?? 0) * (s.hp < 16 ? .23 : .11);
@@ -109,7 +116,108 @@ export function takeReward(s: State, commands?: Command[]): void {
   }
 }
 
+/** Play the row in position order so neighboring Haste and sequence effects can pay off. */
+function playFormation(state: State, commands?: Command[]): void {
+  const combat = state.combat!;
+  for (const [index, placement] of combat.formation!.entries()) {
+    if (state.phase !== 'battle') return;
+    if (!placement) continue;
+    const roll = combat.rolls.find(candidate => candidate.dieId === placement.dieId)!;
+    const face = rollFace(state, roll);
+    if (face.target === 'none' || slotLocked(combat, index, face)
+      || playHazardDamage(combat, index, roll.dieId, face) >= state.hp + combat.guard) continue;
+    let target: Target;
+    if (face.target === 'enemy') {
+      const enemy = combat.enemies.find(enemy => enemy.hp > 0)!;
+      target = { kind: 'enemy', id: enemy.id };
+    } else if (face.target === 'die') {
+      const other = combat.rolls.find(candidate => canPlay(state, roll.dieId, { kind: 'die', id: candidate.dieId }));
+      if (!other) continue;
+      target = { kind: 'die', id: other.dieId };
+    } else {
+      target = { kind: face.target };
+    }
+    if (play(state, roll.dieId, target)) commands?.push({ action: 'play', id: roll.dieId, target });
+  }
+}
+
+function bestFormation(state: State): { id: string; position: number }[] {
+  const combat = state.combat!;
+  const scratch: State = { ...state, combat: structuredClone(combat) };
+  const positions = combat.formation!.flatMap((slot, index) => slot ? [] : [index]);
+  let best: ReturnType<typeof bestFormation> = [];
+  let bestScore = -Infinity;
+  const plan: typeof best = [];
+  function fill(remaining: Roll[]): void {
+    if (!remaining.length) {
+      const next = { ...scratch, combat: structuredClone(scratch.combat!), relics: scratch.relics?.slice() };
+      commitRoll(next);
+      playFormation(next);
+      const progress = next.combat.enemies.reduce((sum, enemy, index) => {
+        const before = combat.enemies[index];
+        return sum + before.hp - enemy.hp + .45 * (before.guard - enemy.guard)
+          + 1.25 * (enemy.burn ?? 0) * Number(enemy.hp > 0) + (before.hp > 0 && enemy.hp === 0 ? 4 : 0);
+      }, 0);
+      const damage = next.phase === 'battle'
+        ? Math.max(0, incoming(next.combat) + (next.combat.burn ?? 0) - next.combat.guard)
+        : 0;
+      const score = progress + next.hp - state.hp - damage * (state.hp < 15 ? 4 : 2.7);
+      if (score > bestScore) {
+        bestScore = score;
+        best = [...plan];
+      }
+      return;
+    }
+    const position = positions[plan.length];
+    for (const roll of remaining) {
+      const id = roll.dieId;
+      placeDie(scratch, id, position);
+      plan.push({ id, position });
+      fill(remaining.filter(other => other !== roll));
+      plan.pop();
+      scratch.combat!.formation![position] = null;
+      roll.held = false;
+    }
+  }
+  fill(scratch.combat!.rolls.filter(roll => !roll.held));
+  return best;
+}
+
+function actWithFormation(state: State, commands?: Command[]): void {
+  const combat = state.combat!;
+  const place = ({ id, position }: { id: string; position: number }) => {
+    if (placeDie(state, id, position)) commands?.push({ action: 'place', id, position });
+  };
+  let plan = bestFormation(state);
+  while (combat.rerolls && plan.length) {
+    const min = combat.rerolls === 1 ? 3 : 4;
+    let defense = incoming(combat) - combat.guard;
+    for (const entry of plan) {
+      const roll = combat.rolls.find(candidate => candidate.dieId === entry.id)!;
+      const face = rollFace(state, roll);
+      if (slotLocked(combat, entry.position, face)) continue;
+      const block = face.parts.find(part => part.kind === 'guard')?.value ?? 0;
+      if (estimateFaceValue(face) >= min && (!block || defense > 0)) {
+        place(entry);
+        defense -= block;
+      }
+    }
+    if (!reroll(state)) break;
+    commands?.push({ action: 'reroll' });
+    if (state.phase !== 'battle') return;
+    plan = bestFormation(state);
+  }
+  plan.forEach(place);
+  if (commitRoll(state)) commands?.push({ action: 'commit' });
+  playFormation(state, commands);
+  if (endTurn(state)) commands?.push({ action: 'end' });
+}
+
 export function act(s: State, commands?: Command[]): void {
+  if (usesFormation(s)) {
+    actWithFormation(s, commands);
+    return;
+  }
   const c = s.combat!;
   const attempts = c.rerolls;
   for (let attempt = 0; attempt < attempts; attempt++) {

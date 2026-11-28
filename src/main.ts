@@ -2,13 +2,14 @@ import './style.css';
 import './face-ui.css';
 import './campaign.css';
 import './enemy.css';
+import './formation.css';
 import { loadEnemyArt } from './enemy-art.ts';
 import { enemyHazardBadge, enemyHazardLabel, enemyIntentBadge } from './enemy-ui.ts';
 import { EVENTS } from './campaign-content.ts';
 import { campaignScreen } from './campaign-ui.ts';
 import { cycleAt } from './campaign-map.ts';
 import { CHARACTERS, DICE, FACE_IMAGE_PATHS, ITEMS, RELICS, ROOMS } from './content.ts';
-import { actionPreview, baseRerolls, advance, canPlay, canTakeEventOffer, chooseOffer, commitRoll, currentRoom, endTurn, eventChoiceFor, explore, incoming, intentValues, restoreSave,
+import { actionPreview, baseRerolls, advance, canPlaceDie, canPlay, canTakeEventOffer, chooseOffer, commitRoll, currentRoom, endTurn, eventChoiceFor, explore, incoming, intentValues, isHasted, placeDie, restoreSave, unplaceDie, usesFormation,
   faceFor, facesFor, newLinearRun, newRun, offerTargets, play, previewDie, previewUpgrade, reroll, rollFace, setHold, startBoss, starterRelicFor } from './game.ts';
 import { dieHazards, slotHazards, slotLocked } from './hazards.ts';
 import { SLOTS } from './model.ts';
@@ -25,7 +26,8 @@ const linearFixture = import.meta.env.DEV && requested.get('route') === 'linear'
 const makeRun = linearFixture ? newLinearRun : newRun;
 const seedParam = requested.get('seed');
 const seeded = seedParam !== null && /^\d{1,10}$/.test(seedParam);
-const characterParam = CHARACTERS.find(c => c.id === requested.get('character'))?.id;
+const availableHeroes = CHARACTERS.filter(hero => variant === 'fixed' || hero.id !== 'orden');
+const characterParam = availableHeroes.find(c => c.id === requested.get('character'))?.id;
 const randomSeed = () => crypto.getRandomValues(new Uint32Array(1))[0];
 const saveKey = `reedmark:${variant}:v1`;
 const root = document.querySelector<HTMLElement>('#game')!;
@@ -59,6 +61,7 @@ function load(): State {
 }
 
 let state = load();
+const ordered = () => usesFormation(state);
 let selected: string | null = null;
 let offerIndex: number | null = null;
 let rewardDie: string | null = null;
@@ -81,6 +84,9 @@ interface Drag {
   ghost?: HTMLElement;
 }
 let drag: Drag | null = null;
+let battleTap: { button: HTMLButtonElement; pointer: number; x: number; y: number } | null = null;
+const battleTapActions = new Set(['die', 'target', 'reroll', 'commit', 'end', 'hazard-details']);
+
 let inspection: { node: HTMLElement; anchor: HTMLElement } | null = null;
 let inspectionPress: { anchor: HTMLElement; pointer: number; x: number; y: number; timer: number; opened: boolean } | null = null;
 const tooltips = new FaceTooltips(root, () => rolling || !!drag?.started);
@@ -218,8 +224,15 @@ function worldLayer(): HTMLElement {
     const identity = DICE[die.template];
     const face = rollFace(state, roll);
     const position = state.relics?.length ? shopSlotLabel[roll.slot] : '';
+    const hazards = ordered() ? dieHazards(combat, roll.dieId) : [];
     const dieButton = button(`stage-cube tone-${identity.tone}`, 'die', position ? `${faceText(face)}, ${position}` : faceText(face),
-      element('span', 'world-face', faceEmblem(face)), position ? element('span', 'cube-tag', position) : null);
+      element('span', 'world-face', faceEmblem(face)), ordered()
+        ? element('span', 'cube-tag formation-die-tag', chips(face),
+          hazards.length ? element('span', 'formation-die-hazards', ...hazards.map(hazardChip)) : null,
+          position ? element('small', '', position) : null)
+        : position ? element('span', 'cube-tag', position) : null);
+    if (ordered()) dieButton.setAttribute('aria-description',
+      ['Tap to hold, drag to arrange, or press a number from 1 to 5.', ...hazards.map(hazardLabel)].join(' '));
     dieButton.dataset.worldDie = roll.dieId;
     dieButton.dataset.die = roll.dieId;
     dieButton.dataset.inspectDie = roll.dieId;
@@ -230,52 +243,87 @@ function worldLayer(): HTMLElement {
   return world;
 }
 
+const hazardLabel = (hazard: EnemyHazard) => enemyHazardLabel(hazard, dieLabel);
+const hazardChip = (hazard: EnemyHazard) => enemyHazardBadge(hazard, dieLabel);
+
 function hazardButton(hazard: EnemyHazard): HTMLButtonElement {
-  const label = enemyHazardLabel(hazard, dieLabel);
-  const marker = button('enemy-hazard-button', 'hazard-details', label,
-    'dieId' in hazard ? element('span', '', dieLabel(hazard.dieId)) : null, enemyHazardBadge(hazard, dieLabel));
+  const label = hazardLabel(hazard);
+  const marker = button(ordered() ? 'formation-hazard-button' : 'enemy-hazard-button', 'hazard-details', label,
+    'dieId' in hazard ? element('span', ordered() ? 'formation-die-target' : '', dieLabel(hazard.dieId)) : null,
+    hazardChip(hazard));
   marker.title = label;
+  if (ordered()) marker.dataset.focus = `hazard-${'position' in hazard ? hazard.position : hazard.dieId}-${hazard.kind}`;
   return marker;
 }
 
 function tray(): HTMLElement | null {
   if (state.phase !== 'battle' || !state.combat) return null;
   const combat = state.combat;
-  const rack = element('div', 'rack');
-  rack.dataset.hold = 'true';
+  const playing = combat.phase === 'play';
+  const rack = element('div', ordered() ? 'rack formation-rack' : 'rack');
+  if (!ordered()) rack.dataset.hold = 'true';
   rack.setAttribute('aria-label', 'Dice sockets');
-  combat.rolls.forEach((roll, index) => {
-    const slot = element('div', `socket${roll.held ? ' is-filled' : ''}${roll.used ? ' is-spent' : ''}`);
-    slot.dataset.hold = 'true';
-    if (!roll.held) {
-      slot.append(element('span', 'socket-seal', '◇'));
-    } else if (roll.used) {
-      slot.append(element('span', 'socket-seal', '·'));
+  const rolls = ordered() ? combat.formation!.map(placement => placement ? current(placement.dieId) : undefined) : combat.rolls;
+  rolls.forEach((roll, index) => {
+    const held = !!roll?.held;
+    const spent = !!roll?.used;
+    const slot = element('div', `socket${held ? ' is-filled' : ''}${spent ? ' is-spent' : ''}`);
+    const sealed = slotLocked(combat, index);
+    const positionLocked = ordered() && !playing && combat.formation![index]?.locked;
+    if (sealed) slot.classList.add(ordered() ? 'is-slot-locked' : 'enemy-sealed-slot');
+    if (positionLocked) slot.classList.add('is-position-locked');
+    if (!ordered()) slot.dataset.hold = 'true';
+    if (!roll || !held || spent) {
+      slot.append(element('span', 'socket-seal', spent ? '·' : '◇'));
     } else {
       const die = owned(roll.dieId);
       const identity = DICE[die.template];
       const face = rollFace(state, roll);
       const position = state.relics?.length ? shopSlotLabel[roll.slot] : '';
       const label = faceText(face, roll.boost);
-      const seated = button(`seated tone-${identity.tone}`, 'die', position ? `${label}, ${position}` : label,
-        chips(face, roll.boost), position ? element('small', 'slot-tag', position) : null);
+      const repeats = ordered() && playing && isHasted(state, roll.dieId);
+      const hazards = ordered() ? dieHazards(combat, roll.dieId) : [];
+      const description = [label, position, repeats ? 'resolves twice' : '', ...hazards.map(hazardLabel)].filter(Boolean).join(', ');
+      const seated = button(`seated tone-${identity.tone}`, 'die', description,
+        chips(face, roll.boost),
+        ordered() && (positionLocked || repeats || position || hazards.length) ? element('span', 'formation-die-meta',
+          repeats ? element('small', 'formation-haste', '×2') : null,
+          positionLocked ? element('small', 'formation-position-lock', 'Locked')
+            : position ? element('small', 'slot-tag', position) : null,
+          hazards.length ? element('span', 'formation-die-hazards', ...hazards.map(hazardChip)) : null)
+          : position ? element('small', 'slot-tag', position) : null);
       seated.dataset.die = roll.dieId;
       seated.dataset.inspectDie = roll.dieId;
       helpOn(seated, face, roll.boost);
       seated.dataset.focus = roll.dieId;
-      if (combat.phase === 'play') {
+      if (playing) {
         seated.dataset.targetKind = 'die';
         seated.dataset.targetId = roll.dieId;
-        if (slotLocked(combat, index)) {
+        if (sealed && slotLocked(combat, index, face)) {
           seated.setAttribute('aria-disabled', 'true');
           seated.setAttribute('aria-description', 'This slot is sealed for this turn.');
         }
+      } else if (positionLocked) {
+        seated.setAttribute('aria-disabled', 'true');
+        seated.setAttribute('aria-description', 'Reroll locked this die in its slot.');
+      } else if (ordered()) {
+        seated.setAttribute('aria-description', 'Tap to release, or drag or press a number from 1 to 5 to move.');
       }
       slot.append(seated);
     }
-    slot.dataset.socket = '' + index;
-    if (slotLocked(combat, index)) slot.classList.add('enemy-sealed-slot');
-    rack.append(slot);
+    if (!ordered()) {
+      slot.dataset.socket = String(index);
+      rack.append(slot);
+      return;
+    }
+    const threats = slotHazards(combat, index);
+    const cell = element('div', 'formation-cell', element('div', 'formation-cell-heading',
+      element('span', 'formation-index', String(index + 1)), ...threats.map(hazardButton)), slot);
+    cell.dataset.socket = String(index);
+    cell.setAttribute('role', 'group');
+    const status = spent ? 'spent' : playing ? 'committed' : positionLocked ? 'locked' : held ? 'held' : 'open';
+    cell.setAttribute('aria-label', `Slot ${index + 1}, ${status}`);
+    rack.append(cell);
   });
 
   const predicted = incoming(combat);
@@ -301,15 +349,24 @@ function tray(): HTMLElement | null {
     commands.append(button('control control--primary', 'end', 'End turn', 'End turn',
       damage ? element('kbd', 'danger', `−${damage}`) : null));
   }
-  const slotThreats = combat.rolls.map((_, index) => slotHazards(combat, index));
+  const hint = ordered() ? element('p', 'formation-hint', playing
+    ? 'Tap a die to play it. Choose a target or drag the die onto it.'
+    : 'Tap or drag to arrange dice. Reroll or Commit locks them.') : null;
+  const dieThreats = combat.rolls.flatMap(roll => dieHazards(combat, roll.dieId));
+  const targeted = dieThreats.length
+    ? element('div', ordered() ? 'formation-die-targets' : 'enemy-die-threats', ...dieThreats.map(hazardButton)) : null;
+  if (targeted && ordered()) {
+    targeted.setAttribute('role', 'group');
+    targeted.setAttribute('aria-label', 'Dice targeted by enemy abilities');
+  }
+  const slotThreats = ordered() ? [] : combat.rolls.map((_, index) => slotHazards(combat, index));
   const rail = slotThreats.some(hazards => hazards.length) ? element('div', 'rack enemy-hazard-rail',
     ...slotThreats.map((hazards, index) => element('div', '',
       hazards.length ? element('span', 'enemy-hazard-index', String(index + 1)) : null,
       ...hazards.map(hazardButton)))) : null;
-  const direct = combat.rolls.flatMap(roll => dieHazards(combat, roll.dieId));
-  const panel = element('div', 'combat-tray', element('div', 'tray-controls', readout, commands),
-    direct.length ? element('div', 'enemy-die-threats', ...direct.map(hazardButton)) : null, rail, rack,
-    rail || direct.length ? element('p', 'enemy-hazard-hint') : null);
+  const panel = element('div', ordered() ? 'combat-tray formation-tray' : 'combat-tray', element('div', 'tray-controls', readout, commands),
+    targeted, rail, rack,
+    hint ?? (rail || targeted ? element('p', 'enemy-hazard-hint') : null));
   panel.setAttribute('aria-busy', '' + rolling);
   return panel;
 }
@@ -692,8 +749,8 @@ function renderLedger(): HTMLElement {
 }
 
 function renderSelect(): HTMLElement {
-  const choices = CHARACTERS.map(hero => {
-    const choice = button('control character-choice', 'character', `Play ${hero.name}`, element('strong', '', hero.name), element('small', '', hero.starterRelic?.name ?? `${hero.starterDice.length} starter dice`));
+  const choices = availableHeroes.map(hero => {
+    const choice = button('control character-choice', 'character', `Play ${hero.name}`, element('strong', '', hero.name), element('small', '', hero.id === 'orden' ? 'Arrange dice in slots' : hero.starterRelic?.name ?? `${hero.starterDice.length} starter dice`));
     choice.dataset.id = hero.id;
     return choice;
   });
@@ -759,6 +816,7 @@ function positionWorld(): void {
 
 function render(animate: ReadonlySet<string> = new Set(), lead = 0): void {
   const focused = document.activeElement instanceof HTMLElement ? document.activeElement.dataset.focus : null;
+  view.toggleAttribute('data-orden', !choosing && ordered());
   closeInspection();
   tooltips.hide();
   if (choosing) {
@@ -812,11 +870,12 @@ function paintTargets(id: string | null, pointed?: HTMLElement): void {
     const telegraph = node.dataset.intentDescription;
     const description = [telegraph, doubled ? 'Double damage against this target' : ''].filter(Boolean).join('. ');
     if (description) node.setAttribute('aria-description', description);
-    else node.removeAttribute('aria-description');
+    else if (!ordered() || target.kind !== 'die') node.removeAttribute('aria-description');
   }
   for (const node of view.querySelectorAll<HTMLElement>('[data-die]')) {
     node.classList.toggle('is-selected', !!id && node.dataset.die === id);
-    if (node.dataset.die === id && !drag?.started) node.setAttribute('aria-pressed', 'true');
+    if (ordered() && state.combat?.phase === 'roll') node.setAttribute('aria-pressed', String(!!current(node.dataset.die!)?.held));
+    else if (node.dataset.die === id && !drag?.started) node.setAttribute('aria-pressed', 'true');
     else node.removeAttribute('aria-pressed');
   }
   if (!id || !pointed || !pointed.classList.contains('is-legal') || !state.combat) return;
@@ -1063,7 +1122,7 @@ function automaticTarget(face: Face): Target | null {
 /** Commits only when the last available reroll is spent. */
 function autoCommit(): boolean {
   const combat = state.combat;
-  if (rolling || state.phase !== 'battle' || !combat || combat.phase !== 'roll') return false;
+  if (ordered() || rolling || state.phase !== 'battle' || !combat || combat.phase !== 'roll') return false;
   if (combat.rerolls > 0) return false;
   const turn = combat.turn;
   if (!commitRoll(state)) return false;
@@ -1144,7 +1203,7 @@ view.addEventListener('click', event => {
   const turn = state.combat?.turn ?? 0;
 
   if (action === 'hazard-details') {
-    const hint = view.querySelector('.enemy-hazard-hint');
+    const hint = view.querySelector(ordered() ? '.formation-hint' : '.enemy-hazard-hint');
     if (hint) hint.textContent = node.title;
     tell(node.title);
     return;
@@ -1273,14 +1332,33 @@ view.addEventListener('click', event => {
 view.addEventListener('pointerdown', event => {
   if (rolling || ledger || menu || event.button !== 0 || drag) return;
   const element = event.target as HTMLElement;
+  if (ordered() && state.phase === 'battle' && event.isPrimary && event.pointerType === 'touch') {
+    const button = element.closest<HTMLButtonElement>('button[data-action]');
+    if (button && battleTapActions.has(button.dataset.action!)) {
+      battleTap = { button, pointer: event.pointerId, x: event.clientX, y: event.clientY };
+    }
+  }
   const item = element.closest<HTMLElement>('[data-drag-item]');
-  const id = element.closest<HTMLElement>('[data-die]')?.dataset.die;
+  const dieButton = element.closest<HTMLElement>('[data-die]');
+  const id = dieButton?.dataset.die;
   let source: Drag['source'];
   if (item && state.phase === 'reward') source = { kind: 'item', index: Number(item.dataset.dragItem) };
-  else if (id && current(id) && !current(id)?.used) source = { kind: 'die', id };
+  else if (id && current(id) && !current(id)?.used && dieButton.getAttribute('aria-disabled') !== 'true') source = { kind: 'die', id };
   else return;
   drag = { source, pointer: event.pointerId, x: event.clientX, y: event.clientY, started: false };
 });
+
+function formationSlotAt(x: number, y: number, id: string): HTMLElement | undefined {
+  return document.elementsFromPoint(x, y).map(node => node.closest<HTMLElement>('[data-socket]'))
+    .find(node => node && canPlaceDie(state, id, Number(node.dataset.socket))) ?? undefined;
+}
+
+function arrangeDie(id: string, index: number): void {
+  if (!placeDie(state, id, index)) return;
+  save();
+  tell(`Placed ${dieLabel(id)} in slot ${index + 1}.`);
+  render();
+}
 
 function pointTarget(x: number, y: number, id: string): HTMLElement | undefined {
   return document.elementsFromPoint(x, y).map(node => node.closest<HTMLElement>('[data-target-kind]'))
@@ -1315,6 +1393,9 @@ document.addEventListener('pointermove', event => {
   drag.ghost!.style.transform = `translate(${event.clientX}px, ${event.clientY}px) translate(-50%, -50%)`;
   if (drag.source.kind === 'item') {
     paintImprint(drag.source.index, imprintAt(event.clientX, event.clientY));
+  } else if (ordered() && state.combat?.phase === 'roll') {
+    view.querySelector('.formation-drop')?.classList.remove('formation-drop');
+    formationSlotAt(event.clientX, event.clientY, drag.source.id)?.classList.add('formation-drop');
   } else {
     const isRack = document.elementsFromPoint(event.clientX, event.clientY).some(node => node.closest('[data-hold]'));
     view.dataset.overRack = '' + isRack;
@@ -1328,14 +1409,24 @@ function clearDrag(): Drag | null {
   drag = null;
   delete view.dataset.dragging;
   delete view.dataset.overRack;
+  view.querySelector('.formation-drop')?.classList.remove('formation-drop');
   if (previous?.source.kind === 'item') paintImprint(offerIndex, null);
   return previous;
 }
 
 document.addEventListener('pointerup', event => {
-  if (drag?.pointer !== event.pointerId) return;
-  const ready = clearDrag();
-  if (!ready?.started) return;
+  const ready = drag?.pointer === event.pointerId ? clearDrag() : null;
+  const tap = battleTap?.pointer === event.pointerId ? battleTap : null;
+  if (tap) battleTap = null;
+  if (!ready?.started) {
+    // Chromium can omit the synthesized click on the first touch after a drag.
+    if (tap?.button.isConnected && tap.button.contains(event.target as Node)
+      && Math.hypot(event.clientX - tap.x, event.clientY - tap.y) <= 6) {
+      tap.button.click();
+      suppressClickUntil = performance.now() + 100;
+    }
+    return;
+  }
   suppressClickUntil = performance.now() + 100;
   if (ready.source.kind === 'item') {
     const id = imprintAt(event.clientX, event.clientY);
@@ -1343,22 +1434,42 @@ document.addEventListener('pointerup', event => {
     return;
   }
   const id = ready.source.id;
+  const finishDrop = (change: () => void) => {
+    // Keep the pressed die mounted until the browser has dispatched touchend.
+    if (ordered() && event.pointerType === 'touch') window.requestAnimationFrame(change);
+    else change();
+  };
   if (state.combat?.phase === 'roll') {
     const drop = document.elementsFromPoint(event.clientX, event.clientY);
-    const inRack = drop.some(node => node.closest('[data-hold]'));
     const inStage = drop.includes(stage) && event.clientY < (view.querySelector('.combat-tray')?.getBoundingClientRect().top ?? innerHeight);
-    if ((inRack || inStage) && setHold(state, id, inRack)) save();
-    render();
+    if (ordered()) {
+      const slot = formationSlotAt(event.clientX, event.clientY, id);
+      if (slot) {
+        const index = Number(slot.dataset.socket);
+        finishDrop(() => arrangeDie(id, index));
+      } else if (inStage) {
+        finishDrop(() => {
+          if (!unplaceDie(state, id)) return;
+          save();
+          tell(`Released ${dieLabel(id)}.`);
+          render();
+        });
+      }
+    } else {
+      const inRack = drop.some(node => node.closest('[data-hold]'));
+      if ((inRack || inStage) && setHold(state, id, inRack)) save();
+      render();
+    }
   } else {
     const target = pointTarget(event.clientX, event.clientY, id);
-    if (target) apply(id, targetFor(target));
+    if (target) finishDrop(() => apply(id, targetFor(target)));
     else paintTargets(selected);
   }
 });
 
-document.addEventListener('pointercancel', () => { clearDrag(); paintTargets(selected); });
+document.addEventListener('pointercancel', () => { battleTap = null; clearDrag(); paintTargets(selected); });
 view.addEventListener('pointerleave', () => { if (!drag) paintedClear(); });
-window.addEventListener('blur', () => { cancelInspectionPress(); clearDrag(); paintTargets(selected); });
+window.addEventListener('blur', () => { battleTap = null; cancelInspectionPress(); clearDrag(); paintTargets(selected); });
 view.addEventListener('focusin', event => {
   if (!(event.target instanceof HTMLElement)) return;
   const imprintTarget = event.target.closest<HTMLElement>('[data-imprint-target]');
@@ -1372,6 +1483,14 @@ document.addEventListener('keydown', event => {
     if (anchor && !rolling) {
       event.preventDefault();
       openInspection(anchor, true);
+    }
+    return;
+  }
+  if (ordered() && state.combat?.phase === 'roll' && !rolling && !menu && !ledger && !inspection && !drag && /^[1-5]$/.test(event.key)) {
+    const id = (document.activeElement as HTMLElement | null)?.dataset.die;
+    if (id) {
+      event.preventDefault();
+      arrangeDie(id, Number(event.key) - 1);
     }
     return;
   }

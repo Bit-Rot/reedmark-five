@@ -2,7 +2,7 @@
 
 # Keywords
 
-**100 keywords.** `N` in rule text is the pip value of the face the keyword sits on. `X` is a number written on the keyword itself (e.g. `pain 2`).
+**107 keywords.** `N` in rule text is the pip value of the face the keyword sits on. `X` is a number written on the keyword itself (e.g. `pain 2`).
 
 ## Effect-type keywords
 
@@ -173,3 +173,15 @@
 | `firstBurn X` | Apply X additional Burn if this is your first Burn play this turn.       | NONBLANK   | implemented |       |
 | `fullHealth`  | Double damage against a target at full HP.                               | DAMAGE     | implemented |       |
 | `clearBurn`   | Deal +1 damage per Burn on you, then clear all your Burn.                | DAMAGE     | implemented |       |
+
+## Row position
+
+| Keyword          | Rule text                                                                                 | Applies to | Implemented | Notes       |
+| ---------------- | ----------------------------------------------------------------------------------------- | ---------- | ----------- | ----------- |
+| `haste`          | When you play this die, the unspent die in the next slot resolves twice when played.      | PIPS_ONLY  | implemented | Orden only. |
+| `brace X`        | Give both adjacent dice +X Block if they have Block.                                      | PIPS_ONLY  | implemented | Orden only. |
+| `neighborPair X` | Pair. Gain +X to the main effect if either adjacent die has the same primary effect type. | PIPS_ONLY  | implemented | Orden only. |
+| `anchor X`       | Gain +X to the main effect in slot 1 or 5.                                                | PIPS_ONLY  | implemented | Orden only. |
+| `centered X`     | Gain +X to the main effect in slot 3.                                                     | PIPS_ONLY  | implemented | Orden only. |
+| `flank X`        | Gain +X to the main effect between a Damage die and a Block die.                          | PIPS_ONLY  | implemented | Orden only. |
+| `bypass`         | Ignore all hazards in this slot when you play this face.                                  | NONBLANK   | implemented | Orden only. |

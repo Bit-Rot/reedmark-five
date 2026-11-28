@@ -818,5 +818,541 @@
       }
     ],
     "implemented": "implemented"
+  },
+  {
+    "id": "trail-sabre",
+    "name": "Trail Sabre",
+    "rewardCharacter": "orden",
+    "rarity": "common",
+    "description": "An Anchor strike for either end of the row.",
+    "effects": [
+      {
+        "target": [
+          "left"
+        ],
+        "op": "setFace",
+        "face": "orden-anchor-cut",
+        "pips": 4
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "rank-pin",
+    "name": "Rank Pin",
+    "rewardCharacter": "orden",
+    "rarity": "common",
+    "description": "Pair works with either Damage or Block neighbors across two faces.",
+    "effects": [
+      {
+        "target": [
+          "middle"
+        ],
+        "op": "setFace",
+        "face": "orden-pair-cut",
+        "pips": 4
+      },
+      {
+        "target": [
+          "bottom"
+        ],
+        "op": "setFace",
+        "face": "orden-pair-block",
+        "pips": 3
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "watch-plate",
+    "name": "Watch Plate",
+    "rewardCharacter": "orden",
+    "rarity": "common",
+    "description": "Bypass a slot hazard or brace a neighboring shield.",
+    "effects": [
+      {
+        "target": [
+          "top"
+        ],
+        "op": "setFace",
+        "face": "orden-intercept",
+        "pips": 2
+      },
+      {
+        "target": [
+          "rightmost"
+        ],
+        "op": "setFace",
+        "face": "orden-brace-block",
+        "pips": 1
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "march-whistle",
+    "name": "March Whistle",
+    "rewardCharacter": "orden",
+    "rarity": "common",
+    "description": "Set up a Pair strike or give the die to the right Haste from a light Block face.",
+    "effects": [
+      {
+        "target": [
+          "right"
+        ],
+        "op": "setFace",
+        "face": "orden-pair-cut",
+        "pips": 1
+      },
+      {
+        "target": [
+          "bottom"
+        ],
+        "op": "setFace",
+        "face": "orden-rally",
+        "pips": 1
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "hearth-nail",
+    "name": "Hearth Nail",
+    "rewardCharacter": "orden",
+    "rarity": "common",
+    "description": "Apply Burn, then place an After Burn strike after it.",
+    "effects": [
+      {
+        "target": [
+          "middle"
+        ],
+        "op": "setFace",
+        "face": "orden-kindle",
+        "pips": 4
+      },
+      {
+        "target": [
+          "right"
+        ],
+        "op": "setFace",
+        "face": "orden-follow-cut",
+        "pips": 1
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "pivot-pin",
+    "name": "Pivot Pin",
+    "rewardCharacter": "orden",
+    "rarity": "common",
+    "description": "A Damage and a Block face compete for slot 3.",
+    "effects": [
+      {
+        "target": [
+          "top"
+        ],
+        "op": "setFace",
+        "face": "orden-pivot-cut",
+        "pips": 2
+      },
+      {
+        "target": [
+          "left"
+        ],
+        "op": "setFace",
+        "face": "orden-pivot-block",
+        "pips": 6
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "smoke-screen",
+    "name": "Smoke Screen",
+    "rewardCharacter": "orden",
+    "rarity": "common",
+    "description": "Weaken an enemy or raise a light Block.",
+    "effects": [
+      {
+        "target": [
+          "bottom"
+        ],
+        "op": "setFace",
+        "face": "orden-dampen",
+        "pips": 2
+      },
+      {
+        "target": [
+          "rightmost"
+        ],
+        "op": "setFace",
+        "face": "block",
+        "pips": 2
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "crossguard",
+    "name": "Crossguard",
+    "rewardCharacter": "orden",
+    "rarity": "uncommon",
+    "description": "One die attacks while boosting nearby Block. Another face wants a mixed line.",
+    "effects": [
+      {
+        "target": [
+          "left"
+        ],
+        "op": "setFace",
+        "face": "orden-brace-cut",
+        "pips": 6
+      },
+      {
+        "target": [
+          "right"
+        ],
+        "op": "setFace",
+        "face": "orden-flank-block",
+        "pips": 1
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "mirror-buckle",
+    "name": "Mirror Buckle",
+    "rewardCharacter": "orden",
+    "rarity": "uncommon",
+    "description": "Echo turns a large previous face into either Damage or Block.",
+    "effects": [
+      {
+        "target": [
+          "middle"
+        ],
+        "op": "setFace",
+        "face": "orden-echo-cut",
+        "pips": 6
+      },
+      {
+        "target": [
+          "top"
+        ],
+        "op": "setFace",
+        "face": "orden-echo-block",
+        "pips": 3
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "point-banner",
+    "name": "Point Banner",
+    "rewardCharacter": "orden",
+    "rarity": "uncommon",
+    "description": "Open on an untouched enemy or follow Burn for a larger strike.",
+    "effects": [
+      {
+        "target": [
+          "top"
+        ],
+        "op": "setFace",
+        "face": "orden-opening-cut",
+        "pips": 3
+      },
+      {
+        "target": [
+          "rightmost"
+        ],
+        "op": "setFace",
+        "face": "orden-follow-cut",
+        "pips": 1
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "hinged-buckler",
+    "name": "Hinged Buckler",
+    "rewardCharacter": "orden",
+    "rarity": "uncommon",
+    "description": "Riposte from a hazardous slot with Bypass, or build a defense with Pair.",
+    "effects": [
+      {
+        "target": [
+          "bottom"
+        ],
+        "op": "setFace",
+        "face": "orden-riposte",
+        "pips": 1
+      },
+      {
+        "target": [
+          "right"
+        ],
+        "op": "setFace",
+        "face": "orden-pair-block",
+        "pips": 1
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "wedge-blade",
+    "name": "Wedge Blade",
+    "rewardCharacter": "orden",
+    "rarity": "uncommon",
+    "description": "A light Flank strike rewards a mixed line, and a heavy Pair strike rewards a Damage neighbor.",
+    "effects": [
+      {
+        "target": [
+          "right"
+        ],
+        "op": "setFace",
+        "face": "orden-flank-cut",
+        "pips": 1
+      },
+      {
+        "target": [
+          "left"
+        ],
+        "op": "setFace",
+        "face": "orden-pair-cut",
+        "pips": 7
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "camp-cord",
+    "name": "Camp Cord",
+    "rewardCharacter": "orden",
+    "rarity": "uncommon",
+    "description": "Recover HP or line up Brace support for a shield.",
+    "effects": [
+      {
+        "target": [
+          "middle"
+        ],
+        "op": "setFace",
+        "face": "orden-field-medic",
+        "pips": 4
+      },
+      {
+        "target": [
+          "rightmost"
+        ],
+        "op": "setFace",
+        "face": "orden-brace-block",
+        "pips": 1
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "lit-signal",
+    "name": "Lit Signal",
+    "rewardCharacter": "orden",
+    "rarity": "uncommon",
+    "description": "Apply Burn and double the next die, or fill slot 3 with Block.",
+    "effects": [
+      {
+        "target": [
+          "top"
+        ],
+        "op": "setFace",
+        "face": "orden-signal-fire",
+        "pips": 1
+      },
+      {
+        "target": [
+          "bottom"
+        ],
+        "op": "setFace",
+        "face": "orden-pivot-block",
+        "pips": 2
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "counterweight-sabre",
+    "name": "Counterweight Sabre",
+    "rewardCharacter": "orden",
+    "rarity": "uncommon",
+    "description": "Trade the next turn for a heavy edge attack, or use a steady Pair strike.",
+    "effects": [
+      {
+        "target": [
+          "left"
+        ],
+        "op": "setFace",
+        "face": "orden-heavy-anchor",
+        "pips": 8
+      },
+      {
+        "target": [
+          "rightmost"
+        ],
+        "op": "setFace",
+        "face": "orden-pair-cut",
+        "pips": 1
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "gatehouse",
+    "name": "Gatehouse",
+    "rewardCharacter": "orden",
+    "rarity": "rare",
+    "description": "A shield that bypasses hazards and braces its neighbors, with a Center face that also supports both sides.",
+    "effects": [
+      {
+        "target": [
+          "middle"
+        ],
+        "op": "setFace",
+        "face": "orden-gate",
+        "pips": 3
+      },
+      {
+        "target": [
+          "bottom"
+        ],
+        "op": "setFace",
+        "face": "orden-keystone",
+        "pips": 1
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "two-front-standard",
+    "name": "Two-Front Standard",
+    "rewardCharacter": "orden",
+    "rarity": "rare",
+    "description": "Stack Pair and Flank between a Damage die and a Block die.",
+    "effects": [
+      {
+        "target": [
+          "right"
+        ],
+        "op": "setFace",
+        "face": "orden-flank-block",
+        "pips": 1
+      },
+      {
+        "target": [
+          "top"
+        ],
+        "op": "setFace",
+        "face": "orden-crosscut",
+        "pips": 1
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "relay-lantern",
+    "name": "Relay Lantern",
+    "rewardCharacter": "orden",
+    "rarity": "rare",
+    "description": "Two Haste faces and an After Burn payoff support a chain of consecutive slots.",
+    "effects": [
+      {
+        "target": [
+          "left"
+        ],
+        "op": "setFace",
+        "face": "orden-signal-fire",
+        "pips": 5
+      },
+      {
+        "target": [
+          "bottom"
+        ],
+        "op": "setFace",
+        "face": "orden-rally",
+        "pips": 2
+      },
+      {
+        "target": [
+          "rightmost"
+        ],
+        "op": "setFace",
+        "face": "orden-follow-cut",
+        "pips": 1
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "parade-mirror",
+    "name": "Parade Mirror",
+    "rewardCharacter": "orden",
+    "rarity": "rare",
+    "description": "Convert the previous die’s pips into Damage or Block, or Brace your neighbors while attacking.",
+    "effects": [
+      {
+        "target": [
+          "middle"
+        ],
+        "op": "setFace",
+        "face": "orden-echo-cut",
+        "pips": 7
+      },
+      {
+        "target": [
+          "right"
+        ],
+        "op": "setFace",
+        "face": "orden-brace-cut",
+        "pips": 1
+      },
+      {
+        "target": [
+          "top"
+        ],
+        "op": "setFace",
+        "face": "orden-echo-block",
+        "pips": 4
+      }
+    ],
+    "implemented": "implemented"
+  },
+  {
+    "id": "breakwater",
+    "name": "Breakwater",
+    "rewardCharacter": "orden",
+    "rarity": "rare",
+    "description": "Trade next turn for a heavy Anchor strike, claim an edge with Anchor Block, or riposte through a slot hazard.",
+    "effects": [
+      {
+        "target": [
+          "left"
+        ],
+        "op": "setFace",
+        "face": "orden-heavy-anchor",
+        "pips": 9
+      },
+      {
+        "target": [
+          "rightmost"
+        ],
+        "op": "setFace",
+        "face": "orden-anchor-block",
+        "pips": 1
+      },
+      {
+        "target": [
+          "bottom"
+        ],
+        "op": "setFace",
+        "face": "orden-riposte",
+        "pips": 1
+      }
+    ],
+    "implemented": "implemented"
   }
 ]

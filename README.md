@@ -41,6 +41,10 @@ Explore any hex adjacent to cleared territory. Ordinary rooms reveal at the fron
 
 The first two boss victories restore full HP, grant a rare relic, and offer a rare imprint before exploration resumes with harder encounters. The last boss ends the run. Fixed Five saves from the linear route are incompatible with the campaign.
 
+## Orden
+
+Choose Orden in Fixed Five to use his positional starter kit and 20 imprints. Drag dice into specific slots, or focus one and press **1–5**. Reroll locks the dice already in the row. Commit fills the remaining slots and starts manual play. Haste, Brace, Pair, Anchor, Center, Flank, and Bypass reward different placements.
+
 ## Enemy dice and hazards
 
 Campaign fights field two to four enemies, each with its own six-face die. Dark die faces above enemies show the rolled action. A face can combine an attack, Block, or Power with a hazard, and some hazards target two slots.

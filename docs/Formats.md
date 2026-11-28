@@ -57,3 +57,21 @@
 ### Unlocks
 
 
+
+## Orden
+
+### Starter Dice
+
+* `die_orden_edge`
+* `die_orden_file`
+* `die_orden_guard`
+* `die_orden_shield`
+* `die_orden_signal`
+
+### Items
+
+
+
+### Unlocks
+
+

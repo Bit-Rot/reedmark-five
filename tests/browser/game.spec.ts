@@ -173,6 +173,8 @@ async function perform(page: Page, command: Command): Promise<void> {
     await action(page, 'start-boss').click();
   } else if (command.action === 'hold') {
     await die(page, command.id).click();
+  } else if (command.action === 'place') {
+    await drag(page, die(page, command.id), page.locator(`[data-socket="${command.position}"]`));
   } else if (command.action === 'play') {
     await die(page, command.id).click();
     const target = command.target;
@@ -226,7 +228,7 @@ test('a fresh run asks for a hero and starts with that hero\'s dice', async ({ p
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/?route=linear');
   await expect(page.getByRole('heading', { name: 'Choose your hero' })).toBeVisible();
-  await expect(page.locator('.character-choice')).toHaveCount(3);
+  await expect(page.locator('.character-choice')).toHaveCount(4);
   await page.getByRole('button', { name: 'Play Thief' }).click();
   await expect(page.locator('#interface')).toHaveAttribute('data-phase', 'battle');
   await expect(page.locator('.stage-cube')).toHaveCount(5);
