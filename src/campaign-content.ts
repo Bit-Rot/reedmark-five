@@ -19,69 +19,94 @@ const petrify: HazardSpec = { kind: 'petrifyDice', value: 0, count: 2 };
 const corrupt: HazardSpec = { kind: 'corruptDice', value: 1, count: 2 };
 const pain: HazardSpec = { kind: 'pain', value: 1 };
 
-type Profile = 'swarm' | 'rush' | 'guard' | 'burst' | 'power';
+type Profile = 'trap' | 'drain' | 'seal' | 'petrify' | 'corrupt' | 'burst' | 'power';
 type Family = readonly [name: string, sprite: string, profile: Profile, hp: number];
-const gnat: Family = ['Mire Gnat', 'gnat', 'swarm', 4];
-const mudrunner: Family = ['Mudrunner', 'hound', 'rush', 11];
-const warden: Family = ['Reed Warden', 'warden', 'guard', 9];
-const brood: Family = ['Mire Brood', 'brood', 'power', 13];
-const skater: Family = ['Silt Skater', 'silt-skater', 'swarm', 6];
-const reedback: Family = ['Reedback', 'reedback', 'guard', 10];
+const gnat: Family = ['Mire Gnat', 'gnat', 'trap', 5];
+const mudrunner: Family = ['Mudrunner', 'hound', 'drain', 12];
+const warden: Family = ['Reed Warden', 'warden', 'seal', 10];
+const brood: Family = ['Mire Brood', 'brood', 'corrupt', 14];
+const skater: Family = ['Silt Skater', 'silt-skater', 'petrify', 7];
+const reedback: Family = ['Reedback', 'reedback', 'seal', 10];
 const eel: Family = ['Glass Eel', 'glass-eel', 'burst', 8];
-const lantern: Family = ['Bog Lantern', 'bog-lantern', 'power', 9];
-const harrier: Family = ['Fen Harrier', 'fen-harrier', 'rush', 9];
-const matron: Family = ['Ford Matron', 'ford-matron', 'guard', 21];
+const lantern: Family = ['Bog Lantern', 'bog-lantern', 'corrupt', 9];
+const harrier: Family = ['Fen Harrier', 'fen-harrier', 'drain', 9];
+const matron: Family = ['Ford Matron', 'ford-matron', 'seal', 21];
 const hook: Family = ['Tidehook', 'tidehook', 'burst', 20];
 const herald: Family = ['Husk Herald', 'husk-herald', 'power', 22];
 const stag: Family = ['Furnace Stag', 'furnace-stag', 'power', 23];
 const kilnback: Family = ['Kilnback', 'kilnback', 'burst', 23];
 
 function familyDie(family: Family, owner: number, tier: number, elite: boolean): IntentDie {
-  const strike = (owner === 0 ? 3 : 2) + tier + Number(tier === 2) + Number(elite);
+  const strike = (owner === 0 ? 4 : 3) + tier + Number(tier === 2) + Number(elite);
   const protection = 2 + Number(tier > 0) + Number(elite);
-  const group = tier === 2 ? 2 : 1;
-  // Each family owns a six-face die, including faces that combine a regular move and a hazard.
+  const heavy = elite || tier === 2;
+  // Every hazard has a tell. Most faces threatening multiple slots still leave somewhere safe.
   switch (family[2]) {
-    case 'swarm': {
-      const nip = family === gnat ? 1 : strike - 1;
-      return die(owner, hit(nip), hit(nip + 1), hit(nip, trap(1)), guard(1),
-        hex(trap(elite ? 2 : 1, group)), wait);
-    }
-    case 'rush':
-      return die(owner, hit(strike + 2), hit(strike), hit(strike - 1, drain(1)),
-        hit(strike), hex(elite ? pain : drain(1, group)), wait);
-    case 'guard':
-      return die(owner, guard(protection), hit(strike), guard(protection, seal()),
-        hit(strike - 1), guard(protection + 1, elite ? petrify : drain(1)), hex(seal('edge', group)));
+    case 'trap':
+      return die(owner, hit(2, trap(1)), hit(3), hit(2, trap(2)), guard(2),
+        hex(trap(2, 2)), hit(1));
+    case 'drain':
+      return die(owner, hit(strike + 2), hit(strike, drain(2)), hit(strike - 1, drain(1, 2)),
+        hit(strike + 1), guard(protection, drain(2, 2)), power(elite ? pain : drain(2)));
+    case 'seal':
+      return die(owner, guard(protection + 1), hit(strike, seal()), guard(protection, seal('edge')),
+        hit(strike - 1, drain(2)), guard(protection + 2, heavy ? petrify : seal()), hex(seal('edge', 2)));
+    case 'petrify':
+      return die(owner, hit(strike - 1, stone()), hit(strike), guard(protection, stone(2)),
+        hit(strike - 1, stone()), hex(heavy ? petrify : stone(2)), hit(strike - 1));
+    case 'corrupt':
+      return die(owner, power(pain), hit(strike + 1), guard(protection, rot(2)),
+        hit(strike, rot()), hex(heavy ? corrupt : rot(2)), hit(strike));
     case 'burst':
       return die(owner, hit(strike + 4), wait, hit(strike + 1, stone()),
-        guard(protection), hit(strike + 3), hex(elite ? corrupt : stone(group)));
+        guard(protection, heavy ? petrify : undefined), hit(strike + 3), hex(heavy ? corrupt : stone(2)));
     case 'power':
       return die(owner, power(), hit(strike + 1), guard(protection, rot()),
-        hit(strike, trap(1)), power(elite ? pain : drain(1, group)), hit(strike));
+        hit(strike, trap(2)), power(elite ? pain : drain(2, 2)), hit(strike));
   }
 }
 
 type Rank = 'normal' | 'elite';
-function encounter(id: string, roster: readonly Family[], tier: number, rank: Rank, old?: Encounter): Encounter {
+function encounter(id: string, roster: readonly Family[], tier: number, rank: Rank, old?: Encounter, title?: string): Encounter {
   const enemies = roster.map((family, index): EnemyDefinition => ({
     id: old?.enemies[index]?.sprite === family[1] ? old.enemies[index].id : index === 0 && old ? old.enemies[0].id : id + '-' + index,
     name: family[0], sprite: family[1], hp: family[3] + (index === 0 ? tier * 4 : tier * 2),
   }));
   const lead = roster[0];
   return {
-    type: 'battle', rank, name: old?.name ?? (roster.every(family => family === lead) ? lead[0] + ' Pack' : lead[0] + ' Patrol'),
+    type: 'battle', rank, name: title ?? old?.name ?? lead[0] + ' Patrol',
     enemies,
     dice: roster.map((family, index) => familyDie(family, index, tier, rank === 'elite' && index === 0)),
   };
 }
 
 const legacy = (name: string) => ROOMS.find((room): room is Encounter => room.type === 'battle' && room.name === name)!;
-const normalFamilies = [
-  [gnat, mudrunner, warden, brood, skater],
-  [mudrunner, warden, reedback, eel, lantern],
-  [brood, skater, eel, lantern, harrier],
-] as const;
+type Roster = readonly [Family, ...Family[]];
+type Patrol = readonly [name: string, roster: Roster, alternateName: string, alternateRoster: Roster];
+// The alternate keeps each lead's core threat and changes which escorts the player must prioritize.
+const normalPatrols: readonly (readonly Patrol[])[] = [
+  [
+    ['Mire Gnats', [gnat, gnat, gnat], 'Mire Crossfire', [gnat, mudrunner, gnat]],
+    ['Mudrunner', [mudrunner, gnat], 'Runners at the Ford', [mudrunner, warden, gnat]],
+    ['Reed Wardens', [warden, warden, gnat], 'Sealed Nursery', [warden, brood, gnat]],
+    ['Mire Brood', [brood, gnat], 'Brittle Brood', [brood, skater, gnat]],
+    ['Silt Skater Patrol', [skater, gnat], 'Silt Trap', [skater, gnat, gnat]],
+  ],
+  [
+    ['Mudrunner Patrol', [mudrunner, skater, warden], 'Drowned Charge', [mudrunner, eel, skater, skater]],
+    ['Reed Warden Patrol', [warden, skater, reedback], 'Wardens of the Shoal', [warden, reedback, gnat, skater]],
+    ['Reedback Patrol', [reedback, skater, eel], 'Lantern Bulwark', [reedback, lantern, skater, skater]],
+    ['Glass Eel Patrol', [eel, skater, lantern], 'Glass and Reeds', [eel, warden, skater, skater]],
+    ['Bog Lantern Patrol', [lantern, skater, mudrunner], 'Lantern Pursuit', [lantern, mudrunner, gnat, skater]],
+  ],
+  [
+    ['Mire Brood Patrol', [brood, skater, skater], 'Brood of Glass', [brood, eel, skater, skater]],
+    ['Silt Skater Patrol', [skater, skater, eel], 'Silt Bulwark', [skater, reedback, skater, skater]],
+    ['Glass Eel Patrol', [eel, skater, lantern], 'Storm Shoal', [eel, harrier, skater, skater]],
+    ['Bog Lantern Patrol', [lantern, skater, harrier], 'Sinking Lanterns', [lantern, brood, skater, skater]],
+    ['Fen Harrier Patrol', [harrier, skater, brood], 'Furnace Pursuit', [harrier, stag, skater, skater]],
+  ],
+];
 const eliteFamilies: readonly (readonly (readonly Family[])[])[] = [
   [[matron, gnat], [hook, skater]],
   [[matron, eel, skater], [hook, warden], [herald, mudrunner, gnat]],
@@ -115,17 +140,12 @@ export const CAMPAIGN_FIGHTS: Record<string, Encounter> = {
 };
 
 const opening: string[] = [];
-export const ENCOUNTER_POOLS = normalFamilies.map((families, tier) => {
-  const normal = families.flatMap((lead, index) => {
-    const id = 'cycle-' + (tier + 1) + '-' + lead[1];
-    const old = tier === 0 ? ['Mire Gnats', 'Mudrunner', 'Reed Wardens', 'Mire Brood'][index] : undefined;
-    const partner = families[(index + 1) % families.length];
-    const minor = tier === 0 ? gnat : skater;
-    const roster = lead === gnat ? [gnat, gnat, gnat]
-      : lead === warden && tier === 0 ? [warden, warden, gnat]
-      : [lead, minor, ...(tier === 0 ? [] : [partner])];
-    CAMPAIGN_FIGHTS[id] = encounter(id, roster, tier, 'normal', old ? legacy(old) : undefined);
-    CAMPAIGN_FIGHTS[id + '-pair'] = encounter(id + '-pair', [lead, partner, minor, ...(tier > 0 ? [minor] : [])], tier, 'normal');
+export const ENCOUNTER_POOLS = normalPatrols.map((patrols, tier) => {
+  const normal = patrols.flatMap(([name, roster, alternateName, alternateRoster], index) => {
+    const id = 'cycle-' + (tier + 1) + '-' + roster[0][1];
+    const old = tier === 0 && index < 4 ? legacy(name) : undefined;
+    CAMPAIGN_FIGHTS[id] = encounter(id, roster, tier, 'normal', old, name);
+    CAMPAIGN_FIGHTS[id + '-pair'] = encounter(id + '-pair', alternateRoster, tier, 'normal', undefined, alternateName);
     if (tier === 0 && index < 2) opening.push(id);
     return [id, id + '-pair'];
   });

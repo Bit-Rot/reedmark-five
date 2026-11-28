@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { CHARACTERS, DICE, ITEMS } from '../src/content.ts';
-import { STARTER_PIPS, estimateImprint } from '../scripts/face-value.ts';
+import { STARTER_PIPS, estimateFaceValue, estimateImprint } from '../scripts/face-value.ts';
 import { actionPreview, canPlay, commitRoll, endTurn, isHasted, newLinearRun, placeDie, play, reroll, restoreSave, rollFace, setHold, unplaceDie } from '../src/game.ts';
 import { applyDirectHazard, faceHazard } from '../src/hazards.ts';
 import { SLOTS } from '../src/model.ts';
@@ -85,12 +85,12 @@ test('Haste arms the immediate right-hand die when used and counts only one Grow
   assert(play(state, 'd4', self));
   assert.equal(isHasted(state, 'd1'), true);
   assert.equal(isHasted(state, 'd0'), false);
-  assert.equal(rollFace(state, combat.rolls[1]).parts[0].value, 3); // Pair with the Damage face to its right.
+  assert.equal(rollFace(state, combat.rolls[1]).parts[0].value, 2); // Pair with the Damage face to its right.
   const before = structuredClone(state);
-  assert.equal(actionPreview(state, 'd1', enemy(combat, 1))?.enemies[1].hp, 74);
+  assert.equal(actionPreview(state, 'd1', enemy(combat, 1))?.enemies[1].hp, 76);
   assert.deepEqual(state, before);
   assert(play(state, 'd1', enemy(combat, 1)));
-  assert.equal(combat.enemies[1].hp, 74);
+  assert.equal(combat.enemies[1].hp, 76);
   assert.equal(combat.grown['d1:right'], 1);
   assert(endTurn(state));
   assert(combat.formation!.every(slot => slot === null));
@@ -109,11 +109,11 @@ test('Brace affects both neighbors and Block uses the common pool regardless of 
   placeDie(state, 'd3', 2);
   placeDie(state, 'd4', 1);
   assert(commitRoll(state));
-  assert.equal(rollFace(state, combat.rolls[4]).parts[0].value, 6);
+  assert.equal(rollFace(state, combat.rolls[4]).parts[0].value, 4);
   assert(play(state, 'd4', self));
-  assert.equal(combat.guard, 6);
+  assert.equal(combat.guard, 4);
   assert(endTurn(state));
-  assert.equal(state.hp, 34);
+  assert.equal(state.hp, 32);
 });
 
 test('Anchor, Center, and Flank reward their own positions', () => {
@@ -132,7 +132,7 @@ test('Anchor, Center, and Flank reward their own positions', () => {
   placeDie(state, 'd2', 4); // Outside center.
   assert(commitRoll(state));
   const amount = (index: number) => rollFace(state, combat.rolls[index]).parts[0].value;
-  assert.deepEqual([4, 1, 3, 2].map(amount), [4, 4, 2, 2]);
+  assert.deepEqual([4, 1, 3, 2].map(amount), [3, 4, 2, 2]);
 });
 
 test('Bypass ignores sealing, drain, traps, and use-triggered curses while Pain still applies', () => {
@@ -192,7 +192,13 @@ test('Orden starts with the pip curve on every die and a single Anchor face', ()
   const modifiers: string[][] = [];
   for (const template of dice) {
     const faces = DICE[template].faces;
-    for (const slot of SLOTS) assert.equal(faces[slot].parts[0].value, STARTER_PIPS[slot], template + ' ' + slot);
+    for (const slot of SLOTS) {
+      const face = faces[slot];
+      if (template === 'die_orden_signal' && slot === 'top') {
+        assert.equal(face.parts[0].value, 1);
+        assert(Math.abs(estimateFaceValue(face) - STARTER_PIPS[slot]) <= .75, template + ' ' + slot);
+      } else assert.equal(face.parts[0].value, STARTER_PIPS[slot], template + ' ' + slot);
+    }
     modifiers.push(SLOTS.flatMap(slot => faces[slot].parts.slice(1).map(part => part.kind)));
   }
   assert.deepEqual(modifiers, [[], [], [], [], ['anchor']]);

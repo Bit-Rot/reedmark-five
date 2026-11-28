@@ -5,6 +5,10 @@
     "faces": [
       {
         "face": "dmg",
+        "pips": 4
+      },
+      {
+        "face": "dmg",
         "pips": 3
       },
       {
@@ -13,11 +17,7 @@
       },
       {
         "face": "dmg",
-        "pips": 1
-      },
-      {
-        "face": "dmg",
-        "pips": 1
+        "pips": 2
       },
       {
         "face": "block",
@@ -37,11 +37,11 @@
     "faces": [
       {
         "face": "block",
-        "pips": 3
+        "pips": 4
       },
       {
         "face": "block",
-        "pips": 2
+        "pips": 3
       },
       {
         "face": "block",
@@ -69,11 +69,11 @@
     "faces": [
       {
         "face": "dmgVulnerable",
-        "pips": 2
+        "pips": 3
       },
       {
         "face": "dmgVulnerable",
-        "pips": 2
+        "pips": 3
       },
       {
         "face": "dmgBlock",
@@ -99,7 +99,7 @@
     "faces": [
       {
         "face": "dmgCantrip",
-        "pips": 1
+        "pips": 2
       },
       {
         "face": "dmgCantrip",
@@ -129,7 +129,7 @@
     "faces": [
       {
         "face": "blockCantrip",
-        "pips": 1
+        "pips": 2
       },
       {
         "face": "blockCantrip",
@@ -163,7 +163,7 @@
       },
       {
         "face": "dmgWeak",
-        "pips": 2
+        "pips": 1
       },
       {
         "face": "dmg",
@@ -190,11 +190,11 @@
     "faces": [
       {
         "face": "dmg",
-        "pips": 3
+        "pips": 4
       },
       {
         "face": "dmg",
-        "pips": 2
+        "pips": 3
       },
       {
         "face": "dmg",
@@ -222,7 +222,7 @@
     "faces": [
       {
         "face": "blockSelfBurn",
-        "pips": 3
+        "pips": 5
       },
       {
         "face": "block",
@@ -261,11 +261,11 @@
       },
       {
         "face": "dmgExhaust",
-        "pips": 5
+        "pips": 4
       },
       {
         "face": "blockSpendFrenzy",
-        "pips": 2
+        "pips": 1
       },
       {
         "face": "blank"
@@ -418,7 +418,7 @@
       },
       {
         "face": "orden-signal-anchor",
-        "pips": 2
+        "pips": 1
       },
       {
         "face": "block",

@@ -67,10 +67,10 @@ test('damage and block faces use the pips on the die slot; slash_block does both
   const enemy = c.enemies[0];
   const hp = enemy.hp;
   assert(play(s, 'd0', enemyTarget(s)));
-  assert.equal(enemy.hp, hp - 3);
+  assert.equal(enemy.hp, hp - 4);
   const guard = c.guard;
   assert(play(s, 'd4', enemyTarget(s)));
-  assert.equal(enemy.hp, hp - 4);
+  assert.equal(enemy.hp, hp - 5);
   assert.equal(c.guard, guard + 1);
 });
 
@@ -90,13 +90,13 @@ test('vulnerable adds 50% damage (rounded down) and loses a stack after each ene
   const enemy = c.enemies[0];
   enemy.hp = enemy.maxHp = 100;
   c.rolls[4].slot = 'left';
-  c.rolls[0].slot = 'left';
+  c.rolls[0].slot = 'center';
   assert(commitRoll(s));
   assert(play(s, 'd4', enemyTarget(s)));
-  assert.equal(enemy.hp, 98);
+  assert.equal(enemy.hp, 97);
   assert.equal(enemy.vulnerable, 1);
   assert(play(s, 'd0', enemyTarget(s)));
-  assert.equal(enemy.hp, 98 - Math.floor(3 * 1.5));
+  assert.equal(enemy.hp, 97 - Math.floor(3 * 1.5));
   s.hp = 1000;
   assert(endTurn(s));
   assert.equal(enemy.vulnerable, 0);
@@ -140,7 +140,7 @@ test('applying poison from a face adds X stacks regardless of pips', () => {
   const enemy = c.enemies[0];
   const hp = enemy.hp;
   assert(play(s, 'd0', enemyTarget(s)));
-  assert.equal(enemy.hp, hp - 2);
+  assert.equal(enemy.hp, hp - 1);
   assert.equal(enemy.seep, 1);
 });
 
@@ -170,7 +170,8 @@ test('cantrips fire by themselves when they land, at a random enemy, without usi
     if (!c.events.some(e => e.includes('damage'))) continue;
     found++;
     const total = c.enemies.reduce((n, e) => n + e.maxHp - e.hp, 0);
-    assert.equal(total, c.events.filter(e => e.includes('1 damage')).length);
+    const reported = c.events.reduce((damage, event) => damage + Number(event.match(/: (\d+) damage/)?.[1] ?? 0), 0);
+    assert.equal(total, reported);
     assert(c.rolls.every(r => !r.used));
   }
   assert(found >= 1, 'no seed produced a cantrip');

@@ -12,7 +12,7 @@ import { cycleAt } from './campaign-map.ts';
 import { CHARACTERS, DICE, FACE_IMAGE_PATHS, ITEMS, RELICS, ROOMS } from './content.ts';
 import { actionPreview, baseRerolls, advance, canPlaceDie, canPlay, canTakeEventOffer, chooseOffer, commitRoll, currentRoom, endTurn, eventChoiceFor, explore, incoming, intentValues, isHasted, placeDie, restoreSave, unplaceDie, usesFormation,
   faceFor, facesFor, newLinearRun, newRun, offerTargets, play, previewDie, previewUpgrade, reroll, rollFace, setHold, startBoss, starterRelicFor } from './game.ts';
-import { dieHazards, slotHazards, slotLocked } from './hazards.ts';
+import { dieHazards, intentHazards, slotHazards, slotLocked } from './hazards.ts';
 import { SLOTS } from './model.ts';
 import type { Die, EnemyHazard, Face, Offer, Relic, Roll, Slot, State, Target, Variant } from './model.ts';
 import { EFFECTS, faceImageUrl, loadEffectImages, loadFaceImages } from './effects.ts';
@@ -1044,8 +1044,14 @@ function openEnemyDie(anchor: HTMLButtonElement): void {
   const index = Number(anchor.dataset.index);
   const die = dieForIntent(room, combat, index, !!state.map);
   if (!die) return;
-  const face = combat.intents[index].dieRoll?.face;
-  const chart = enemyDieChart(die, face !== undefined && die.faces[face] ? face : undefined);
+  const intent = combat.intents[index];
+  const face = intent.dieRoll?.face;
+  const authored = face === undefined ? undefined : die.faces[face];
+  // Saved intents keep their action when an update tunes the enemy die mid-fight.
+  const matches = authored?.[0] === intent.move && authored[1] === intent.value
+    && intentHazards(intent)
+      .every(hazard => hazard.kind === authored[2]?.kind && hazard.value === authored[2]?.value);
+  const chart = enemyDieChart(die, matches ? face : undefined);
   const currentIntent = element('p', 'enemy-current-intent', 'This turn', element('span', '', anchor.title));
   const title = anchor.dataset.enemyName + ' die';
   showInspection(element('dialog', 'die-inspection enemy-die-inspection'), anchor, title, title,

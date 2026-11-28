@@ -97,7 +97,7 @@ test('hover and right click show illustrated faces and their in-game definitions
   await saveFixture(page, state);
   await die(page, 'd4').hover();
   const tooltip = page.getByRole('tooltip');
-  await expect(tooltip).toContainText('2 Damage, 1 Vulnerable, Exert');
+  await expect(tooltip).toContainText('3 Damage, 1 Vulnerable, Exert');
   await expect(tooltip).toContainText('The target takes 50% more damage');
   await expect(tooltip.locator('dt')).toHaveText([/Damage/, /Vulnerable/, /Exert/]);
   await expect(die(page, 'd4')).not.toHaveAttribute('title', /.+/);
@@ -108,7 +108,7 @@ test('hover and right click show illustrated faces and their in-game definitions
   await expect(layout.locator('.net-tile img')).not.toHaveCount(0);
   await expect(layout.locator('.net-tile')).toHaveCount(6);
   await layout.locator('[data-slot="left"]').hover();
-  await expect(tooltip).toContainText('3 Block');
+  await expect(tooltip).toContainText('4 Block');
   await expect(tooltip).toContainText('Absorbs incoming damage');
   const hintBounds = (await tooltip.boundingBox())!;
   const layoutBounds = (await layout.boundingBox())!;
@@ -117,7 +117,7 @@ test('hover and right click show illustrated faces and their in-game definitions
   await expect(layout).toHaveCount(0);
   await expect(page.locator('.stage-cube')).toHaveCount(5);
   await die(page, 'd4').focus();
-  await expect(tooltip).toContainText('2 Damage, 1 Vulnerable, Exert');
+  await expect(tooltip).toContainText('3 Damage, 1 Vulnerable, Exert');
   await page.keyboard.press('Shift+F10');
   await expect(page.getByRole('dialog', { name: 'Die 5 layout' })).toBeVisible();
 });
@@ -502,7 +502,7 @@ test('Moth shows Lampheart, changes live face values, and shows exhausted slots 
   await expect(actor(page, 'courier').locator('.chip--burn')).toHaveText('1');
   await expect(die(page, 'd4')).toHaveAccessibleName(/6 Damage/);
   await die(page, 'd0').click();
-  await expect(die(page, 'd1')).toHaveAccessibleName(/6 Block/);
+  await expect(die(page, 'd1')).toHaveAccessibleName(/4 Block/);
   await die(page, 'd1').hover();
   await expect(page.getByRole('tooltip')).toContainText('if you have already exhausted a face this turn');
   await action(page, 'end').click();
@@ -516,7 +516,7 @@ test('sequencing badges and target bonuses follow the plays made in combat', asy
   const state = newRun('fixed', 231, 'moth');
   const combat = state.combat!;
   for (const enemy of combat.enemies) enemy.hp = enemy.maxHp = 24;
-  const slots = ['center', 'right', 'right', 'bottom', 'left'] as const;
+  const slots = ['right', 'right', 'right', 'bottom', 'left'] as const;
   slots.forEach((slot, index) => { combat.rolls[index].slot = slot; });
   state.dice[1].imprints.right = 'reed-splint';
   state.dice[2].imprints.right = 'rattle-comb';

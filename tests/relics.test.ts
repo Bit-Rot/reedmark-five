@@ -23,18 +23,18 @@ test('position and play-order relics update rolled pips and resolve the same val
   const { state, c, pips } = fight(['flint-shim', 'reed-loom', 'iron-thread', 'counterweight-crown'],
     ['left', 'left', 'right', 'far', 'top']);
   assert(commitRoll(state));
-  assert.equal(pips(0), 4);
-  assert.equal(actionPreview(state, 'd0', foe)?.enemies[0].hp, 96);
+  assert.equal(pips(0), 5);
+  assert.equal(actionPreview(state, 'd0', foe)?.enemies[0].hp, 95);
   assert.equal(c.enemies[0].hp, 100);
   assert(play(state, 'd0', foe));
-  assert.equal(pips(1), 5);
+  assert.equal(pips(1), 6);
   assert(play(state, 'd1', foe));
   assert.equal(pips(2), 4);
   assert(play(state, 'd2', self));
   assert.equal(pips(3), 6);
   assert(play(state, 'd3', self));
   assert.equal(c.guard, 10);
-  assert.equal(c.enemies[0].hp, 91);
+  assert.equal(c.enemies[0].hp, 89);
 });
 
 test('manual play triggers Block, Ward, and the positional combo once', () => {
@@ -51,22 +51,22 @@ test('manual play triggers Block, Ward, and the positional combo once', () => {
   assert(play(state, 'd3', self));
   assert.equal(c.guard, 17);
   assert.equal(c.ward, 5);
-  assert.deepEqual(c.enemies.map(enemy => enemy.hp), [92, 94]);
+  assert.deepEqual(c.enemies.map(enemy => enemy.hp), [91, 94]);
 });
 
 test('blank and matching commit effects use the original roll and allow a temporary Block face', () => {
   const { state, c, pips } = fight(['clay-weir', 'twin-rivets', 'blank-ferrule', 'hollow-prism', 'loop-weight'],
     ['left', 'left', 'left', 'top', 'right'], 'moth');
-  assert.equal(pips(0), 3);
+  assert.equal(pips(0), 4);
   assert.equal(rollFace(state, c.rolls[4]).target, 'none');
   assert(commitRoll(state));
   assert.equal(c.guard, 4);
-  assert.equal(pips(0), 7);
+  assert.equal(pips(0), 8);
   assert(play(state, 'd0', foe));
   assert.equal(pips(4), 5);
   assert(play(state, 'd4', self));
   assert.equal(c.guard, 9);
-  assert.equal(pips(1), 3);
+  assert.equal(pips(1), 4);
   assert.equal(faceFor(state.dice[4], 'right').target, 'none');
   assert(endTurn(state));
   assert.equal(c.relicTurn?.blankGuard, undefined);
@@ -92,17 +92,17 @@ test('turn and fight triggers apply Weak and Ward at the right time and grant ev
   assert.equal(c.rerolls, baseRerolls('fixed') + 1);
   c.rolls[0].slot = 'left';
   assert(commitRoll(state));
-  assert.equal(pips(0), 6);
+  assert.equal(pips(0), 7);
 });
 
 test('matching pips give unused dice a boost after Silt Quill changes the next face', () => {
-  const { state, c, pips } = fight(['silt-quill', 'twinwake-dial'], ['top', 'bottom', 'top', 'bottom']);
+  const { state, c, pips } = fight(['silt-quill', 'twinwake-dial'], ['right', 'bottom', 'center', 'bottom']);
   assert(commitRoll(state));
   assert.equal(pips(0), 1);
-  assert(play(state, 'd0', foe));
-  assert.equal(pips(1), 2);
+  assert(play(state, 'd0', self));
+  assert.equal(pips(1), 3);
   assert(play(state, 'd1', foe));
-  assert.equal(pips(2), 2);
+  assert.equal(pips(2), 3);
   assert(play(state, 'd2', self));
   assert.deepEqual(c.rolls.map(roll => roll.boost), [0, 0, 0, 1, 1]);
 });
@@ -112,7 +112,7 @@ test('breaking enemy Block grants relic effects once and the highest-HP target c
   c.enemies[0].guard = 2;
   assert(commitRoll(state));
   assert(play(state, 'd0', foe));
-  assert.deepEqual(c.enemies.map(enemy => enemy.hp), [99, 98]);
+  assert.deepEqual(c.enemies.map(enemy => enemy.hp), [98, 98]);
   assert.equal(c.guard, 2);
   assert.equal(c.enemies[0].burn, 1);
   assert.equal(c.enemies[0].vulnerable, 1);

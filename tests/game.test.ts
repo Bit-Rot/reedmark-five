@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { DATA, ITEMS, RELICS, ROOMS } from '../src/content.ts';
+import { DATA, DICE, ITEMS, RELICS, ROOMS } from '../src/content.ts';
 import { actionPreview, advance, canPlay, chooseOffer, commitRoll, endTurn, faceFor, incoming, newLinearRun as newRun, offerTargets, play, reroll, restoreSave, setHold } from '../src/game.ts';
 
 test('fixed rolls five, holds through two rerolls, and commits once', () => {
@@ -63,6 +63,19 @@ test('invalid targets preserve state and killing an enemy cancels its intents', 
   assert.equal(c.enemies[0].hp, 0);
   assert.equal(incoming(c), incoming(preview));
   assert.equal(canPlay(s, 'd0', { kind: 'enemy', id: c.enemies[1].id }), false);
+});
+
+test('no authored imprint or die face heals the player', () => {
+  for (const [id, item] of Object.entries(ITEMS)) {
+    for (const [slot, face] of Object.entries(item.edits)) {
+      assert(!face.parts.some(part => part.kind === 'heal'), id + ' ' + slot);
+    }
+  }
+  for (const [id, die] of Object.entries(DICE)) {
+    for (const [slot, face] of Object.entries(die.faces)) {
+      assert(!face.parts.some(part => part.kind === 'heal'), id + ' ' + slot);
+    }
+  }
 });
 
 test('fixed imprints overwrite only overlapping faces', () => {

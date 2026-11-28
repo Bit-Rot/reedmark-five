@@ -22,7 +22,7 @@
     "name": "Sea Thread",
     "rewardCharacter": "barbarian",
     "rarity": "common",
-    "description": "Top becomes block 4, bottom block 3.",
+    "description": "Top and bottom become 4 Block.",
     "effects": [
       {
         "target": [
@@ -38,7 +38,7 @@
         ],
         "op": "setFace",
         "face": "block",
-        "pips": 3
+        "pips": 4
       }
     ],
     "implemented": "implemented"
@@ -48,7 +48,7 @@
     "name": "Nickstone",
     "rewardCharacter": "barbarian",
     "rarity": "common",
-    "description": "Middle becomes slash and block 3.",
+    "description": "Middle becomes 3 Damage and 3 Block.",
     "effects": [
       {
         "target": [
@@ -66,7 +66,7 @@
     "name": "Shale Tooth",
     "rewardCharacter": "thief",
     "rarity": "common",
-    "description": "Rightmost becomes a 4 damage slash.",
+    "description": "Rightmost becomes 2 Damage.",
     "effects": [
       {
         "target": [
@@ -74,7 +74,7 @@
         ],
         "op": "setFace",
         "face": "dmg",
-        "pips": 4
+        "pips": 2
       }
     ],
     "implemented": "implemented"
@@ -84,7 +84,7 @@
     "name": "Moss Vial",
     "rewardCharacter": "thief",
     "rarity": "common",
-    "description": "Right becomes a 2 damage poison face.",
+    "description": "Right becomes 1 Damage and 1 Poison.",
     "effects": [
       {
         "target": [
@@ -92,7 +92,7 @@
         ],
         "op": "setFace",
         "face": "poison",
-        "pips": 2
+        "pips": 1
       }
     ],
     "implemented": "implemented"
@@ -102,7 +102,7 @@
     "name": "Copper Flecks",
     "rewardCharacter": "barbarian",
     "rarity": "common",
-    "description": "Rightmost becomes block 3.",
+    "description": "Rightmost becomes 2 Block.",
     "effects": [
       {
         "target": [
@@ -110,7 +110,7 @@
         ],
         "op": "setFace",
         "face": "block",
-        "pips": 3
+        "pips": 2
       }
     ],
     "implemented": "implemented"
@@ -138,7 +138,7 @@
     "name": "Twin Spindles",
     "rewardCharacter": "thief",
     "rarity": "uncommon",
-    "description": "Right becomes slash 2, rightmost slash and block 3.",
+    "description": "Right becomes 2 Damage. Rightmost becomes 1 Damage and 1 Block.",
     "effects": [
       {
         "target": [
@@ -154,7 +154,7 @@
         ],
         "op": "setFace",
         "face": "dmgBlock",
-        "pips": 3
+        "pips": 1
       }
     ],
     "implemented": "implemented"
@@ -190,7 +190,7 @@
     "name": "Violet Retort",
     "rewardCharacter": "thief",
     "rarity": "uncommon",
-    "description": "Middle becomes a 3 damage poison face.",
+    "description": "Middle becomes 4 Damage and 1 Poison.",
     "effects": [
       {
         "target": [
@@ -198,7 +198,7 @@
         ],
         "op": "setFace",
         "face": "poison",
-        "pips": 3
+        "pips": 4
       }
     ],
     "implemented": "implemented"
@@ -208,7 +208,7 @@
     "name": "Snag Loop",
     "rewardCharacter": "thief",
     "rarity": "uncommon",
-    "description": "Middle becomes block 4, rightmost slash 4.",
+    "description": "Middle becomes 6 Block. Rightmost becomes 2 Damage.",
     "effects": [
       {
         "target": [
@@ -216,7 +216,7 @@
         ],
         "op": "setFace",
         "face": "block",
-        "pips": 4
+        "pips": 6
       },
       {
         "target": [
@@ -224,7 +224,7 @@
         ],
         "op": "setFace",
         "face": "dmg",
-        "pips": 4
+        "pips": 2
       }
     ],
     "implemented": "implemented"
@@ -234,7 +234,7 @@
     "name": "Pitchwax",
     "rewardCharacter": "barbarian",
     "rarity": "uncommon",
-    "description": "Left and bottom become block 4.",
+    "description": "Left becomes 7 Block. Bottom becomes 4 Block.",
     "effects": [
       {
         "target": [
@@ -242,7 +242,7 @@
         ],
         "op": "setFace",
         "face": "block",
-        "pips": 4
+        "pips": 7
       },
       {
         "target": [
@@ -260,7 +260,7 @@
     "name": "Salt Crown",
     "rewardCharacter": "thief",
     "rarity": "rare",
-    "description": "Left becomes a 5 damage poison face.",
+    "description": "Left becomes 6 Damage and 1 Poison.",
     "effects": [
       {
         "target": [
@@ -268,7 +268,7 @@
         ],
         "op": "setFace",
         "face": "poison",
-        "pips": 5
+        "pips": 6
       }
     ],
     "implemented": "implemented"
@@ -278,7 +278,7 @@
     "name": "Moon Burr",
     "rewardCharacter": "barbarian",
     "rarity": "rare",
-    "description": "Left becomes slash 3, rightmost slash and block 4.",
+    "description": "Left becomes 8 Damage. Rightmost becomes 1 Damage and 1 Block.",
     "effects": [
       {
         "target": [
@@ -286,7 +286,7 @@
         ],
         "op": "setFace",
         "face": "dmg",
-        "pips": 3
+        "pips": 8
       },
       {
         "target": [
@@ -294,7 +294,7 @@
         ],
         "op": "setFace",
         "face": "dmgBlock",
-        "pips": 4
+        "pips": 1
       }
     ],
     "implemented": "implemented"
@@ -304,7 +304,7 @@
     "name": "Flood Bell",
     "rewardCharacter": "barbarian",
     "rarity": "rare",
-    "description": "Top becomes block 6, bottom block 5.",
+    "description": "Top becomes 5 Block. Bottom becomes 4 Block.",
     "effects": [
       {
         "target": [
@@ -312,7 +312,7 @@
         ],
         "op": "setFace",
         "face": "block",
-        "pips": 6
+        "pips": 5
       },
       {
         "target": [
@@ -320,7 +320,7 @@
         ],
         "op": "setFace",
         "face": "block",
-        "pips": 5
+        "pips": 4
       }
     ],
     "implemented": "implemented"
@@ -330,7 +330,7 @@
     "name": "Stillwicket",
     "rewardCharacter": "thief",
     "rarity": "rare",
-    "description": "Left becomes slash and block 5, right block 3.",
+    "description": "Left becomes 4 Damage and 4 Block. Right becomes 2 Block.",
     "effects": [
       {
         "target": [
@@ -338,7 +338,7 @@
         ],
         "op": "setFace",
         "face": "dmgBlock",
-        "pips": 5
+        "pips": 4
       },
       {
         "target": [
@@ -346,7 +346,7 @@
         ],
         "op": "setFace",
         "face": "block",
-        "pips": 3
+        "pips": 2
       }
     ],
     "implemented": "implemented"
@@ -356,7 +356,7 @@
     "name": "Wick Wrap",
     "rewardCharacter": "moth",
     "rarity": "common",
-    "description": "Gain 4 Block and apply 1 Self Burn on top. Gain 2 Block with Pair on the bottom.",
+    "description": "Top becomes 5 Block and 1 Self Burn. Bottom becomes 3 Block with Pair.",
     "effects": [
       {
         "target": [
@@ -364,7 +364,7 @@
         ],
         "op": "setFace",
         "face": "blockSelfBurn",
-        "pips": 4
+        "pips": 5
       },
       {
         "target": [
@@ -372,7 +372,7 @@
         ],
         "op": "setFace",
         "face": "blockPair",
-        "pips": 2
+        "pips": 3
       }
     ],
     "implemented": "implemented"
@@ -382,7 +382,7 @@
     "name": "Cinder Needle",
     "rewardCharacter": "moth",
     "rarity": "common",
-    "description": "Apply 2 Burn on the rightmost face, or 3 on your first Burn play. Gain 2 Block on top, plus 2 immediately after a Burn play.",
+    "description": "Rightmost applies 1 Burn, plus 1 if it is the first Burn played this turn. Top becomes 3 Block, plus 2 after a Burn play.",
     "effects": [
       {
         "target": [
@@ -397,7 +397,7 @@
         ],
         "op": "setFace",
         "face": "blockAfterBurn",
-        "pips": 2
+        "pips": 3
       }
     ],
     "implemented": "implemented"
@@ -425,7 +425,7 @@
     "name": "Soot Stitch",
     "rewardCharacter": "moth",
     "rarity": "common",
-    "description": "Deal 2 damage and apply 1 Burn in the middle. Deal 2 damage on top, plus 2 immediately after a Burn play.",
+    "description": "Middle becomes 5 Damage and 1 Burn. Top becomes 3 Damage, plus 2 after a Burn play.",
     "effects": [
       {
         "target": [
@@ -433,7 +433,7 @@
         ],
         "op": "setFace",
         "face": "dmgApplyBurn",
-        "pips": 2
+        "pips": 5
       },
       {
         "target": [
@@ -441,7 +441,7 @@
         ],
         "op": "setFace",
         "face": "dmgAfterBurn",
-        "pips": 2
+        "pips": 3
       }
     ],
     "implemented": "implemented"
@@ -451,7 +451,7 @@
     "name": "Shed Silk",
     "rewardCharacter": "moth",
     "rarity": "common",
-    "description": "Gain 6 Block, then Exhaust.",
+    "description": "Top becomes 5 Block with Exhaust.",
     "effects": [
       {
         "target": [
@@ -459,7 +459,7 @@
         ],
         "op": "setFace",
         "face": "blockExhaust",
-        "pips": 6
+        "pips": 5
       }
     ],
     "implemented": "implemented"
@@ -487,7 +487,7 @@
     "name": "Reed Splint",
     "rewardCharacter": "moth",
     "rarity": "common",
-    "description": "Deal 2 damage with Pair on the right. Gain 3 Block on the rightmost face.",
+    "description": "Right becomes 1 Damage with Pair. Rightmost becomes 2 Block.",
     "effects": [
       {
         "target": [
@@ -495,7 +495,7 @@
         ],
         "op": "setFace",
         "face": "dmgPair",
-        "pips": 2
+        "pips": 1
       },
       {
         "target": [
@@ -503,7 +503,7 @@
         ],
         "op": "setFace",
         "face": "block",
-        "pips": 3
+        "pips": 2
       }
     ],
     "implemented": "implemented"
@@ -513,7 +513,7 @@
     "name": "Flashwing",
     "rewardCharacter": "moth",
     "rarity": "uncommon",
-    "description": "Deal 2 damage plus 1 per Self Burn in the middle. Deal 3 damage plus 1 per earlier Burn play on the right.",
+    "description": "Middle becomes 5 Damage plus your Self Burn. Right becomes 1 Damage plus the number of Burn plays this turn.",
     "effects": [
       {
         "target": [
@@ -521,7 +521,7 @@
         ],
         "op": "setFace",
         "face": "dmgPerBurn",
-        "pips": 2
+        "pips": 5
       },
       {
         "target": [
@@ -529,7 +529,7 @@
         ],
         "op": "setFace",
         "face": "dmgBurnPlays",
-        "pips": 3
+        "pips": 1
       }
     ],
     "implemented": "implemented"
@@ -539,7 +539,7 @@
     "name": "Molt Plate",
     "rewardCharacter": "moth",
     "rarity": "uncommon",
-    "description": "Gain 2 Block plus 1 per blank on this die on the bottom. Deal 3 damage in the middle, plus 2 immediately after a Burn play.",
+    "description": "Bottom becomes 2 Block plus the blanks on this die. Middle becomes 5 Damage, plus 2 after a Burn play.",
     "effects": [
       {
         "target": [
@@ -555,7 +555,7 @@
         ],
         "op": "setFace",
         "face": "dmgAfterBurn",
-        "pips": 3
+        "pips": 5
       }
     ],
     "implemented": "implemented"
@@ -565,7 +565,7 @@
     "name": "Ember Guard",
     "rewardCharacter": "moth",
     "rarity": "uncommon",
-    "description": "Gain 3 Block, plus 3 at 3 or more Frenzy, on the top face. Deal 2 damage, plus 4 if you spend 2 Frenzy, on the rightmost face.",
+    "description": "Top becomes 2 Block, doubled at 3 Frenzy. Rightmost becomes 1 Damage and can spend 1 Frenzy to add 2 Damage.",
     "effects": [
       {
         "target": [
@@ -573,7 +573,7 @@
         ],
         "op": "setFace",
         "face": "blockFrenzyThreshold",
-        "pips": 3
+        "pips": 2
       },
       {
         "target": [
@@ -581,7 +581,7 @@
         ],
         "op": "setFace",
         "face": "dmgSpendFrenzy",
-        "pips": 2
+        "pips": 1
       }
     ],
     "implemented": "implemented"
@@ -591,7 +591,7 @@
     "name": "Smolderglass",
     "rewardCharacter": "moth",
     "rarity": "uncommon",
-    "description": "Deal 2 damage to all enemies on the right, doubled while burning. Deal 2 damage plus 1 per Self Burn on the rightmost face, then clear your Burn.",
+    "description": "Right becomes 1 Damage to all enemies, doubled while you have Self Burn. Rightmost becomes 1 Damage plus your Self Burn, then clears it.",
     "effects": [
       {
         "target": [
@@ -599,7 +599,7 @@
         ],
         "op": "setFace",
         "face": "dmgAllWhileBurning",
-        "pips": 2
+        "pips": 1
       },
       {
         "target": [
@@ -607,7 +607,7 @@
         ],
         "op": "setFace",
         "face": "dmgClearBurn",
-        "pips": 2
+        "pips": 1
       }
     ],
     "implemented": "implemented"
@@ -617,7 +617,7 @@
     "name": "Cinder Clamp",
     "rewardCharacter": "moth",
     "rarity": "uncommon",
-    "description": "Apply 4 Burn and Exhaust on the left. Apply 1 Burn on top, or 3 on your first Burn play.",
+    "description": "Left applies 5 Burn with Exhaust. Top applies 2 Burn, plus 1 if it is the first Burn played this turn.",
     "effects": [
       {
         "target": [
@@ -641,7 +641,7 @@
     "name": "Kiln Latch",
     "rewardCharacter": "moth",
     "rarity": "uncommon",
-    "description": "Deal 4 damage and apply 1 Self Burn on the left. Gain 2 Block with Echo on the bottom.",
+    "description": "Left becomes 8 Damage and 1 Self Burn. Bottom becomes 2 Block with Echo.",
     "effects": [
       {
         "target": [
@@ -649,7 +649,7 @@
         ],
         "op": "setFace",
         "face": "dmgSelfBurn",
-        "pips": 4
+        "pips": 8
       },
       {
         "target": [
@@ -667,7 +667,7 @@
     "name": "Hush Bell",
     "rewardCharacter": "moth",
     "rarity": "uncommon",
-    "description": "Gain 3 Block on the rightmost face, plus 3 after Exhaust. Gain 2 Block plus 1 per earlier Burn play in the middle.",
+    "description": "Rightmost becomes 1 Block, plus 3 if a face was exhausted this turn. Middle becomes 5 Block plus the number of Burn plays this turn.",
     "effects": [
       {
         "target": [
@@ -675,7 +675,7 @@
         ],
         "op": "setFace",
         "face": "blockAfterExhaust",
-        "pips": 3
+        "pips": 1
       },
       {
         "target": [
@@ -683,7 +683,7 @@
         ],
         "op": "setFace",
         "face": "blockBurnPlays",
-        "pips": 2
+        "pips": 5
       }
     ],
     "implemented": "implemented"
@@ -693,7 +693,7 @@
     "name": "Rattle Comb",
     "rewardCharacter": "moth",
     "rarity": "uncommon",
-    "description": "Deal 3 damage on top, plus 3 at 3 or more Frenzy. Deal 2 damage with Trio on the right.",
+    "description": "Top becomes 3 Damage, doubled at 3 Frenzy. Right becomes 1 Damage with Trio.",
     "effects": [
       {
         "target": [
@@ -709,7 +709,7 @@
         ],
         "op": "setFace",
         "face": "dmgTrio",
-        "pips": 2
+        "pips": 1
       }
     ],
     "implemented": "implemented"
@@ -737,7 +737,7 @@
     "name": "Backdraft",
     "rewardCharacter": "moth",
     "rarity": "rare",
-    "description": "Spend all Frenzy. Deal 2 damage plus 2 per stack spent.",
+    "description": "Left becomes 3 Damage and spends all Frenzy for 2 extra Damage per point spent.",
     "effects": [
       {
         "target": [
@@ -745,7 +745,7 @@
         ],
         "op": "setFace",
         "face": "dmgSpendAllFrenzy",
-        "pips": 2
+        "pips": 3
       }
     ],
     "implemented": "implemented"
@@ -755,14 +755,14 @@
     "name": "Nectar Flask",
     "rewardCharacter": "moth",
     "rarity": "rare",
-    "description": "Heal 4 HP, then Exhaust.",
+    "description": "Right becomes 4 Block with Exhaust.",
     "effects": [
       {
         "target": [
           "right"
         ],
         "op": "setFace",
-        "face": "healExhaust",
+        "face": "blockExhaust",
         "pips": 4
       }
     ],
@@ -773,7 +773,7 @@
     "name": "Hollow Crown",
     "rewardCharacter": "moth",
     "rarity": "rare",
-    "description": "Gain 2 Block plus 1 per blank across your dice, up to +5, on the bottom face. Deal 7 damage, then Exhaust, on the top face.",
+    "description": "Bottom becomes 1 Block plus up to 5 blanks in your kit. Top becomes 6 Damage with Exhaust.",
     "effects": [
       {
         "target": [
@@ -781,7 +781,7 @@
         ],
         "op": "setFace",
         "face": "blockKitBlanks",
-        "pips": 2
+        "pips": 1
       },
       {
         "target": [
@@ -789,7 +789,7 @@
         ],
         "op": "setFace",
         "face": "dmgExhaust",
-        "pips": 7
+        "pips": 6
       }
     ],
     "implemented": "implemented"
@@ -799,7 +799,7 @@
     "name": "Cinder Veil",
     "rewardCharacter": "moth",
     "rarity": "rare",
-    "description": "Apply 3 Burn to all enemies on the rightmost face. Gain 5 Block and apply 2 Burn to yourself on the top face.",
+    "description": "Rightmost applies 1 Burn to all enemies, plus 1 if it is the first Burn played this turn. Top becomes 6 Block and 2 Self Burn.",
     "effects": [
       {
         "target": [
@@ -814,7 +814,7 @@
         ],
         "op": "setFace",
         "face": "blockSelfBurnTwo",
-        "pips": 5
+        "pips": 6
       }
     ],
     "implemented": "implemented"
@@ -868,7 +868,7 @@
     "name": "Watch Plate",
     "rewardCharacter": "orden",
     "rarity": "common",
-    "description": "Bypass a slot hazard or brace a neighboring shield.",
+    "description": "Top becomes 2 Block with Bypass. Rightmost becomes 1 Block with Brace 1.",
     "effects": [
       {
         "target": [
@@ -883,7 +883,7 @@
           "rightmost"
         ],
         "op": "setFace",
-        "face": "orden-brace-block",
+        "face": "orden-light-brace",
         "pips": 1
       }
     ],
@@ -894,14 +894,14 @@
     "name": "March Whistle",
     "rewardCharacter": "orden",
     "rarity": "common",
-    "description": "Set up a Pair strike or give the die to the right Haste from a light Block face.",
+    "description": "Right becomes 1 Damage with Neighbor Pair 1. Bottom becomes 1 Block with Haste.",
     "effects": [
       {
         "target": [
           "right"
         ],
         "op": "setFace",
-        "face": "orden-pair-cut",
+        "face": "orden-light-pair",
         "pips": 1
       },
       {
@@ -998,7 +998,7 @@
     "name": "Crossguard",
     "rewardCharacter": "orden",
     "rarity": "uncommon",
-    "description": "One die attacks while boosting nearby Block. Another face wants a mixed line.",
+    "description": "Left becomes 5 Damage with Brace 2. Right becomes 1 Block with Flank 3.",
     "effects": [
       {
         "target": [
@@ -1006,7 +1006,7 @@
         ],
         "op": "setFace",
         "face": "orden-brace-cut",
-        "pips": 6
+        "pips": 5
       },
       {
         "target": [
@@ -1102,7 +1102,7 @@
     "name": "Wedge Blade",
     "rewardCharacter": "orden",
     "rarity": "uncommon",
-    "description": "A light Flank strike rewards a mixed line, and a heavy Pair strike rewards a Damage neighbor.",
+    "description": "Right becomes 1 Damage with Flank 3. Left becomes 6 Damage with Neighbor Pair 2.",
     "effects": [
       {
         "target": [
@@ -1118,7 +1118,7 @@
         ],
         "op": "setFace",
         "face": "orden-pair-cut",
-        "pips": 7
+        "pips": 6
       }
     ],
     "implemented": "implemented"
@@ -1128,14 +1128,14 @@
     "name": "Camp Cord",
     "rewardCharacter": "orden",
     "rarity": "uncommon",
-    "description": "Recover HP or line up Brace support for a shield.",
+    "description": "Middle becomes 4 Block with Bypass. Rightmost becomes 1 Block with Brace 1.",
     "effects": [
       {
         "target": [
           "middle"
         ],
         "op": "setFace",
-        "face": "orden-field-medic",
+        "face": "orden-intercept",
         "pips": 4
       },
       {
@@ -1143,7 +1143,7 @@
           "rightmost"
         ],
         "op": "setFace",
-        "face": "orden-brace-block",
+        "face": "orden-light-brace",
         "pips": 1
       }
     ],
@@ -1154,14 +1154,14 @@
     "name": "Lit Signal",
     "rewardCharacter": "orden",
     "rarity": "uncommon",
-    "description": "Apply Burn and double the next die, or fill slot 3 with Block.",
+    "description": "Top becomes 1 Damage with Haste. Bottom becomes 2 Block with Centered 3.",
     "effects": [
       {
         "target": [
           "top"
         ],
         "op": "setFace",
-        "face": "orden-signal-fire",
+        "face": "orden-haste-cut",
         "pips": 1
       },
       {
@@ -1180,7 +1180,7 @@
     "name": "Counterweight Sabre",
     "rewardCharacter": "orden",
     "rarity": "uncommon",
-    "description": "Trade the next turn for a heavy edge attack, or use a steady Pair strike.",
+    "description": "Left becomes 7 Damage with Anchor 3 and Exert. Rightmost becomes 1 Damage with Neighbor Pair 2.",
     "effects": [
       {
         "target": [
@@ -1188,7 +1188,7 @@
         ],
         "op": "setFace",
         "face": "orden-heavy-anchor",
-        "pips": 8
+        "pips": 7
       },
       {
         "target": [
@@ -1206,7 +1206,7 @@
     "name": "Gatehouse",
     "rewardCharacter": "orden",
     "rarity": "rare",
-    "description": "A shield that bypasses hazards and braces its neighbors, with a Center face that also supports both sides.",
+    "description": "Middle becomes 2 Block with Brace 2 and Bypass. Bottom becomes 1 Block with Centered 3 and Brace 2.",
     "effects": [
       {
         "target": [
@@ -1214,7 +1214,7 @@
         ],
         "op": "setFace",
         "face": "orden-gate",
-        "pips": 3
+        "pips": 2
       },
       {
         "target": [
@@ -1232,7 +1232,7 @@
     "name": "Two-Front Standard",
     "rewardCharacter": "orden",
     "rarity": "rare",
-    "description": "Stack Pair and Flank between a Damage die and a Block die.",
+    "description": "Right becomes 1 Block with Flank 3. Top becomes 1 Damage with Flank 3 and Neighbor Pair 1.",
     "effects": [
       {
         "target": [
@@ -1258,7 +1258,7 @@
     "name": "Relay Lantern",
     "rewardCharacter": "orden",
     "rarity": "rare",
-    "description": "Two Haste faces and an After Burn payoff support a chain of consecutive slots.",
+    "description": "Left becomes 4 Damage and 1 Burn with Haste. Bottom becomes 2 Block with Haste. Rightmost becomes 1 Damage, plus 3 after a Burn play.",
     "effects": [
       {
         "target": [
@@ -1266,7 +1266,7 @@
         ],
         "op": "setFace",
         "face": "orden-signal-fire",
-        "pips": 5
+        "pips": 4
       },
       {
         "target": [
@@ -1292,7 +1292,7 @@
     "name": "Parade Mirror",
     "rewardCharacter": "orden",
     "rarity": "rare",
-    "description": "Convert the previous die’s pips into Damage or Block, or Brace your neighbors while attacking.",
+    "description": "Middle becomes 6 Damage with Echo. Right becomes 1 Damage with Brace 2. Top becomes 4 Block with Echo.",
     "effects": [
       {
         "target": [
@@ -1300,7 +1300,7 @@
         ],
         "op": "setFace",
         "face": "orden-echo-cut",
-        "pips": 7
+        "pips": 6
       },
       {
         "target": [
@@ -1326,7 +1326,7 @@
     "name": "Breakwater",
     "rewardCharacter": "orden",
     "rarity": "rare",
-    "description": "Trade next turn for a heavy Anchor strike, claim an edge with Anchor Block, or riposte through a slot hazard.",
+    "description": "Left becomes 9 Damage with Anchor 3 and Exert. Rightmost becomes 1 Block with Anchor 2. Bottom becomes 1 Damage and 1 Block with Bypass.",
     "effects": [
       {
         "target": [

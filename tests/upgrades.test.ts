@@ -105,7 +105,7 @@ test('cleave makes a face hit every enemy without a target; weak and vulnerable 
   const hp = c.enemies.map(e => e.hp);
   assert.equal(canPlay(s, 'd0', enemyTarget(s)), false);
   assert(play(s, 'd0', { kind: 'all' }));
-  assert.deepEqual(c.enemies.map(e => e.hp), hp.map(h => h - 3));
+  assert.deepEqual(c.enemies.map(e => e.hp), hp.map(h => h - 4));
   assert(c.enemies.every(e => e.weak === 1 && e.vulnerable === 1));
 });
 
@@ -118,8 +118,8 @@ test('selfShield adds block when played, and a cantrip upgrade fires by itself w
   const guard = c.guard;
   const hp = c.enemies[0].hp;
   assert(play(s, 'd0', enemyTarget(s)));
-  assert.equal(c.guard, guard + 3);
-  assert.equal(c.enemies[0].hp, hp - 3);
+  assert.equal(c.guard, guard + 4);
+  assert.equal(c.enemies[0].hp, hp - 4);
 
   let fired = 0;
   for (let i = 1; i <= 200 && !fired; i++) {
@@ -140,17 +140,17 @@ test('growth adds pips to that face for the rest of the fight, each time it is p
   s.hp = 1000;
   c.rolls[0].slot = 'left';
   assert(commitRoll(s));
-  assert.equal(mainPips(rollFace(s, c.rolls[0])), 3);
+  assert.equal(mainPips(rollFace(s, c.rolls[0])), 4);
   assert(play(s, 'd0', enemyTarget(s)));
   assert.equal(c.grown['d0:left'], 1);
   assert(endTurn(s));
   const c2 = s.combat!;
   c2.rolls[0].slot = 'left';
   assert(commitRoll(s));
-  assert.equal(mainPips(rollFace(s, c2.rolls[0])), 4, 'shows the grown value');
+  assert.equal(mainPips(rollFace(s, c2.rolls[0])), 5, 'shows the grown value');
   const before = c2.enemies[0].hp;
   assert(play(s, 'd0', enemyTarget(s)));
-  assert.equal(before - c2.enemies[0].hp, 4);
+  assert.equal(before - c2.enemies[0].hp, 5);
   assert.equal(c2.grown['d0:left'], 2);
   assert.equal(c2.grown['d1:left'], undefined, 'growth is per face');
   assert.deepEqual(newRun('fixed', 231).combat!.grown, {}, 'a new fight starts clean');
@@ -158,29 +158,29 @@ test('growth adds pips to that face for the rest of the fight, each time it is p
 
 test('inspired doubles a face when the die played just before had more pips', () => {
   const s = newRun('fixed', 231);
-  s.dice[1].upgrades = { top: [{ keyword: 'inspired' }] }; // a 1-pip sword face
+  s.dice[1].upgrades = { top: [{ keyword: 'inspired' }] }; // a 2-pip sword face
   const c = s.combat!;
   c.enemies.forEach(e => { e.hp = e.maxHp = 500; });
-  c.rolls[0].slot = 'left'; // 3 pips
-  c.rolls[1].slot = 'top'; // 1 pip, inspired
+  c.rolls[0].slot = 'left'; // 4 pips
+  c.rolls[1].slot = 'top'; // 2 pips, inspired
   assert(commitRoll(s));
-  assert.equal(mainPips(rollFace(s, c.rolls[1])), 1, 'nothing played yet, so no bonus');
+  assert.equal(mainPips(rollFace(s, c.rolls[1])), 2, 'nothing played yet, so no bonus');
   assert(play(s, 'd0', enemyTarget(s)));
-  assert.equal(c.previous, 3);
-  assert.equal(mainPips(rollFace(s, c.rolls[1])), 2, 'previous die had more pips: doubled');
+  assert.equal(c.previous, 4);
+  assert.equal(mainPips(rollFace(s, c.rolls[1])), 4, 'previous die had more pips: doubled');
   const hp = c.enemies[0].hp;
   assert(play(s, 'd1', enemyTarget(s)));
-  assert.equal(hp - c.enemies[0].hp, 2);
+  assert.equal(hp - c.enemies[0].hp, 4);
 
   const t = newRun('fixed', 231);
   t.dice[1].upgrades = { top: [{ keyword: 'inspired' }] };
   const d = t.combat!;
   d.enemies.forEach(e => { e.hp = e.maxHp = 500; });
   d.rolls[1].slot = 'top';
-  d.rolls[0].slot = 'bottom'; // 1 pip: equal, not more
+  d.rolls[0].slot = 'bottom'; // 2 pips: equal
   assert(commitRoll(t));
   assert(play(t, 'd0', enemyTarget(t)));
-  assert.equal(mainPips(rollFace(t, d.rolls[1])), 1);
+  assert.equal(mainPips(rollFace(t, d.rolls[1])), 2);
   t.hp = 1000;
   assert(endTurn(t));
   assert.equal(t.combat!.previous, null, 'the memory resets every turn');

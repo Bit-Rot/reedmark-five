@@ -334,7 +334,7 @@
       },
       {
         "keyword": "frenzySpend",
-        "x": 2
+        "x": 1
       }
     ],
     "image": "face-art/library/claw.webp",
@@ -362,7 +362,7 @@
     "keywords": [
       {
         "keyword": "burn",
-        "x": 4
+        "x": 5
       },
       {
         "keyword": "exhaust"
@@ -397,7 +397,7 @@
       },
       {
         "keyword": "frenzySpend",
-        "x": 2
+        "x": 1
       }
     ],
     "image": "face-art/library/gauntlet.webp",
@@ -469,21 +469,6 @@
     "status": "active"
   },
   {
-    "id": "healExhaust",
-    "targeting": "self",
-    "keywords": [
-      {
-        "keyword": "heal"
-      },
-      {
-        "keyword": "exhaust"
-      }
-    ],
-    "image": "face-art/library/potion.webp",
-    "notes": "",
-    "status": "active"
-  },
-  {
     "id": "blockKitBlanks",
     "targeting": "self",
     "keywords": [
@@ -505,7 +490,11 @@
     "keywords": [
       {
         "keyword": "burn",
-        "x": 3
+        "x": 1
+      },
+      {
+        "keyword": "firstBurn",
+        "x": 1
       }
     ],
     "image": "face-art/library/flame.webp",
@@ -596,7 +585,7 @@
     "keywords": [
       {
         "keyword": "burn",
-        "x": 2
+        "x": 1
       },
       {
         "keyword": "firstBurn",
@@ -613,11 +602,11 @@
     "keywords": [
       {
         "keyword": "burn",
-        "x": 1
+        "x": 2
       },
       {
         "keyword": "firstBurn",
-        "x": 2
+        "x": 1
       }
     ],
     "image": "face-art/library/flame.webp",
@@ -802,7 +791,7 @@
       },
       {
         "keyword": "anchor",
-        "x": 3
+        "x": 2
       }
     ],
     "image": "face-art/library/shield.webp",
@@ -1077,11 +1066,11 @@
       },
       {
         "keyword": "flank",
-        "x": 4
+        "x": 3
       },
       {
         "keyword": "neighborPair",
-        "x": 2
+        "x": 1
       }
     ],
     "image": "face-art/library/stinger.webp",
@@ -1128,18 +1117,6 @@
     "status": "active"
   },
   {
-    "id": "orden-field-medic",
-    "targeting": "self",
-    "keywords": [
-      {
-        "keyword": "heal"
-      }
-    ],
-    "image": "face-art/library/leaf.webp",
-    "notes": "",
-    "status": "active"
-  },
-  {
     "id": "orden-signal-anchor",
     "targeting": "singleEnemy",
     "keywords": [
@@ -1153,6 +1130,38 @@
     ],
     "image": "face-art/library/axe.webp",
     "notes": "Starter positional face.",
+    "status": "active"
+  },
+  {
+    "id": "orden-light-brace",
+    "targeting": "self",
+    "keywords": [
+      {
+        "keyword": "block"
+      },
+      {
+        "keyword": "brace",
+        "x": 1
+      }
+    ],
+    "image": "face-art/library/shield.webp",
+    "notes": "",
+    "status": "active"
+  },
+  {
+    "id": "orden-light-pair",
+    "targeting": "singleEnemy",
+    "keywords": [
+      {
+        "keyword": "damage"
+      },
+      {
+        "keyword": "neighborPair",
+        "x": 1
+      }
+    ],
+    "image": "face-art/library/sword.webp",
+    "notes": "",
     "status": "active"
   }
 ]
