@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { enemyArtImage, intentArt } from './enemy-art.ts';
+import type { EnemyArt } from './enemy-art.ts';
 import { DICE } from './content.ts';
 import { EFFECTS, effectImage, faceImage, modifierAmount, showsEffectAmount } from './effects.ts';
 import type { EffectKey } from './effects.ts';
@@ -50,6 +52,7 @@ interface Actor {
   ellipse: THREE.Mesh;
   position: THREE.Vector3;
   height: number;
+  baseHeight: number;
 }
 
 export class Battlefield {
@@ -142,7 +145,7 @@ export class Battlefield {
     sprite.center.set(.5, .09);
     const ellipse = this.sphereShadow(0x061314, .39);
     ellipse.scale.set(height * .30, height * .16, 1);
-    const actor = { sprite, ellipse, position, height };
+    const actor = { sprite, ellipse, position, height, baseHeight: height };
     this.scene.add(sprite, ellipse);
     this.actors.set(id, actor);
     return actor;
@@ -168,16 +171,22 @@ export class Battlefield {
 
   private positionEnemyActors(): void {
     const enemies = [...this.actors].filter(([id]) => id !== 'courier' && !id.startsWith('reeds-'));
-    for (let index = 0; index < enemies.length; index++) {
-      const [id, actor] = enemies[index];
+    const crowd = enemies.length > 2;
+    for (const [index, [id, actor]] of enemies.entries()) {
+      const column = crowd ? index % 2 : index;
       const x = enemies.length === 1 ? (this.compact ? 2.65 : 3.7)
-        : (this.compact ? 1.37 + index * 2.2 : 2.02 + index * 2.52);
-      actor.position.set(x, id.includes('gnat') ? .36 : 0, largeSprites.has(id) ? .18 : index === 0 ? -.57 : -.86);
+        : (this.compact ? 1.37 + column * 2.2 : 2.02 + column * 2.52);
+      const rear = crowd && index >= 2;
+      const depth = rear ? (this.compact ? -5.3 : -3.9) : index === 0 ? -.57 : -.86;
+      const shrink = rear ? (this.compact ? .51 : .65) : (this.compact ? .70 : .80);
+      actor.height = actor.baseHeight * (crowd ? shrink : 1);
+      actor.ellipse.scale.set(actor.height * .30, actor.height * .16, 1);
+      actor.position.set(x, id.includes('gnat') ? .28 : 0, depth);
     }
   }
 
-  private faceMaterial(face: Face, tone: string): THREE.MeshStandardMaterial {
-    const key = JSON.stringify([face, tone]);
+  private faceMaterial(face: Face, tone: string, enemy?: EnemyArt): THREE.MeshStandardMaterial {
+    const key = JSON.stringify([face, tone, enemy]);
     const cached = this.cachedFaces.get(key);
     if (cached) return cached;
     const canvas = document.createElement('canvas');
@@ -190,9 +199,9 @@ export class Battlefield {
     ctx.roundRect(5, 5, 118, 118, 17);
     ctx.save();
     ctx.clip();
-    ctx.fillStyle = first.value ? EFFECTS[first.kind].color : '#555d69';
+    ctx.fillStyle = enemy ? '#171219' : first.value ? EFFECTS[first.kind].color : '#555d69';
     ctx.fillRect(5, 5, 118, 118);
-    const picture = faceImage(face.image);
+    const picture = enemy ? enemyArtImage(enemy) : faceImage(face.image);
     const artwork = picture ?? effectImage(first.kind);
     if ((first.value || picture) && artwork) ctx.drawImage(artwork, 5, 5, 118, 118);
     else {
@@ -299,14 +308,17 @@ export class Battlefield {
     if (!this.renderer || this.motion.matches) return;
     const start = performance.now();
     for (const [index, intent] of intents.entries()) {
-      const effect: Kind = intent.move === 'power' ? 'boost' : intent.move === 'hit' ? 'hit' : 'guard';
-      const surface = (kind: Kind, value: number) => this.faceMaterial({ target: 'self', parts: [{ kind, value }] }, 'slate');
-      const sides = [surface('guard', 1), surface('hit', 2), surface(effect, intent.value),
-        surface('hit', 3), surface('boost', 1), surface('guard', 0)];
+      const effect: Kind = intent.move === 'power' ? 'boost' : intent.move === 'hit' ? 'hit' : intent.move === 'guard' ? 'guard' : 'blank';
+      const surface = (kind: Kind, value: number, art: EnemyArt) =>
+        this.faceMaterial({ target: 'self', parts: [{ kind, value }] }, 'slate', art);
+      const sides = [surface('guard', 1, 'guard'), surface('hit', 2, 'hit'), surface(effect, intent.value, intentArt(intent)),
+        surface('hit', 3, 'hit'), surface('boost', 1, 'power'), surface('blank', 0, 'wait')];
       const mesh = new THREE.Mesh(this.geometry, sides);
       mesh.scale.setScalar(.52);
       const to = new THREE.Vector3(.64 + index * .86, .28, .48 + (index % 2) * .18);
-      const from = new THREE.Vector3(5.3 + index * .11, .34, -.26 + (index % 2) * .28);
+      const actor = this.actors.get(intent.owner);
+      const from = actor ? actor.position.clone().add(new THREE.Vector3(0, .38, .2))
+        : new THREE.Vector3(5.3 + index * .11, .34, -.26 + (index % 2) * .28);
       mesh.visible = false;
       this.scene.add(mesh);
       this.incomingDice.push({ mesh, start: start + index * 22, from, to, index });

@@ -1,14 +1,18 @@
 import './style.css';
 import './face-ui.css';
 import './campaign.css';
+import './enemy.css';
+import { loadEnemyArt } from './enemy-art.ts';
+import { enemyHazardBadge, enemyHazardLabel, enemyIntentBadge } from './enemy-ui.ts';
 import { EVENTS } from './campaign-content.ts';
 import { campaignScreen } from './campaign-ui.ts';
 import { cycleAt } from './campaign-map.ts';
 import { CHARACTERS, DICE, FACE_IMAGE_PATHS, ITEMS, RELICS, ROOMS } from './content.ts';
 import { actionPreview, baseRerolls, advance, canPlay, canTakeEventOffer, chooseOffer, commitRoll, currentRoom, endTurn, eventChoiceFor, explore, incoming, intentValues, restoreSave,
   faceFor, facesFor, newLinearRun, newRun, offerTargets, play, previewDie, previewUpgrade, reroll, rollFace, setHold, startBoss, starterRelicFor } from './game.ts';
+import { dieHazards, slotHazards, slotLocked } from './hazards.ts';
 import { SLOTS } from './model.ts';
-import type { Die, Face, Offer, Relic, Roll, Slot, State, Target, Variant } from './model.ts';
+import type { Die, EnemyHazard, Face, Offer, Relic, Roll, Slot, State, Target, Variant } from './model.ts';
 import { EFFECTS, faceImageUrl, loadEffectImages, loadFaceImages } from './effects.ts';
 import { art, Battlefield } from './scene.ts';
 import { UPGRADE_INFO, button, caption, chips, effectChip, effectIcon, element, faceEmblem, FaceTooltips, faceNet, faceText, helpOn, itemNet, positionFloater, upgradeLabel } from './ui.ts';
@@ -80,8 +84,6 @@ let drag: Drag | null = null;
 let inspection: { node: HTMLElement; anchor: HTMLElement } | null = null;
 let inspectionPress: { anchor: HTMLElement; pointer: number; x: number; y: number; timer: number; opened: boolean } | null = null;
 const tooltips = new FaceTooltips(root, () => rolling || !!drag?.started);
-const moveNames = { hit: EFFECTS.hit.name, guard: EFFECTS.guard.name, power: 'Power', wait: 'Wait' };
-const moveIcons = { hit: 'hit', guard: 'guard', power: 'boost' } as const;
 
 function save(): void {
   if (seeded || choosing) return;
@@ -179,23 +181,26 @@ function worldLayer(): HTMLElement {
   ));
   world.append(self);
   const intents = intentValues(combat);
+  const crowded = combat.enemies.filter(enemy => enemy.hp > 0).length > 2;
+  world.toggleAttribute('data-enemy-crowd', crowded);
   for (const enemy of combat.enemies) {
     if (enemy.hp <= 0) continue;
-    const target = button(`actor-target actor-target--enemy actor-target--${enemy.sprite}`, 'target', `${enemy.name} ${enemy.hp} of ${enemy.maxHp} HP`);
+    const duplicates = state.map ? combat.enemies.filter(other => other.name === enemy.name) : [];
+    const name = duplicates.length > 1 ? `${enemy.name} ${duplicates.findIndex(other => other.id === enemy.id) + 1}` : enemy.name;
+    const target = button(`actor-target actor-target--enemy actor-target--${enemy.sprite}`, 'target', `${name} ${enemy.hp} of ${enemy.maxHp} HP`);
     target.dataset.actor = enemy.id;
     target.dataset.targetKind = 'enemy';
     target.dataset.targetId = enemy.id;
     target.dataset.focus = enemy.id;
     const enemyIntents = element('span', 'intents');
-    for (const intent of intents.filter(intent => intent.owner === enemy.id)) {
-      const value = intent.move === 'wait' ? '' : '' + intent.value;
-      const token = intent.move === 'wait' ? '·' : effectChip(moveIcons[intent.move], value);
-      const pip = element('span', `intent intent--${intent.move}`, token);
-      pip.title = intent.move === 'wait' ? 'Wait' : `${value} ${moveNames[intent.move]}`;
-      enemyIntents.append(pip);
-    }
-    target.append(enemyIntents, element('span', 'actor-caption',
-      element('strong', '', enemy.name),
+    const badges = intents.filter(intent => intent.owner === enemy.id).map(intent => enemyIntentBadge(intent, dieNumber));
+    enemyIntents.append(...badges);
+    enemyIntents.setAttribute('aria-hidden', 'true');
+    if (badges.length) target.dataset.intentDescription = badges.map(badge => badge.title).join('. ');
+    if (!crowded) target.append(enemyIntents);
+    target.append(element('span', 'actor-caption',
+      crowded ? enemyIntents : null,
+      element('strong', '', name),
       meter(enemy.hp, enemy.maxHp),
       element('span', 'enemy-hp', `${enemy.hp}/${enemy.maxHp}`,
         enemy.guard ? effectChip('guard', enemy.guard) : null,
@@ -223,6 +228,14 @@ function worldLayer(): HTMLElement {
     world.append(dieButton);
   });
   return world;
+}
+
+function hazardButton(hazard: EnemyHazard): HTMLButtonElement {
+  const label = enemyHazardLabel(hazard, dieLabel);
+  const marker = button('enemy-hazard-button', 'hazard-details', label,
+    'dieId' in hazard ? element('span', '', dieLabel(hazard.dieId)) : null, enemyHazardBadge(hazard, dieLabel));
+  marker.title = label;
+  return marker;
 }
 
 function tray(): HTMLElement | null {
@@ -253,10 +266,15 @@ function tray(): HTMLElement | null {
       if (combat.phase === 'play') {
         seated.dataset.targetKind = 'die';
         seated.dataset.targetId = roll.dieId;
+        if (slotLocked(combat, index)) {
+          seated.setAttribute('aria-disabled', 'true');
+          seated.setAttribute('aria-description', 'This slot is sealed for this turn.');
+        }
       }
       slot.append(seated);
     }
     slot.dataset.socket = '' + index;
+    if (slotLocked(combat, index)) slot.classList.add('enemy-sealed-slot');
     rack.append(slot);
   });
 
@@ -283,7 +301,15 @@ function tray(): HTMLElement | null {
     commands.append(button('control control--primary', 'end', 'End turn', 'End turn',
       damage ? element('kbd', 'danger', `−${damage}`) : null));
   }
-  const panel = element('div', 'combat-tray', element('div', 'tray-controls', readout, commands), rack);
+  const slotThreats = combat.rolls.map((_, index) => slotHazards(combat, index));
+  const rail = slotThreats.some(hazards => hazards.length) ? element('div', 'rack enemy-hazard-rail',
+    ...slotThreats.map((hazards, index) => element('div', '',
+      hazards.length ? element('span', 'enemy-hazard-index', String(index + 1)) : null,
+      ...hazards.map(hazardButton)))) : null;
+  const direct = combat.rolls.flatMap(roll => dieHazards(combat, roll.dieId));
+  const panel = element('div', 'combat-tray', element('div', 'tray-controls', readout, commands),
+    direct.length ? element('div', 'enemy-die-threats', ...direct.map(hazardButton)) : null, rail, rack,
+    rail || direct.length ? element('p', 'enemy-hazard-hint') : null);
   panel.setAttribute('aria-busy', '' + rolling);
   return panel;
 }
@@ -783,7 +809,9 @@ function paintTargets(id: string | null, pointed?: HTMLElement): void {
     const doubled = legal && fullHealthStrike && target.kind === 'enemy'
       && state.combat?.enemies.some(enemy => enemy.id === target.id && enemy.hp === enemy.maxHp);
     node.toggleAttribute('data-full-health-bonus', !!doubled);
-    if (doubled) node.setAttribute('aria-description', 'Double damage against this target');
+    const telegraph = node.dataset.intentDescription;
+    const description = [telegraph, doubled ? 'Double damage against this target' : ''].filter(Boolean).join('. ');
+    if (description) node.setAttribute('aria-description', description);
     else node.removeAttribute('aria-description');
   }
   for (const node of view.querySelectorAll<HTMLElement>('[data-die]')) {
@@ -811,12 +839,12 @@ function paintTargets(id: string | null, pointed?: HTMLElement): void {
     const next = playResult.rolls.find(roll => roll.dieId === target.id)!;
     labels.push(`✚ +${next.boost - old.boost}`);
   }
-  if (existing.guard !== playResult.guard) labels.push(`⬟ +${playResult.guard - existing.guard}`);
+  if (existing.guard !== playResult.guard) labels.push(`⬟ ${playResult.guard > existing.guard ? '+' : '−'}${Math.abs(playResult.guard - existing.guard)}`);
   if (existing.ward !== playResult.ward) labels.push(`◒ +${playResult.ward - existing.ward}`);
   const burnChange = (playResult.burn ?? 0) - (existing.burn ?? 0);
   if (burnChange) labels.push(`♨ ${burnChange > 0 ? '+' : '−'}${Math.abs(burnChange)} Self Burn`);
   if (existing.frenzy !== playResult.frenzy) labels.push(`ϟ −${(existing.frenzy ?? 0) - (playResult.frenzy ?? 0)} Frenzy`);
-  if (state.hp !== playResult.playerHp) labels.push(`♥ +${playResult.playerHp - state.hp}`);
+  if (state.hp !== playResult.playerHp) labels.push(`♥ ${playResult.playerHp > state.hp ? '+' : '−'}${Math.abs(playResult.playerHp - state.hp)}`);
   const swing = incoming(existing) - incoming(playResult);
   if (swing) labels.push(`✦ −${swing} incoming`);
   pointed.classList.add('is-aimed');
@@ -828,8 +856,8 @@ function animateRoll(ids: string[], newTurn = false): void {
   const motion = board?.motion.matches;
   rolling = !motion && !!ids.length && stage.dataset.fallback !== 'true';
   const lead = rolling && newTurn ? 260 : 0;
-  if (lead && state.combat) board?.tossIntents(intentValues(state.combat));
   render(new Set(ids), lead);
+  if (lead && state.combat) board?.tossIntents(intentValues(state.combat).filter(intent => intent.active));
   if (rolling) {
     animTimer = window.setTimeout(() => {
       rolling = false;
@@ -1115,6 +1143,12 @@ view.addEventListener('click', event => {
   const action = node.dataset.action;
   const turn = state.combat?.turn ?? 0;
 
+  if (action === 'hazard-details') {
+    const hint = view.querySelector('.enemy-hazard-hint');
+    if (hint) hint.textContent = node.title;
+    tell(node.title);
+    return;
+  }
   if (action === 'menu') {
     menu = !menu;
     confirmingAbandon = false;
@@ -1350,7 +1384,7 @@ document.addEventListener('keydown', event => {
   else { selected = null; clearDrag(); paintTargets(null); }
 });
 
-await Promise.all([loadEffectImages(), loadFaceImages(FACE_IMAGE_PATHS)]);
+await Promise.all([loadEffectImages(), loadFaceImages(FACE_IMAGE_PATHS), loadEnemyArt()]);
 board = new Battlefield(stage, positionWorld);
 save();
 if (!choosing && state.phase === 'battle' && state.combat?.phase === 'roll' && state.combat.turn === 1 && state.combat.rerolls === baseRerolls(variant)) {

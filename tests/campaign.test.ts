@@ -226,7 +226,11 @@ test('encounter and event bags have enough variety and use existing sprite asset
   assert.equal(new Set(events).size, 15);
   assert.notEqual(nextEvent(map), events.at(-1));
   for (const fight of Object.values(CAMPAIGN_FIGHTS)) {
-    assert.equal(fight.dice.length, 5);
+    assert(fight.enemies.length >= 2 && fight.enemies.length <= 4);
+    for (const dice of [fight.dice, fight.phaseTwo ?? fight.dice]) {
+      assert.deepEqual(dice.map(die => die.owner), fight.enemies.map((_, index) => index));
+      assert(dice.every(die => die.faces.length === 6));
+    }
     for (const enemy of fight.enemies) assert(existsSync('src/art/' + enemy.sprite + '.webp'));
   }
   assert.equal(restoreSave(newLinearRun('fixed', 231), 'fixed'), null);

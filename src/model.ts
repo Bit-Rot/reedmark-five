@@ -4,13 +4,14 @@ import type { RelicEffect } from './relic-data.ts';
 export const SLOTS = ['left', 'center', 'right', 'far', 'top', 'bottom'] as const;
 export type Slot = typeof SLOTS[number];
 export type Variant = 'fixed' | 'pool';
+export const FORMATION_SIZE = 5;
 export const SEQUENCE_KEYWORDS = ['burnPlays', 'afterBurn', 'firstBurn', 'echo', 'fullHealth', 'pair', 'trio', 'clearBurn'] as const;
 export type SequenceKeyword = typeof SEQUENCE_KEYWORDS[number];
 export type Kind = 'hit' | 'guard' | 'seep' | 'boost' | 'ward' | 'vulnerable' | 'weak' | 'exert' | 'cantrip' | 'blank' | 'growth' | 'inspired'
   | 'burn' | 'selfBurn' | 'heal' | 'exhaust' | 'burnDamage' | 'burnDouble' | 'afterExhaust'
-  | 'dieBlanks' | 'kitBlanks' | 'frenzyThreshold' | 'frenzySpend' | 'frenzyAll' | SequenceKeyword;
+  | 'dieBlanks' | 'kitBlanks' | 'frenzyThreshold' | 'frenzySpend' | 'frenzyAll' | 'petrified' | 'selfDamage' | 'pain' | SequenceKeyword;
 /** Kinds that carry no number (they are either present or not). */
-export const FLAG_KINDS: readonly Kind[] = ['exert', 'cantrip', 'blank', 'inspired', 'exhaust', 'burnDamage', 'burnDouble', 'dieBlanks', ...SEQUENCE_KEYWORDS.filter(kind => kind !== 'afterBurn' && kind !== 'firstBurn')];
+export const FLAG_KINDS: readonly Kind[] = ['exert', 'cantrip', 'blank', 'petrified', 'inspired', 'exhaust', 'burnDamage', 'burnDouble', 'dieBlanks', ...SEQUENCE_KEYWORDS.filter(kind => kind !== 'afterBurn' && kind !== 'firstBurn')];
 export type TargetKind = 'enemy' | 'self' | 'die' | 'none' | 'all';
 export type Target = { kind: TargetKind; id?: string };
 
@@ -85,10 +86,23 @@ export interface Roll {
   salvaged: boolean;
 }
 export type Move = 'hit' | 'guard' | 'power' | 'wait';
+export type SlotHazardKind = 'trap' | 'lock' | 'drain' | 'petrifyOnUse' | 'corruptOnUse';
+export type DieHazardKind = 'petrifyDice' | 'corruptDice' | 'pain';
+
+export type HazardSpec =
+  | { kind: SlotHazardKind; value: number; targeting?: 'center' | 'edge'; slots?: number }
+  | { kind: DieHazardKind; value: number; count?: number };
+
+export type SlotHazard = { kind: SlotHazardKind; value: number; position: number };
+export type DieHazard = { kind: DieHazardKind; value: number; dieId: string; faces: Slot[] };
+export type EnemyHazard = SlotHazard | DieHazard;
+export type FaceHazard = { kind: 'petrified' } | { kind: 'corrupted'; value: number };
 export interface Intent {
   owner: string;
   move: Move;
   value: number;
+  hazard?: EnemyHazard;
+  hazards?: readonly EnemyHazard[];
 }
 export interface EnemyDefinition {
   id: string;
@@ -107,7 +121,7 @@ export interface Enemy extends EnemyDefinition {
   /** Stacks: -50% damage dealt while above 0, lose 1 at the end of the enemy turn. */
   weak: number;
 }
-export type IntentFace = readonly [Move, number];
+export type IntentFace = readonly [Move, number, HazardSpec?];
 export interface IntentDie {
   owner: number;
   faces: readonly IntentFace[];
@@ -139,6 +153,9 @@ export interface Combat {
   baseRerolls?: number;
   enemies: Enemy[];
   intents: Intent[];
+  faceHazards?: Record<string, Partial<Record<Slot, FaceHazard>>>;
+  pain?: Record<string, number>;
+  selfDamageTaken?: boolean;
   rolls: Roll[];
   bag: string[];
   guard: number;

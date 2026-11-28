@@ -137,6 +137,7 @@ export function act(s: State, commands?: Command[]): void {
       if (setHold(s, roll.dieId, keep)) commands?.push({ action: 'hold', id: roll.dieId });
     }
     if (reroll(s)) commands?.push({ action: 'reroll' });
+    if (s.phase !== 'battle') return;
   }
   commitRoll(s);
   commands?.push({ action: 'commit' });
@@ -157,12 +158,13 @@ export function act(s: State, commands?: Command[]): void {
     });
   for (const roll of attacks) {
     if (s.phase !== 'battle') return;
-    const options = c.enemies.filter(e => e.hp > 0).map(enemy => {
-      const next = actionPreview(s, roll.dieId, { kind: 'enemy', id: enemy.id })!;
+    const options = c.enemies.filter(e => e.hp > 0).flatMap(enemy => {
+      const next = actionPreview(s, roll.dieId, { kind: 'enemy', id: enemy.id });
+      if (!next || next.playerHp <= 0) return [];
       const after = next.enemies.find(e => e.id === enemy.id)!;
       const score = enemy.hp - after.hp + .52 * (enemy.guard - after.guard) + (after.seep - enemy.seep) * 1.45
         + (after.hp === 0 ? 4 + (incoming(c) - incoming(next)) : 0);
-      return { enemy, score };
+      return [{ enemy, score: score - 2 * (s.hp - next.playerHp) }];
     }).sort((a, b) => b.score - a.score);
     if (options[0]) {
       const aim = { kind: 'enemy', id: options[0].enemy.id } as const;
@@ -173,12 +175,12 @@ export function act(s: State, commands?: Command[]): void {
   if (s.phase !== 'battle') return;
   for (const roll of c.rolls) {
     const wide = { kind: 'all' } as const;
-    if (!roll.used && rollFace(s, roll).target === 'all' && play(s, roll.dieId, wide)) commands?.push({ action: 'play', id: roll.dieId, target: wide });
+    if (!roll.used && rollFace(s, roll).target === 'all' && (actionPreview(s, roll.dieId, wide)?.playerHp ?? 0) > 0 && play(s, roll.dieId, wide)) commands?.push({ action: 'play', id: roll.dieId, target: wide });
     if (s.phase !== 'battle') return;
   }
   for (const roll of c.rolls) {
     const aim = { kind: 'self' } as const;
-    if (play(s, roll.dieId, aim)) commands?.push({ action: 'play', id: roll.dieId, target: aim });
+    if ((actionPreview(s, roll.dieId, aim)?.playerHp ?? 0) > 0 && play(s, roll.dieId, aim)) commands?.push({ action: 'play', id: roll.dieId, target: aim });
   }
   endTurn(s);
   commands?.push({ action: 'end' });

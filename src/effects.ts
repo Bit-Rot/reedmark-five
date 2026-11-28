@@ -24,6 +24,18 @@ export const EFFECTS: Record<EffectKey, { name: string; color: string; symbol: s
     name: 'Self Burn', color: '#a85529', symbol: '♨',
     description: 'Apply Burn to yourself. Your Burn ticks before enemies act, then loses one stack.',
   },
+  petrified: {
+    name: 'Petrified', color: '#696e82', symbol: '◼',
+    description: 'This face is blank for the rest of the fight.',
+  },
+  selfDamage: {
+    name: 'Self damage', color: '#664361', symbol: '✷',
+    description: 'This corrupted face damages you whenever you roll it.',
+  },
+  pain: {
+    name: 'Pain', color: '#914f70', symbol: '✢',
+    description: 'Take this much damage whenever you play this die.',
+  },
   heal: {
     name: 'Heal', color: '#426a37', symbol: '♥',
     description: 'Recover HP up to your maximum.',

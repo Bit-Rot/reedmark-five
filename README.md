@@ -41,6 +41,12 @@ Explore any hex adjacent to cleared territory. Ordinary rooms reveal at the fron
 
 The first two boss victories restore full HP, grant a rare relic, and offer a rare imprint before exploration resumes with harder encounters. The last boss ends the run. Fixed Five saves from the linear route are incompatible with the campaign.
 
+## Enemy dice and hazards
+
+Campaign fights field two to four enemies, each with its own six-face die. Dark die faces above enemies show the rolled action. A face can combine an attack, Block, or Power with a hazard, and some hazards target two slots.
+
+Numbered hazard markers align with the five dice sockets. Tap a marker to read what it does. Slot hazards apply to the die in that socket when you play it. Some elite and boss faces can instead change a die directly with Pain, petrification, or corruption.
+
 ## Deployment
 
 `npm run build:fixed` and `npm run build:pool` produce standalone static games. This repository publishes the fixed build. The [Dice Pool deployment repository](https://github.com/Bit-Rot/reedmark-pool) pins a source commit and builds the pool variant from it. Update that pin to release a tested shared revision to the pool site.
