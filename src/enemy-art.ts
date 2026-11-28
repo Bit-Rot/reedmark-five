@@ -1,5 +1,5 @@
 import { intentHazards } from './hazards.ts';
-import type { EnemyHazard, Intent } from './model.ts';
+import type { EnemyHazard, HazardSpec, Intent } from './model.ts';
 
 const keys = ['hit', 'guard', 'power', 'trap', 'lock', 'drain', 'stone', 'rot', 'wait'] as const;
 export type EnemyArt = typeof keys[number];
@@ -10,7 +10,7 @@ const art = new Map<EnemyArt, HTMLImageElement>();
 export const enemyArtUrl = (key: EnemyArt): string => paths[`./art/enemy/${key}.webp`] ?? '';
 export const enemyArtImage = (key: EnemyArt): HTMLImageElement | undefined => art.get(key);
 
-export function hazardArt(hazard: EnemyHazard): EnemyArt {
+export function hazardArt(hazard: EnemyHazard | HazardSpec): EnemyArt {
   switch (hazard.kind) {
     case 'trap':
     case 'lock':

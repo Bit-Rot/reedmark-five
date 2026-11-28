@@ -1,7 +1,7 @@
 import { FORMATION_SIZE, SLOTS } from './model.ts';
 import type { Combat, DieHazard, EnemyHazard, Face, FaceHazard, HazardSpec, Part, Roll, Slot, SlotHazard } from './model.ts';
 
-function isDieHazard(spec: HazardSpec): spec is Extract<HazardSpec, { kind: DieHazard['kind'] }> {
+export function isDieHazard(spec: HazardSpec): spec is Extract<HazardSpec, { kind: DieHazard['kind'] }> {
   return spec.kind === 'petrifyDice' || spec.kind === 'corruptDice' || spec.kind === 'pain';
 }
 

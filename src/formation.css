@@ -45,14 +45,14 @@
     border: 1px solid #aa6959; border-radius: 3px; background: #482e29; padding: 0 2px;
   }
   [data-orden] .intents:empty { display: none; }
-  [data-orden] .actor-target .intent {
+  [data-orden] .enemy-actor .intent {
     gap: 4px; padding: 3px 5px; border-color: #c0a883; background: #17252b;
   }
-  [data-orden] .actor-target .intent--hit {
+  [data-orden] .enemy-actor .intent--hit {
     border-color: #eea48e; background: #43261f;
   }
-  [data-orden] .actor-target .intent--hit .chip { color: #ffcfbd; }
-  [data-orden] .actor-target .intent--hazard {
+  [data-orden] .enemy-actor .intent--hit .chip { color: #ffcfbd; }
+  [data-orden] .enemy-actor .intent--hazard {
     border-color: #b17d9b; background: #3d2a3c;
   }
   .actor-hazard-target {
@@ -61,11 +61,11 @@
   @media (max-width: 500px) {
     .formation-cell-heading { gap: 2px; }
     .formation-rack .socket { height: 49px; }
-    [data-orden] .actor-target .intents {
+    [data-orden] .enemy-actor .intents {
       width: max-content; max-width: 92px; flex-wrap: wrap; justify-content: center;
     }
-    [data-orden] .actor-target .intent { gap: 2px; padding: 2px 3px; }
-    [data-orden] .actor-target .intent .chip { font-size: .68rem; }
+    [data-orden] .enemy-actor .intent { gap: 2px; padding: 2px 3px; }
+    [data-orden] .enemy-actor .intent .chip { font-size: .68rem; }
     .actor-hazard-target { padding-right: 2px; }
     .formation-die-tag .chip, .formation-cell-heading .chip { font-size: .7rem; }
     .formation-hint { font-size: .76rem; }

@@ -104,6 +104,7 @@ export interface Intent {
   owner: string;
   move: Move;
   value: number;
+  dieRoll?: { die: number; face: number; phaseTwo: boolean };
   hazard?: EnemyHazard;
   hazards?: readonly EnemyHazard[];
 }

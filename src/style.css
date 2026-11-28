@@ -105,11 +105,11 @@
   .control--danger { color: #ffe3dc; background: linear-gradient(#a24a3f, #7b3027); border-color: #d98b7b; }
   .control--danger:hover:enabled { background: #b6554a; }
 
-  .actor-target, .stage-cube {
+  .actor-target, .enemy-actor, .stage-cube {
     position: absolute; left: var(--x,-100px); top: var(--y,-100px);
     transform: translate(-50%,-50%); isolation: isolate; touch-action: manipulation;
   }
-  .actor-target {
+  .actor-target, .enemy-actor {
     width: clamp(96px, 15vw, 230px); height: clamp(84px, 21vh, 250px);
     background: transparent; text-align: center; border-radius: 35%; color: var(--paper);
   }
@@ -327,7 +327,7 @@
     .icon-button { width: 30px; height: 30px; font-size: 17px; }
     .gold-hud { font-size: .78rem; }
     .relic-hud { font-size: .65rem; gap: 3px; }
-    .actor-target { width: 25vw; min-width: 72px; height: 130px; }
+    .actor-target, .enemy-actor { width: 25vw; min-width: 72px; height: 130px; }
     .actor-caption { min-width: 69px; padding: 4px 5px; gap: 3px; }
     .actor-caption strong { font-size: .61rem; }
     .actor-caption .meter { min-width: 54px; height: 3px; }
@@ -349,7 +349,7 @@
     .tray-controls { margin-bottom: 5px; }
     .socket { height: 42px; }
     .control { min-height: 31px;}
-    .actor-target { height: 28vh; }
+    .actor-target, .enemy-actor { height: 28vh; }
   }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition-duration: 0s !important; }

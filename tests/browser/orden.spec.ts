@@ -45,9 +45,9 @@ test('Reroll locks held dice and Commit opens manual tap and drag play', async (
   await loadBattle(page);
   const attacker = actor(page, 'gnat-a');
   await expect(attacker).toHaveAccessibleDescription(/8 Damage.*slot 2/i);
-  await expect(attacker.locator('.intent--hit .chip--hit')).toHaveText('8');
-  await expect(attacker.locator('.intent--hit .actor-hazard-target')).toHaveCount(0);
-  await expect(attacker.locator('.intent--hazard .actor-hazard-target')).toHaveText(['S2', 'D5']);
+  await expect(page.locator('[data-actor-frame=gnat-a]').locator('.intent--hit .chip--hit')).toHaveText('8');
+  await expect(page.locator('[data-actor-frame=gnat-a]').locator('.intent--hit .actor-hazard-target')).toHaveCount(0);
+  await expect(page.locator('[data-actor-frame=gnat-a]').locator('.intent--hazard .actor-hazard-target')).toHaveText(['S2', 'D5']);
   await expect(slot(page, 1).locator('.hazard-chip')).toBeVisible();
   await expect(page.getByText('Enemy actions', { exact: true })).toHaveCount(0);
 
@@ -110,7 +110,7 @@ test('tap can hold, release, and play a die on a narrow phone', async ({ browser
   try {
     const page = await context.newPage();
     await loadBattle(page);
-    const attack = actor(page, 'gnat-a').locator('.intent--hit');
+    const attack = page.locator('[data-actor-frame=gnat-a]').locator('.intent--hit');
     await expect(attack).toBeVisible();
     const badge = (await attack.boundingBox())!;
     const enemy = (await actor(page, 'gnat-a').locator('.actor-caption').boundingBox())!;

@@ -4,7 +4,8 @@ import './campaign.css';
 import './enemy.css';
 import './formation.css';
 import { loadEnemyArt } from './enemy-art.ts';
-import { enemyHazardBadge, enemyHazardLabel, enemyIntentBadge } from './enemy-ui.ts';
+import { dieForIntent } from './enemy-roll.ts';
+import { enemyDieChart, enemyHazardBadge, enemyHazardLabel, enemyIntentBadge } from './enemy-ui.ts';
 import { EVENTS } from './campaign-content.ts';
 import { campaignScreen } from './campaign-ui.ts';
 import { cycleAt } from './campaign-map.ts';
@@ -85,7 +86,7 @@ interface Drag {
 }
 let drag: Drag | null = null;
 let battleTap: { button: HTMLButtonElement; pointer: number; x: number; y: number } | null = null;
-const battleTapActions = new Set(['die', 'target', 'reroll', 'commit', 'end', 'hazard-details']);
+const battleTapActions = new Set(['die', 'target', 'reroll', 'commit', 'end', 'hazard-details', 'enemy-die']);
 
 let inspection: { node: HTMLElement; anchor: HTMLElement } | null = null;
 let inspectionPress: { anchor: HTMLElement; pointer: number; x: number; y: number; timer: number; opened: boolean } | null = null;
@@ -199,13 +200,11 @@ function worldLayer(): HTMLElement {
     target.dataset.targetId = enemy.id;
     target.dataset.focus = enemy.id;
     const enemyIntents = element('span', 'intents');
-    const badges = intents.filter(intent => intent.owner === enemy.id).map(intent => enemyIntentBadge(intent, dieNumber));
+    const badges = intents.flatMap((intent, index) => intent.owner === enemy.id
+      ? [enemyIntentBadge(intent, dieNumber, name, index)] : []);
     enemyIntents.append(...badges);
-    enemyIntents.setAttribute('aria-hidden', 'true');
     if (badges.length) target.dataset.intentDescription = badges.map(badge => badge.title).join('. ');
-    if (!crowded) target.append(enemyIntents);
     target.append(element('span', 'actor-caption',
-      crowded ? enemyIntents : null,
       element('strong', '', name),
       meter(enemy.hp, enemy.maxHp),
       element('span', 'enemy-hp', `${enemy.hp}/${enemy.maxHp}`,
@@ -216,7 +215,9 @@ function worldLayer(): HTMLElement {
         enemy.weak ? effectChip('weak', enemy.weak) : null,
       ),
     ));
-    world.append(target);
+    const actor = element('div', 'enemy-actor', target, enemyIntents);
+    actor.dataset.actorFrame = enemy.id;
+    world.append(actor);
   }
   combat.rolls.forEach(roll => {
     if (roll.held || roll.used) return;
@@ -795,8 +796,8 @@ function renderEnding(): HTMLElement {
 
 function positionWorld(): void {
   if (!board) return;
-  for (const actor of view.querySelectorAll<HTMLElement>('[data-actor]')) {
-    const id = actor.dataset.actor!;
+  for (const actor of view.querySelectorAll<HTMLElement>('[data-actor-frame], .actor-target--self')) {
+    const id = (actor.dataset.actorFrame ?? actor.dataset.actor)!;
     const center = board.actorPoint(id, 'center');
     const captionPoint = board.actorPoint(id, 'label');
     const intentPoint = board.actorPoint(id, 'intent');
@@ -1031,31 +1032,49 @@ function openInspection(anchor: HTMLElement, keyboard = false): void {
     net = faceNet(die, undefined, true, battle ? state : undefined);
   } else return;
 
+  const panel = battle ? element('section', 'die-inspection') : element('dialog', 'die-inspection reward-inspection');
+  showInspection(panel, anchor, title, heading, net, battle ? 'Close die layout' : 'Close inspection');
+  if (keyboard) panel.querySelector<HTMLElement>('[data-face-help]')?.focus({ preventScroll: true });
+}
+
+function openEnemyDie(anchor: HTMLButtonElement): void {
+  const room = currentRoom(state);
+  const combat = state.combat;
+  if (room.type !== 'battle' || !combat) return;
+  const index = Number(anchor.dataset.index);
+  const die = dieForIntent(room, combat, index, !!state.map);
+  if (!die) return;
+  const face = combat.intents[index].dieRoll?.face;
+  const chart = enemyDieChart(die, face !== undefined && die.faces[face] ? face : undefined);
+  const currentIntent = element('p', 'enemy-current-intent', 'This turn', element('span', '', anchor.title));
+  const title = anchor.dataset.enemyName + ' die';
+  showInspection(element('dialog', 'die-inspection enemy-die-inspection'), anchor, title, title,
+    element('div', '', currentIntent, chart), 'Close enemy die');
+}
+
+function showInspection(panel: HTMLElement, anchor: HTMLElement, title: string, heading: string, content: HTMLElement, closeLabel: string): void {
   closeInspection();
   tooltips.hide();
-  const close = button('subtle', 'close-inspection', battle ? 'Close die layout' : 'Close inspection', 'Close');
+  const close = button('subtle', 'close-inspection', closeLabel, 'Close');
   close.addEventListener('click', () => closeInspection(true));
-  const dialog = battle ? null : element('dialog', 'die-inspection reward-inspection');
-  const panel = dialog ?? element('section', 'die-inspection');
-  panel.append(element('div', 'inspect-heading', element('h2', '', heading), close), net);
+  panel.append(element('div', 'inspect-heading', element('h2', '', heading), close), content);
   panel.setAttribute('role', 'dialog');
   panel.setAttribute('aria-label', title);
   root.append(panel);
   inspection = { node: panel, anchor };
   anchor.setAttribute('aria-expanded', 'true');
 
-  if (dialog) {
-    dialog.addEventListener('cancel', event => {
+  if (panel instanceof HTMLDialogElement) {
+    panel.addEventListener('cancel', event => {
       event.preventDefault();
       closeInspection(true);
     });
-    dialog.addEventListener('click', event => {
-      if (event.target === dialog) closeInspection(true);
+    panel.addEventListener('click', event => {
+      if (event.target === panel) closeInspection(true);
     });
-    dialog.showModal();
+    panel.showModal();
     close.focus({ preventScroll: true });
   } else positionFloater(panel, anchor.getBoundingClientRect(), true);
-  if (keyboard) panel.querySelector<HTMLElement>('[data-face-help]')?.focus({ preventScroll: true });
 }
 
 function cancelInspectionPress(): void {
@@ -1253,6 +1272,10 @@ view.addEventListener('click', event => {
     return;
   }
   if (rolling || ledger) return;
+  if (action === 'enemy-die') {
+    openEnemyDie(node);
+    return;
+  }
 
   if (action === 'explore-tile' && explore(state, node.dataset.tile!)) {
     transition('map', 0);

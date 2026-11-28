@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { newLinearRun } from '../src/game.ts';
-import { rollEnemyIntents } from '../src/enemy-roll.ts';
+import { dieForIntent, rollEnemyIntents } from '../src/enemy-roll.ts';
 import { intentHazards, slotHazards } from '../src/hazards.ts';
 import type { Encounter, IntentFace } from '../src/model.ts';
 
@@ -36,4 +36,28 @@ test('the next roll in a resumed encounter includes the original roster only', (
   };
   const result = rollEnemyIntents(room, combat, state.dice.map(die => die.id), state.seed, 1, true);
   assert.deepEqual(result.map(intent => intent.owner), [enemy.id]);
+});
+
+test('intent inspection follows the rolled die when the boss crosses a health threshold', () => {
+  const state = newLinearRun('fixed', 231);
+  const combat = state.combat!;
+  const enemy = combat.enemies[0];
+  combat.enemies = [enemy];
+  const room: Encounter = {
+    type: 'battle', name: 'Boss', rank: 'boss', enemies: [enemy],
+    dice: [{ owner: 0, faces: Array.from({ length: 6 }, () => ['hit', 2] as const) }],
+    phaseTwo: [{ owner: 0, faces: Array.from({ length: 6 }, () => ['hit', 4] as const) }],
+  };
+  const roll = () => rollEnemyIntents(room, combat, state.dice.map(die => die.id), state.seed, 1, true);
+  combat.intents = roll();
+  enemy.hp = 1;
+  const firstRoll = combat.intents[0].dieRoll!;
+  const firstDie = dieForIntent(room, combat, 0, true);
+  assert.equal(firstDie, room.dice[0]);
+  assert.equal(firstDie.faces[firstRoll.face][1], combat.intents[0].value);
+
+  combat.intents = roll();
+  assert.equal(dieForIntent(room, combat, 0, true), room.phaseTwo![0]);
+  delete combat.intents[0].dieRoll;
+  assert.equal(dieForIntent(room, combat, 0, true), room.phaseTwo![0]);
 });
