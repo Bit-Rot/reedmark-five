@@ -72,6 +72,7 @@ export class Battlefield {
   private width = 1;
   private height = 1;
   private compact = false;
+  private crowded = false;
   private onProjection: () => void;
   readonly motion = matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -154,6 +155,7 @@ export class Battlefield {
   setActors(enemies: readonly Enemy[]): void {
     if (!this.actors.has('courier')) this.createActor('courier', 'courier', new THREE.Vector3(this.compact ? -2.9 : -4.05, 0, -.55), 2.94);
     const allowed = new Set(enemies.filter(enemy => enemy.hp > 0).map(enemy => enemy.id));
+    this.crowded = allowed.size > 2;
     for (const [id, actor] of this.actors) {
       if (id === 'courier' || id.startsWith('reeds-') || allowed.has(id)) continue;
       this.scene.remove(actor.sprite, actor.ellipse);
@@ -261,7 +263,8 @@ export class Battlefield {
   }
 
   private dicePosition(index: number): THREE.Vector3 {
-    return new THREE.Vector3((index - 2) * (this.compact ? 1.68 : 1.66), .5, this.compact ? 2.38 : 2.35);
+    const depth = this.compact ? (this.crowded ? 3.03 : 2.38) : 2.35;
+    return new THREE.Vector3((index - 2) * (this.compact ? 1.68 : 1.66), .5, depth);
   }
 
   syncDice(dice: readonly { die: Die; faces: Record<Slot, Face>; slot: Slot; shown: boolean }[], animate: ReadonlySet<string> = new Set(), lead = 0): void {
