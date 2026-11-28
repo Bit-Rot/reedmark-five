@@ -43,25 +43,26 @@ function familyDie(family: Family, owner: number, tier: number, elite: boolean):
   // Every hazard has a tell. Most faces threatening multiple slots still leave somewhere safe.
   switch (family[2]) {
     case 'trap':
-      return die(owner, hit(2, trap(1)), hit(3), hit(2, trap(2)), guard(2),
+      return die(owner, hit(2, trap(1)), hit(3), hit(2, trap(2)), wait,
         hex(trap(2, 2)), hit(1));
     case 'drain':
       return die(owner, hit(strike + 2), hit(strike, drain(2)), hit(strike - 1, drain(1, 2)),
-        hit(strike + 1), guard(protection, drain(2, 2)), power(elite ? pain : drain(2)));
+        hit(strike + 1), hex(drain(2, 2)), power(elite ? pain : drain(2)));
     case 'seal':
+      // Only shield-focused enemies spend faces on Block.
       return die(owner, guard(protection + 1), hit(strike, seal()), guard(protection, seal('edge')),
         hit(strike - 1, drain(2)), guard(protection + 2, heavy ? petrify : seal()), hex(seal('edge', 2)));
     case 'petrify':
-      return die(owner, hit(strike - 1, stone()), hit(strike), guard(protection, stone(2)),
+      return die(owner, hit(strike - 1, stone()), hit(strike), hex(stone(2)),
         hit(strike - 1, stone()), hex(heavy ? petrify : stone(2)), hit(strike - 1));
     case 'corrupt':
-      return die(owner, power(pain), hit(strike + 1), guard(protection, rot(2)),
+      return die(owner, power(pain), hit(strike + 1), hex(rot(2)),
         hit(strike, rot()), hex(heavy ? corrupt : rot(2)), hit(strike));
     case 'burst':
       return die(owner, hit(strike + 4), wait, hit(strike + 1, stone()),
-        guard(protection, heavy ? petrify : undefined), hit(strike + 3), hex(heavy ? corrupt : stone(2)));
+        heavy ? hex(petrify) : wait, hit(strike + 3), hex(heavy ? corrupt : stone(2)));
     case 'power':
-      return die(owner, power(), hit(strike + 1), guard(protection, rot()),
+      return die(owner, power(), hit(strike + 1), hex(rot()),
         hit(strike, trap(2)), power(elite ? pain : drain(2, 2)), hit(strike));
   }
 }
@@ -129,14 +130,14 @@ function boss(id: string, name: string, hp: number, tier: number, escort: readon
 export const BOSS_IDS = ['bellroot', 'floodgate-keeper', 'stormwing-matriarch'] as const;
 export const CAMPAIGN_FIGHTS: Record<string, Encounter> = {
   bellroot: boss('bellroot', 'Bellroot', 40, 0, [warden, gnat],
-    die(0, hit(7), guard(6, seal()), hit(5, trap(2, 2)), power(drain(1, 2)), hit(6), guard(4)),
-    die(0, hit(10), hit(7, stone(2)), guard(6, petrify), hit(8, trap(2, 2)), hit(9), power(drain(2, 2)))),
+    die(0, hit(7), hex(seal()), hit(5, trap(2, 2)), power(drain(1, 2)), hit(6), hit(4)),
+    die(0, hit(10), hit(7, stone(2)), hex(petrify), hit(8, trap(2, 2)), hit(9), power(drain(2, 2)))),
   [BOSS_IDS[1]]: boss('floodgate-keeper', 'Floodgate Keeper', 56, 1, [reedback, eel],
     die(0, hit(10), guard(8, seal('edge', 2)), hit(8, drain(2, 2)), guard(6, petrify), hit(9), power(stone(2))),
     die(0, hit(13), hit(11, trap(2, 2)), guard(8, petrify), hit(10, seal('edge', 2)), hit(11), hit(8, drain(2, 2)))),
   [BOSS_IDS[2]]: boss('stormwing-matriarch', 'Stormwing Matriarch', 70, 2, [harrier, lantern],
-    die(0, hit(15), hit(12, rot(2)), hit(13, drain(2, 2)), guard(8, corrupt), power(pain), hit(15)),
-    die(0, hit(19), hit(15, rot(2)), guard(9, corrupt), hit(17), hit(14, seal('edge', 2)), hit(16, pain))),
+    die(0, hit(15), hit(12, rot(2)), hit(13, drain(2, 2)), hex(corrupt), power(pain), hit(15)),
+    die(0, hit(19), hit(15, rot(2)), power(corrupt), hit(17), hit(14, seal('edge', 2)), hit(16, pain))),
 };
 
 const opening: string[] = [];

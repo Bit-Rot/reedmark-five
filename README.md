@@ -68,7 +68,7 @@ Recover HP by resting at camp, choosing certain events, or defeating a campaign 
 
 Campaign fights field two to four enemies, each with its own six-face die. Dark die faces above enemies show the rolled action. A face can combine an attack, Block, or Power with a hazard, and some hazards target two slots.
 
-Mire Gnats spread traps across several slots. Mudrunner drains pips while threatening a heavy hit. Reed Wardens seal the center or edges, while Silt Skaters threaten to petrify faces you use. Later encounters mix those roles and add enemies that threaten lasting Pain and corruption.
+Mire Gnats spread traps across several slots. Mudrunner drains pips while threatening a heavy hit. Reed Wardens seal the center or edges, while Silt Skaters threaten to petrify faces you use. Later encounters mix those roles and add enemies that threaten lasting Pain and corruption. Reed Wardens, Reedbacks, the Ford Matron, and the Floodgate Keeper can gain Block. Other enemies may use their quieter faces to place hazards or wait.
 
 Numbered hazard markers align with the five dice sockets. Tap a marker to read what it does. Slot hazards apply to the die in that socket when you play it. Some elite and boss faces can instead change a die directly with Pain, petrification, or corruption.
 

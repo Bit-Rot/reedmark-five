@@ -237,3 +237,16 @@ test('encounter and event bags have enough variety and use existing sprite asset
   assert.equal(restoreSave(newRun('pool', 231), 'pool')?.phase, 'battle');
   assert.deepEqual(newRun('fixed', 231), newRun('fixed', 231));
 });
+
+test('only shield specialists roll Block in the campaign', () => {
+  const specialists = new Set(['warden', 'reedback', 'ford-matron', 'floodgate-keeper']);
+  for (const fight of Object.values(CAMPAIGN_FIGHTS)) {
+    for (const dice of [fight.dice, ...(fight.phaseTwo ? [fight.phaseTwo] : [])]) {
+      for (const die of dice) {
+        const enemy = fight.enemies[die.owner];
+        assert.equal(die.faces.some(([move]) => move === 'guard'), specialists.has(enemy.sprite),
+          fight.name + ' / ' + enemy.name);
+      }
+    }
+  }
+});
